@@ -441,8 +441,8 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     if (muzzleFlashTimer <= 0) muzzleGroup.visible = false;
   }
 
-  if (!isPlayerDying && !isGameOver) {
-    if ((keys['ShiftLeft'] || keys['ShiftRight']) && gunCooldown <= 0) {
+     if (!isPlayerDying && !isGameOver) {
+    if (keys['ShiftLeft'] && gunCooldown <= 0) {
       fireGunpod(scene, playerContainer, velocity);
       gunCooldown = 0.085;
     }

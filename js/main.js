@@ -88,30 +88,19 @@ window.addEventListener('keydown', (e) => {
   if (key === 'g') transformTo('GERWALK');
   if (key === 'b') transformTo('BATTROID');
   if (key === 'e') triggerGunpodMelee();
-  if (code === 'Numpad5' || code === 'NumpadClear') startAcceleration();
-  if (code === 'Numpad8' || code === 'NumpadUp') triggerFullStop();
-  if (code === 'Numpad0' || code === 'NumpadInsert') startReverseGerwalk();
+  if (key === 't' || code === 'KeyT') startAcceleration();
+  if (key === 'x' || code === 'KeyX') triggerFullStop();
+  if (key === 'r' || code === 'KeyR') startReverseGerwalk();
 }, true);
 
-window.addEventListener('click', (e) => {
-  if (typeof isGameOver !== 'undefined' && isGameOver) {
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    if (Math.abs(e.clientY - (cy + 38)) < 28) {
-      if (Math.abs(e.clientX - (cx - 78)) < 55) {
-        window.location.reload();
-      } else if (Math.abs(e.clientX - (cx + 78)) < 55) {
-        restartDeclined = true;
-      }
-    }
-  }
+window.addEventListener('keyup', (e) => {
+  const key = (e.key || '').toLowerCase();
+  const code = e.code || '';
+  keys[code] = false;
+  if (key === 't' || code === 'KeyT') stopAcceleration();
+  if (key === 'r' || code === 'KeyR') stopReverseGerwalk();
 });
 
-window.addEventListener('keyup', (e) => {
-  keys[e.code] = false;
-  if (e.code === 'Numpad5' || e.code === 'NumpadClear') stopAcceleration();
-  if (e.code === 'Numpad0' || e.code === 'NumpadInsert') stopReverseGerwalk();
-});
 
 let fpsFrames = 0;
 let fpsTime = 0;
@@ -139,10 +128,11 @@ function animate() {
     updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, keys, hudEl);
   }
 
-  const isFullStop = Boolean(keys['Numpad8'] || keys['NumpadUp']);
+  const isFullStop = Boolean(keys['KeyX']);
   const hasIncoming = (typeof enemyBullets !== 'undefined' && enemyBullets.length > 0);
-  const isFiringGun = Boolean(keys['ShiftLeft'] || keys['ShiftRight']);
+  const isFiringGun = Boolean(keys['ShiftLeft']);
   const hasLockedTargets = (typeof lockedEnemies !== 'undefined' && lockedEnemies.length > 0);
+
 
   if (typeof updateEngineAudio === 'function') {
     updateEngineAudio(

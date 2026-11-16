@@ -329,7 +329,7 @@ function resetPlayerMission(playerContainer, visualTiltGroup) {
 }
 function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, keys, hudEl) {
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
-  const isFullStop = keys['Numpad8'] || keys['NumpadUp'];
+  const isFullStop = Boolean(keys['KeyX']);
 
   if (isPlayerDying || isGameOver) {
     updateThrusters(true, keys);
