@@ -7,7 +7,7 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 ## Características Principales
 
 * **Transformación en Tiempo Real:** Transición animada fluida entre los modos **Fighter**, **Gerwalk** y **Battroid** con físicas de vuelo independientes para cada configuración.
-* **Sistema de Control de Tiro DYRL:** HUD vectorial con efecto *bloom* CRT, retículas hexagonales enemigas, rastreadores y **Multi-Lock simultáneo de hasta 4 blancos**.
+* **Sistema de Control de Tiro DYRL:** HUD vectorial con efecto *bloom* CRT, retículas hexagonales enemigas, rastreadores con corchetes a 45° y **Multi-Lock simultáneo de hasta 4 blancos**.
 * **Armamento y Efectos:** Cañón Gunpod GU-11 con fogonazo e iluminación dinámica, salva de 4 micro-misiles guiados con trayectoria en zigzag y estela de humo instanciada (`InstancedMesh`).
 * **Gestión de Daño y Térmica:** Barra de integridad de armadura con regeneración, chispas de impacto iluminadas, secuencia de caída a tierra y control de sobrecalentamiento de turbinas (*Overheat*).
 * **Audio Dinámico en OGG:** Motor de sonido de baja latencia con modulación continua de tono/velocidad de turbinas, alertas de misiles y corte limpio de ráfagas.
@@ -15,6 +15,8 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 ---
 
 ## Controles de Vuelo y Combate
+
+El esquema utiliza únicamente teclas estándar (letras, flechas y barra espaciadora) para evitar conflictos con atajos del sistema operativo o teclados sin bloque numérico.
 
 ### Transformación de Modos
 
@@ -32,8 +34,8 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 | **`A` / `D`** | Guiñada horizontal (*Yaw* izquierda / derecha) |
 | **`Flecha Izq` / `Der`** | Alabeo (*Roll* izquierda / derecha) |
 | **`Flecha Arriba` / `Abajo`** | Cabeceo (*Pitch* picada / elevación) |
-| **`Numpad 5`** *(mantener)* | **Turbo / Postcombustión** (vigilar temperatura de turbinas) |
-| **`Numpad 8`** | **Full Stop** (frenado total a 0%) |
+| **`T`** *(mantener)* | **Turbo / Postcombustión** (vigilar temperatura de turbinas) |
+| **`X`** | **Full Stop** (frenado total a 0%) |
 
 ### Movimiento en Modos Gerwalk (`G`) y Battroid (`B`)
 
@@ -43,14 +45,14 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 | **`A` / `D`** | Desplazamiento lateral (*Strafe* izquierda / derecha) |
 | **`Flecha Izq` / `Der`** | Girar sobre el eje vertical |
 | **`Flecha Arriba` / `Abajo`** | Ascender / Descender altitud |
-| **`Numpad 0`** *(mantener)* | Reversa rápida en modo Gerwalk |
+| **`R`** *(mantener)* | Reversa rápida en modo Gerwalk |
 | **`E`** | Ataque cuerpo a cuerpo con Gunpod (solo en modo **Battroid**) |
 
 ### Armamento y Sistema
 
 | Tecla | Acción |
 | :--- | :--- |
-| **`Shift`** *(mantener)* | Disparar ráfaga continua de **Gunpod GU-11** |
+| **`Z` / `J`** *(mantener)* | Disparar ráfaga continua de **Gunpod GU-11** |
 | **`Espacio`** | Lanzar salva de **4 Micro-Misiles Guiados AMM-1** (repartidos en Multi-Lock) |
 | **`P`** | **Pausar / Reanudar** la simulación |
 | **`Y` / `N`** | Reiniciar misión (`YES` / `NO`) tras ser derribado |
@@ -62,7 +64,7 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 ```text
 macross-voxp-web/
 ├── index.html          # Estructura principal, carga de fuentes y módulos
-├── three.min.js        # Motor gráfico Three.js
+├── three.min.js        # Motor gráfico Three.js (WebGL 2.0)
 ├── GLTFLoader.js       # Cargador de modelos 3D GLB
 ├── fonts/              # Tipografía Conthrax para el HUD
 ├── models/             # Modelo 3D animado de la Valkyrie (vf1a.glb)
@@ -80,4 +82,3 @@ macross-voxp-web/
 ## Ejecución Local
 
 Dado que el proyecto carga modelos `.glb` y archivos de audio `.ogg` mediante `fetch`, debe ejecutarse a través de un servidor web local (por ejemplo, la extensión **Live Server** en VS Code o `python -m http.server`) y no abriendo el archivo `index.html` directamente con doble clic.
-
