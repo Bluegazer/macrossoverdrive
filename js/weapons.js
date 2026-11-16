@@ -89,8 +89,16 @@ const enemyBeamMat = new THREE.MeshBasicMaterial({
 const beamPlaneGeo = new THREE.PlaneGeometry(0.14, 1.4);
 beamPlaneGeo.rotateX(-Math.PI / 2);
 
-const sparkGeo = new THREE.PlaneGeometry(0.022, 0.022);
+const sparkGeo = new THREE.PlaneGeometry(0.042, 0.042);
 const impactSparkLight = new THREE.PointLight(0xffaa33, 0, 4.5);
+
+const texLoader = new THREE.TextureLoader();
+const explosionFrames = new Array();
+const explosionPlaneGeo = new THREE.PlaneGeometry(4.2, 4.2);
+
+for (let i = 1; i <= 10; i++) {
+  explosionFrames.push(texLoader.load('./textures/exp' + i + '.webp'));
+}
 
 const missileBodyGeo = new THREE.CylinderGeometry(0.022, 0.025, 0.34, 6);
 missileBodyGeo.rotateX(Math.PI / 2);
@@ -276,6 +284,7 @@ function fireMicroMissiles(scene, playerContainer) {
       zigSign: (idx % 2 === 0 ? 1 : -1)
     });
   });
+
   if (typeof playSFX === 'function') playSFX('missileLaunch', 0.8, 0.05);
 }
 function spawnSmokeParticle(pos, scale) {
@@ -334,7 +343,6 @@ function spawnImpactSparks(scene, camera, pos) {
     mesh.quaternion.copy(camera.quaternion);
     scene.add(mesh);
 
-    // Dirección esférica aleatoria en 360° y alta velocidad de eyección
     const dir = new THREE.Vector3(
       Math.random() - 0.5,
       Math.random() - 0.5,
@@ -352,17 +360,29 @@ function spawnImpactSparks(scene, camera, pos) {
   }
 }
 
-
 function spawnExplosion(scene, camera, pos, scaleMult) {
+  if (explosionFrames.length === 0) return;
   const s = scaleMult || 1.0;
+
   const mat = new THREE.MeshBasicMaterial({
-    map: flashTex, color: 0xff9922, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    map: explosionFrames[0],
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide
   });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.6 * s, 1.6 * s), mat);
+
+  const mesh = new THREE.Mesh(explosionPlaneGeo, mat);
   mesh.position.copy(pos);
+  mesh.scale.set(s, s, s);
   mesh.quaternion.copy(camera.quaternion);
   scene.add(mesh);
-  explosions.push({ mesh: mesh, mat: mat, life: 0.48, maxLife: 0.48 });
+
+  explosions.push({
+    mesh: mesh,
+    mat: mat,
+    life: 0.52,
+    maxLife: 0.52
+  });
 }
 
 function damagePlayerArmor(scene, camera, playerContainer, dmg) {
@@ -383,6 +403,7 @@ function damagePlayerArmor(scene, camera, playerContainer, dmg) {
 }
 
 function damageEnemy(scene, camera, enemy, dmg) {
+  if (enemy.respawnTimer > 0) return;
   enemy.hp -= dmg;
   if (enemy.hp <= 0) {
     spawnExplosion(scene, camera, enemy.mesh.position, 1.0);
@@ -441,7 +462,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     if (muzzleFlashTimer <= 0) muzzleGroup.visible = false;
   }
 
-     if (!isPlayerDying && !isGameOver) {
+  if (!isPlayerDying && !isGameOver) {
     if (keys['ShiftLeft'] && gunCooldown <= 0) {
       fireGunpod(scene, playerContainer, velocity);
       gunCooldown = 0.085;
@@ -530,7 +551,6 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
 
     m.life -= delta;
     if (hit || m.life <= 0) {
-      if (hit) spawnExplosion(scene, camera, m.mesh.position, 1.0);
       scene.remove(m.mesh);
       missiles.splice(i, 1);
     }
@@ -559,10 +579,9 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   }
   if (anyUpdated) smokeInstMesh.instanceMatrix.needsUpdate = true;
 
-    for (let i = sparks.length - 1; i >= 0; i--) {
+  for (let i = sparks.length - 1; i >= 0; i--) {
     const sp = sparks[i];
     sp.life -= delta;
-    // Sin gravedad: salen despedidas en línea recta con ligero frenado aerodinámico
     sp.vel.multiplyScalar(1.0 - 2.5 * delta);
     sp.mesh.position.addScaledVector(sp.vel, delta);
     sp.mesh.quaternion.copy(camera.quaternion);
@@ -574,13 +593,18 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     }
   }
 
-
   for (let i = explosions.length - 1; i >= 0; i--) {
     const ex = explosions[i];
     ex.life -= delta;
     ex.mesh.quaternion.copy(camera.quaternion);
-    ex.mesh.scale.addScalar(6.5 * delta);
-    ex.mat.opacity = Math.max(0, ex.life / ex.maxLife);
+
+    const total = explosionFrames.length;
+    if (total > 0) {
+      const progress = 1.0 - Math.max(0, ex.life / ex.maxLife);
+      const frameIndex = Math.min(total - 1, Math.floor(progress * total));
+      ex.mat.map = explosionFrames[frameIndex];
+    }
+
     if (ex.life <= 0) {
       scene.remove(ex.mesh);
       ex.mat.dispose();
