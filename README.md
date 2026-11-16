@@ -16,8 +16,6 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 
 ## Controles de Vuelo y Combate
 
-El esquema utiliza únicamente teclas estándar (letras, flechas y barra espaciadora) para evitar conflictos con atajos del sistema operativo o teclados sin bloque numérico.
-
 ### Transformación de Modos
 
 | Tecla | Acción |
@@ -52,7 +50,7 @@ El esquema utiliza únicamente teclas estándar (letras, flechas y barra espacia
 
 | Tecla | Acción |
 | :--- | :--- |
-| **`Z` / `J`** *(mantener)* | Disparar ráfaga continua de **Gunpod GU-11** |
+| **`Shift Izq`** *(mantener)* | Disparar ráfaga continua de **Gunpod GU-11** |
 | **`Espacio`** | Lanzar salva de **4 Micro-Misiles Guiados AMM-1** (repartidos en Multi-Lock) |
 | **`P`** | **Pausar / Reanudar** la simulación |
 | **`Y` / `N`** | Reiniciar misión (`YES` / `NO`) tras ser derribado |
