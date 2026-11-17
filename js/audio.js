@@ -10,6 +10,11 @@ let bgmVolumeLevel = 0.65;
 let bgmEnabled = true;
 let bgmSource = null;
 
+const TITLE_BGM_FILE = './sounds/TitleBGM.ogg';
+const TITLE_BGM_VOLUME = 0.28;
+let titleAudio = null;
+let isTitleMusicActive = true;
+
 let engineSource = null;
 let engineGain = null;
 
@@ -52,6 +57,41 @@ function setBGMVolume(percent) {
 function toggleMusic() {
   bgmEnabled = !bgmEnabled;
 }
+function initTitleMusic() {
+  if (titleAudio) return;
+  titleAudio = new Audio(TITLE_BGM_FILE);
+  titleAudio.loop = true;
+  titleAudio.volume = TITLE_BGM_VOLUME;
+}
+
+function playTitleMusic() {
+  isTitleMusicActive = true;
+  initTitleMusic();
+  if (titleAudio && titleAudio.paused) {
+    titleAudio.volume = TITLE_BGM_VOLUME;
+    titleAudio.play().catch(() => {});
+  }
+}
+
+function stopTitleMusic() {
+  isTitleMusicActive = false;
+  if (titleAudio && !titleAudio.paused) {
+    titleAudio.pause();
+    titleAudio.currentTime = 0;
+  }
+}
+
+function handleFirstInteraction() {
+  if (isTitleMusicActive) {
+    playTitleMusic();
+  } else {
+    unlockAudio();
+  }
+}
+
+window.addEventListener('pointerdown', handleFirstInteraction);
+window.addEventListener('keydown', handleFirstInteraction);
+
 function startBGMLoop() {
   if (!audioCtx || !soundBuffers.bgm || bgmSource) return;
 
@@ -72,7 +112,7 @@ function initAudioSystem() {
   sfxMasterGain.connect(audioCtx.destination);
 
   bgmMasterGain = audioCtx.createGain();
-  bgmMasterGain.gain.value = bgmEnabled ? bgmVolumeLevel : 0;
+  bgmMasterGain.gain.value = (bgmEnabled && !isTitleMusicActive) ? bgmVolumeLevel : 0;
   bgmMasterGain.connect(audioCtx.destination);
 
   for (const key in SOUND_FILES) {
@@ -95,9 +135,6 @@ function unlockAudio() {
   }
 }
 
-window.addEventListener('keydown', unlockAudio, { once: true });
-window.addEventListener('mousedown', unlockAudio, { once: true });
-
 function playSFX(name, volume, pitchVariation) {
   if (!audioCtx || !soundBuffers[name]) return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -116,7 +153,6 @@ function playSFX(name, volume, pitchVariation) {
   gainNode.connect(sfxMasterGain || audioCtx.destination);
   source.start(0);
 }
-
 function updateMissileWarningAudio(closestDist) {
   if (!audioCtx || !soundBuffers.missileWarning) return;
 
@@ -155,6 +191,7 @@ function updateMissileWarningAudio(closestDist) {
     }, 70);
   }
 }
+
 function updateGunpodAudio(isFiring) {
   if (!audioCtx || !soundBuffers.gunpod) return;
 
@@ -227,15 +264,29 @@ function startEngineLoop() {
   engineSource.loop = true;
 
   engineGain = audioCtx.createGain();
-  engineGain.gain.value = 0.15;
+  engineGain.gain.value = 0.0;
 
   engineSource.connect(engineGain);
   engineGain.connect(sfxMasterGain || audioCtx.destination);
   engineSource.start(0);
 }
 
+function silenceAllCombatAudio() {
+  if (!audioCtx) return;
+  if (bgmMasterGain) bgmMasterGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.05);
+  if (engineGain) engineGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.05);
+  updateGunpodAudio(false);
+  updateLockOnAudio(false);
+  updateMissileWarningAudio(Infinity);
+}
+
 function updateEngineAudio(delta, isPaused, isFullStop, isAccelerating, currentMode, throttle, speed, closestLockedMissileDist, isFiringGun, hasLockedTargets) {
   if (!audioCtx) return;
+
+  if (isTitleMusicActive) {
+    silenceAllCombatAudio();
+    return;
+  }
 
   const isDead = (typeof isPlayerDying !== 'undefined' && isPlayerDying) || (typeof isGameOver !== 'undefined' && isGameOver);
 
@@ -283,3 +334,5 @@ function updateEngineAudio(delta, isPaused, isFullStop, isAccelerating, currentM
   engineGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.1);
   engineSource.playbackRate.setTargetAtTime(targetPitch, audioCtx.currentTime, 0.12);
 }
+
+playTitleMusic();

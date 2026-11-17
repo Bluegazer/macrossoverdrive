@@ -37,6 +37,7 @@ function startMission() {
   if (isGameStarted) return;
   isGameStarted = true;
   restartDeclined = false;
+  if (typeof stopTitleMusic === 'function') stopTitleMusic();
   if (startScreenEl) startScreenEl.classList.add('hidden');
   if (uiPanelEl) uiPanelEl.classList.remove('hidden');
   if (fpsEl) fpsEl.classList.remove('hidden');
@@ -51,6 +52,9 @@ function returnToStartScreen() {
   restartDeclined = false;
   for (const k in keys) keys[k] = false;
 
+  if (typeof silenceAllCombatAudio === 'function') {
+    silenceAllCombatAudio();
+  }
   if (typeof resetPlayerMission === 'function') {
     resetPlayerMission(playerContainer, visualTiltGroup);
   }
@@ -64,6 +68,10 @@ function returnToStartScreen() {
   if (uiPanelEl) uiPanelEl.classList.add('hidden');
   if (fpsEl) fpsEl.classList.add('hidden');
   if (startScreenEl) startScreenEl.classList.remove('hidden');
+
+  if (typeof playTitleMusic === 'function') {
+    playTitleMusic();
+  }
 }
 
 const btnStartGame = document.getElementById('btnStartGame');
@@ -113,6 +121,11 @@ window.addEventListener('keydown', (e) => {
     if (key === 'enter' || code === 'Enter' || code === 'NumpadEnter') {
       startMission();
     }
+    return;
+  }
+
+  if (key === 'escape' || code === 'Escape') {
+    returnToStartScreen();
     return;
   }
 
