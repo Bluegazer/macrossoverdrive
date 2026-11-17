@@ -1,8 +1,13 @@
 const hudEl = document.getElementById('hud');
 const fpsEl = document.getElementById('fpsBox');
+const startScreenEl = document.getElementById('startScreen');
+const uiPanelEl = document.getElementById('ui');
+
 const keys = {};
+let isGameStarted = false;
 let isPaused = false;
 let restartDeclined = false;
+let introOrbitAngle = 0.65;
 
 const scene = new THREE.Scene();
 buildSouthAtariaEnvironment(scene);
@@ -28,20 +33,58 @@ playerContainer.add(visualTiltGroup);
 initWeaponsAndEnemies(scene, playerContainer);
 loadPlayerModel(visualTiltGroup);
 
+function startMission() {
+  if (isGameStarted) return;
+  isGameStarted = true;
+  restartDeclined = false;
+  if (startScreenEl) startScreenEl.classList.add('hidden');
+  if (uiPanelEl) uiPanelEl.classList.remove('hidden');
+  if (fpsEl) fpsEl.classList.remove('hidden');
+  if (typeof unlockAudio === 'function') unlockAudio();
+  if (typeof playSFX === 'function') playSFX('transform', 0.85, 0);
+  clock.getDelta();
+}
+
+function returnToStartScreen() {
+  isGameStarted = false;
+  isPaused = false;
+  restartDeclined = false;
+  for (const k in keys) keys[k] = false;
+
+  if (typeof resetPlayerMission === 'function') {
+    resetPlayerMission(playerContainer, visualTiltGroup);
+  }
+  if (typeof clearAllProjectiles === 'function') {
+    clearAllProjectiles(scene);
+  }
+  if (typeof hudCtx !== 'undefined' && typeof hudCanvas !== 'undefined') {
+    hudCtx.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
+  }
+
+  if (uiPanelEl) uiPanelEl.classList.add('hidden');
+  if (fpsEl) fpsEl.classList.add('hidden');
+  if (startScreenEl) startScreenEl.classList.remove('hidden');
+}
+
+const btnStartGame = document.getElementById('btnStartGame');
+if (btnStartGame) {
+  btnStartGame.addEventListener('click', startMission);
+}
+
 function togglePause() {
-  if (isPlayerDying || isGameOver) return;
+  if (!isGameStarted || isPlayerDying || isGameOver) return;
   isPaused = !isPaused;
   clock.getDelta();
 }
 
-document.getElementById('btnFighter').addEventListener('click', () => { if (!isPaused && !isPlayerDying && !isGameOver) transformTo('FIGHTER'); });
-document.getElementById('btnGerwalk').addEventListener('click', () => { if (!isPaused && !isPlayerDying && !isGameOver) transformTo('GERWALK'); });
-document.getElementById('btnBattroid').addEventListener('click', () => { if (!isPaused && !isPlayerDying && !isGameOver) transformTo('BATTROID'); });
-document.getElementById('btnMelee').addEventListener('click', () => { if (!isPaused && !isPlayerDying && !isGameOver) triggerGunpodMelee(); });
-document.getElementById('btnStop').addEventListener('click', () => { if (!isPaused && !isPlayerDying && !isGameOver) triggerFullStop(); });
+document.getElementById('btnFighter').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('FIGHTER'); });
+document.getElementById('btnGerwalk').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('GERWALK'); });
+document.getElementById('btnBattroid').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('BATTROID'); });
+document.getElementById('btnMelee').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) triggerGunpodMelee(); });
+document.getElementById('btnStop').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) triggerFullStop(); });
 
 const btnSweep = document.getElementById('btnSweep');
-btnSweep.addEventListener('mousedown', () => { if (!isPaused && !isPlayerDying && !isGameOver) startAcceleration(); });
+btnSweep.addEventListener('mousedown', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) startAcceleration(); });
 btnSweep.addEventListener('mouseup', stopAcceleration);
 btnSweep.addEventListener('mouseleave', stopAcceleration);
 
@@ -66,11 +109,18 @@ window.addEventListener('keydown', (e) => {
   const key = (e.key || '').toLowerCase();
   const code = e.code || '';
 
+  if (!isGameStarted) {
+    if (key === 'enter' || code === 'Enter' || code === 'NumpadEnter') {
+      startMission();
+    }
+    return;
+  }
+
   if (typeof isGameOver !== 'undefined' && isGameOver) {
     if (key === 'y' || code === 'KeyY') {
       window.location.reload();
     } else if (key === 'n' || code === 'KeyN') {
-      restartDeclined = true;
+      returnToStartScreen();
     }
     return;
   }
@@ -103,6 +153,7 @@ window.addEventListener('keydown', (e) => {
 }, true);
 
 window.addEventListener('click', (e) => {
+  if (!isGameStarted) return;
   if (typeof isGameOver !== 'undefined' && isGameOver) {
     const cx = window.innerWidth / 2;
     const cy = window.innerHeight / 2;
@@ -110,7 +161,7 @@ window.addEventListener('click', (e) => {
       if (Math.abs(e.clientX - (cx - 78)) < 55) {
         window.location.reload();
       } else if (Math.abs(e.clientX - (cx + 78)) < 55) {
-        restartDeclined = true;
+        returnToStartScreen();
       }
     }
   }
@@ -130,7 +181,23 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const rawDelta = clock.getDelta();
-  const delta = isPaused ? 0 : Math.min(rawDelta, 0.05);
+  const delta = (isPaused || !isGameStarted) ? 0 : Math.min(rawDelta, 0.05);
+
+  if (!isGameStarted) {
+    const safeDelta = Math.min(rawDelta, 0.05);
+    if (typeof updateEnvironment === 'function') updateEnvironment(safeDelta);
+    introOrbitAngle += 0.25 * safeDelta;
+    const camDist = 3.2;
+    camera.position.set(
+      playerContainer.position.x + Math.sin(introOrbitAngle) * camDist,
+      playerContainer.position.y + 0.85,
+      playerContainer.position.z + Math.cos(introOrbitAngle) * camDist
+    );
+    camera.up.set(0, 1, 0);
+    camera.lookAt(playerContainer.position);
+    renderer.render(scene, camera);
+    return;
+  }
 
   fpsFrames++;
   fpsTime += rawDelta;

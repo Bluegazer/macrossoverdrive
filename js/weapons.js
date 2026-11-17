@@ -727,3 +727,31 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     }
   }
 }
+
+function clearAllProjectiles(scene) {
+  for (let i = bullets.length - 1; i >= 0; i--) { scene.remove(bullets[i].mesh); }
+  bullets.length = 0;
+
+  for (let i = enemyBullets.length - 1; i >= 0; i--) { scene.remove(enemyBullets[i].mesh); }
+  enemyBullets.length = 0;
+
+  for (let i = enemyMissiles.length - 1; i >= 0; i--) { scene.remove(enemyMissiles[i].mesh); }
+  enemyMissiles.length = 0;
+
+  for (let i = missiles.length - 1; i >= 0; i--) { scene.remove(missiles[i].mesh); }
+  missiles.length = 0;
+
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    scene.remove(explosions[i].mesh);
+    explosions[i].mat.dispose();
+  }
+  explosions.length = 0;
+
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    scene.remove(sparks[i].mesh);
+    sparks[i].mat.dispose();
+  }
+  sparks.length = 0;
+
+  lockedEnemies.length = 0;
+}
