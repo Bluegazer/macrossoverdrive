@@ -8,8 +8,20 @@
   <script src="./GLTFLoader.js"></script>
 </head>
 <body>
+  <!-- Pantalla de Inicio -->
+  <div id="startScreen">
+    <div class="start-box">
+      <div class="start-tag">U.N. SPACY // SOUTH ATARIA DEFENSE</div>
+      <h1 class="start-title">MACROSS VOXP</h1>
+      <div class="start-subtitle">VF-1A VALKYRIE // DYRL FIRE CONTROL</div>
+      <button id="btnStartGame" class="start-btn">INICIAR MISIÓN</button>
+      <div class="start-hint">PRESIONA [ENTER] O HAZ CLIC PARA DESPEGAR</div>
+    </div>
+  </div>
+
   <canvas id="hudCanvas"></canvas>
-  <div id="ui">
+
+  <div id="ui" class="hidden">
     <h3>VF-1A // DYRL FIRE CONTROL</h3>
     <div class="btn-group">
       <button id="btnFighter" class="active">(F) FIGHTER</button>
@@ -21,7 +33,6 @@
       <button id="btnStop" class="warn">(X) FULL STOP</button>
       <button id="btnMelee">(E) GOLPE</button>
     </div>
-    <!-- Panel de audio separado en su propia línea -->
     <div class="audio-panel">
       <label class="audio-slider-box">
         <span>FX</span>
@@ -37,16 +48,16 @@
       <b>BATTROID (B) / GERWALK (G):</b> W/S AVANCE | A/D LATERAL<br>
       <b>FLECHAS IZQ/DER:</b> GIRAR | <b>ARR/ABJ:</b> SUBIR/BAJAR<br>
       <b>FIGHTER (F):</b> W/S THROTTLE | A/D YAW | FLECHAS ROLL/PITCH<br>
-      <b>R:</b> REVERSA GERWALK | <b>X:</b> STOP | <b>T:</b> TURBO<br>
+      <b>R:</b> REVERSA GERWALK | <b>X:</b> STOP | <b>T:</b> TURBO | <b>N:</b> RASTREO (B)<br>
       <b>SHIFT IZQ:</b> GUNPOD | <b>ESPACIO:</b> MISILES GUIADOS
     </div>
   </div>
-  <div id="fpsBox">FPS: 60</div>
+  <div id="fpsBox" class="hidden">FPS: 60</div>
 
   <script src="./js/audio.js"></script>
   <script src="./js/hud.js"></script>
   <script src="./js/weapons.js"></script>
-  <script src="./js/player.js?v=99"></script>
+  <script src="./js/player.js"></script>
   <script src="./js/environment.js"></script>
   <script src="./js/main.js"></script>
 </body>
