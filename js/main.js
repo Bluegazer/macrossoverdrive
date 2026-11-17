@@ -27,6 +27,7 @@ playerContainer.add(visualTiltGroup);
 
 initWeaponsAndEnemies(scene, playerContainer);
 loadPlayerModel(visualTiltGroup);
+
 function togglePause() {
   if (isPlayerDying || isGameOver) return;
   isPaused = !isPaused;
@@ -59,8 +60,6 @@ if (sliderBGM) {
   });
   sliderBGM.addEventListener('change', (e) => e.target.blur());
 }
-
-
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') e.preventDefault();
 
@@ -78,7 +77,7 @@ window.addEventListener('keydown', (e) => {
 
   if (e.repeat) return;
 
-    if (key === 'p' || code === 'KeyP') {
+  if (key === 'p' || code === 'KeyP') {
     togglePause();
     return;
   }
@@ -87,7 +86,6 @@ window.addEventListener('keydown', (e) => {
     if (typeof toggleMusic === 'function') toggleMusic();
     return;
   }
-
 
   if (isPaused || (typeof isPlayerDying !== 'undefined' && isPlayerDying)) return;
   keys[code] = true;
@@ -99,6 +97,9 @@ window.addEventListener('keydown', (e) => {
   if (key === 't' || code === 'KeyT') startAcceleration();
   if (key === 'x' || code === 'KeyX') triggerFullStop();
   if (key === 'r' || code === 'KeyR') startReverseGerwalk();
+  if (key === 'n' || code === 'KeyN') {
+    if (typeof cycleBattroidTracking === 'function') cycleBattroidTracking();
+  }
 }, true);
 
 window.addEventListener('click', (e) => {
@@ -122,7 +123,6 @@ window.addEventListener('keyup', (e) => {
   if (key === 't' || code === 'KeyT') stopAcceleration();
   if (key === 'r' || code === 'KeyR') stopReverseGerwalk();
 });
-
 let fpsFrames = 0;
 let fpsTime = 0;
 const clock = new THREE.Clock();
@@ -151,7 +151,17 @@ function animate() {
   }
 
   const isFullStop = Boolean(keys['KeyX']);
-  const hasIncoming = (typeof enemyBullets !== 'undefined' && enemyBullets.length > 0);
+  let closestLockedMissileDist = Infinity;
+  if (typeof enemyMissiles !== 'undefined' && enemyMissiles.length > 0) {
+    for (let i = 0; i < enemyMissiles.length; i++) {
+      const em = enemyMissiles[i];
+      if (em.isLockedOn) {
+        const d = em.mesh.position.distanceTo(playerContainer.position);
+        if (d < closestLockedMissileDist) closestLockedMissileDist = d;
+      }
+    }
+  }
+
   const isFiringGun = Boolean(keys['ShiftLeft']);
   const hasLockedTargets = (typeof lockedEnemies !== 'undefined' && lockedEnemies.length > 0);
 
@@ -164,7 +174,7 @@ function animate() {
       currentMode,
       throttle,
       velocity.length(),
-      hasIncoming,
+      closestLockedMissileDist,
       isFiringGun,
       hasLockedTargets
     );

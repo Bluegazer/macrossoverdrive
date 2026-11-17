@@ -66,7 +66,6 @@ function drawDYRLEnemyHexagon(sx, sy, radius, distNum, subNum) {
 
 function drawSeekerBrackets(sx, sy, spreadOffset, isLocked, enemyId, lockIndex) {
   const color = isLocked ? '#ef4444' : '#ffffff';
-  const glowColor = isLocked ? 'rgba(239, 68, 68, 0.95)' : 'rgba(255, 255, 255, 0.9)';
   const innerX = 27 + spreadOffset;
   const halfH = 18 + spreadOffset * 0.5;
   const tip45 = 9;
@@ -102,9 +101,81 @@ function drawSeekerBrackets(sx, sy, spreadOffset, isLocked, enemyId, lockIndex) 
   hudCtx.fillText(statusLabel, -innerX, -halfH - tip45 - 6);
   hudCtx.restore();
 }
+function drawEnemyMissileMarkers(w, h, camera, playerContainer) {
+  if (typeof enemyMissiles === 'undefined' || enemyMissiles.length === 0) return;
+
+  const projVec = new THREE.Vector3();
+  const blink = (Math.floor(performance.now() / 110) % 2 === 0);
+
+  for (let i = 0; i < enemyMissiles.length; i++) {
+    const em = enemyMissiles[i];
+    projVec.copy(em.mesh.position).project(camera);
+    if (projVec.z > 1) continue;
+
+    const sx = (projVec.x * 0.5 + 0.5) * w;
+    const sy = (-(projVec.y * 0.5) + 0.5) * h;
+    if (sx < -30 || sx > w + 30 || sy < -30 || sy > h + 30) continue;
+
+    const dist = em.mesh.position.distanceTo(playerContainer.position);
+    const isDangerClose = dist < 26;
+    const circleColor = isDangerClose ? (blink ? '#ef4444' : '#fca5a5') : '#ffffff';
+    const radius = isDangerClose ? 13 : 10;
+
+    hudCtx.save();
+    hudCtx.translate(sx, sy);
+
+    hudCtx.shadowColor = isDangerClose ? 'rgba(239, 68, 68, 0.95)' : 'rgba(0, 0, 0, 0.95)';
+    hudCtx.shadowBlur = isDangerClose ? 8 : 5;
+
+    hudCtx.strokeStyle = circleColor;
+    hudCtx.lineWidth = isDangerClose ? 2.6 : 2.0;
+    hudCtx.beginPath();
+    hudCtx.arc(0, 0, radius, 0, Math.PI * 2);
+    hudCtx.stroke();
+
+    hudCtx.font = 'bold 8.5px Conthrax, sans-serif';
+    hudCtx.fillStyle = circleColor;
+    hudCtx.fillText(isDangerClose ? 'WARN' : 'MSL', radius + 5, 3);
+
+    hudCtx.restore();
+  }
+}
+
+function drawBattroidTrackReticle(w, h, camera) {
+  if (typeof currentMode === 'undefined' || currentMode !== 'BATTROID') return;
+  if (typeof battroidTrackMode === 'undefined' || battroidTrackMode === 'NONE') return;
+  if (typeof battroidTrackedTarget === 'undefined' || !battroidTrackedTarget || !battroidTrackedTarget.mesh) return;
+
+  const projVec = new THREE.Vector3().copy(battroidTrackedTarget.mesh.position).project(camera);
+  if (projVec.z > 1) return;
+
+  const sx = (projVec.x * 0.5 + 0.5) * w;
+  const sy = (-(projVec.y * 0.5) + 0.5) * h;
+  const r = 24;
+
+  hudCtx.save();
+  hudCtx.translate(sx, sy);
+  hudCtx.shadowColor = 'rgba(250, 204, 21, 0.9)';
+  hudCtx.shadowBlur = 8;
+  hudCtx.strokeStyle = '#facc15';
+  hudCtx.lineWidth = 2.0;
+
+  hudCtx.beginPath();
+  hudCtx.moveTo(0, -r);
+  hudCtx.lineTo(r, 0);
+  hudCtx.lineTo(0, r);
+  hudCtx.lineTo(-r, 0);
+  hudCtx.closePath();
+  hudCtx.stroke();
+
+  hudCtx.font = 'bold 8.5px Conthrax, sans-serif';
+  hudCtx.fillStyle = '#facc15';
+  hudCtx.fillText('AUTO // ' + battroidTrackMode, -r, r + 13);
+  hudCtx.restore();
+}
 function drawWeaponStatusPanel(w) {
   const boxW = 295;
-  const boxH = 132;
+  const boxH = 166;
   const x = w - boxW - 15;
   const y = 15;
   const cut = 10;
@@ -215,6 +286,38 @@ function drawWeaponStatusPanel(w) {
     hudCtx.fillStyle = cellActive ? '#ef4444' : 'rgba(51, 65, 85, 0.6)';
     hudCtx.fillRect(cellX, cellY, 8, 12);
   }
+
+  hudCtx.shadowBlur = 0;
+  hudCtx.beginPath();
+  hudCtx.moveTo(x + 12, y + 124);
+  hudCtx.lineTo(x + boxW - 12, y + 124);
+  hudCtx.stroke();
+
+  const isBattroid = (typeof currentMode !== 'undefined' && currentMode === 'BATTROID');
+  const tMode = (typeof battroidTrackMode !== 'undefined') ? battroidTrackMode : 'NONE';
+
+  hudCtx.fillStyle = '#38bdf8';
+  hudCtx.fillText('TRACK [N]', x + 14, y + 148);
+
+  let trackLabel = 'N/A (B-ONLY)';
+  let trackColor = '#64748b';
+  if (isBattroid) {
+    if (tMode === 'ENEMY') {
+      trackLabel = 'ENEMY // AUTO';
+      trackColor = '#22c55e';
+    } else if (tMode === 'MISSILE') {
+      trackLabel = 'MISSILE // AUTO';
+      trackColor = '#facc15';
+    } else {
+      trackLabel = 'NONE // MANUAL';
+      trackColor = '#94a3b8';
+    }
+  }
+
+  hudCtx.shadowColor = trackColor;
+  hudCtx.shadowBlur = (isBattroid && tMode !== 'NONE') ? 6 : 0;
+  hudCtx.fillStyle = trackColor;
+  hudCtx.fillText(trackLabel, x + 135, y + 148);
 
   hudCtx.restore();
 }
@@ -376,7 +479,6 @@ function drawPauseOverlay(w, h) {
 
   hudCtx.restore();
 }
-
 function drawRestartOverlay(w, h) {
   const cx = w / 2;
   const cy = h / 2;
@@ -530,7 +632,9 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
     drawSeekerBrackets(e.seekerX, e.seekerY, spreadOffset, isFullLock, e.id, i + 1);
   }
 
-  // Mira Central Vectorial con alto contraste diurno
+  drawEnemyMissileMarkers(w, h, camera, playerContainer);
+  drawBattroidTrackReticle(w, h, camera);
+
   const rollAngle = new THREE.Euler().setFromQuaternion(playerContainer.quaternion, 'YXZ').z;
   hudCtx.save();
   hudCtx.translate(cx, cy);

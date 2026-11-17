@@ -9,6 +9,35 @@ const TOTAL_FRAMES = 91;
 let currentMode = 'FIGHTER', currentFrame = 0, targetFrame = 0;
 let animSpeed = 48, isAttacking = false, isAccelerating = false, isReverseGerwalk = false;
 
+let battroidTrackMode = 'NONE';
+let battroidTrackedTarget = null;
+
+function cycleBattroidTracking() {
+  if (currentMode !== 'BATTROID') return;
+  if (battroidTrackMode === 'NONE') battroidTrackMode = 'ENEMY';
+  else if (battroidTrackMode === 'ENEMY') battroidTrackMode = 'MISSILE';
+  else battroidTrackMode = 'NONE';
+  battroidTrackedTarget = null;
+}
+
+function getClosestBattroidTarget(playerPos) {
+  let closest = null;
+  let minDist = 99999;
+  if (battroidTrackMode === 'ENEMY' && typeof enemies !== 'undefined') {
+    for (let i = 0; i < enemies.length; i++) {
+      if (enemies[i].respawnTimer > 0) continue;
+      const d = playerPos.distanceTo(enemies[i].mesh.position);
+      if (d < minDist) { minDist = d; closest = enemies[i]; }
+    }
+  } else if (battroidTrackMode === 'MISSILE' && typeof enemyMissiles !== 'undefined') {
+    for (let i = 0; i < enemyMissiles.length; i++) {
+      const d = playerPos.distanceTo(enemyMissiles[i].mesh.position);
+      if (d < minDist) { minDist = d; closest = enemyMissiles[i]; }
+    }
+  }
+  return closest;
+}
+
 function setModelFrame(frame) {
   if (!mixer || !action) return;
   const clamped = Math.max(0, Math.min(TOTAL_FRAMES, frame));
@@ -25,8 +54,10 @@ function updateButtonsUI() {
   document.getElementById('btnSweep').classList.toggle('active', isAccelerating);
   document.getElementById('btnMelee').classList.toggle('active', isAttacking);
 }
+
 function transformTo(newMode) {
   if (!mixer || isAttacking || isAccelerating || currentMode === newMode) return;
+  if (newMode !== 'BATTROID') { battroidTrackMode = 'NONE'; battroidTrackedTarget = null; }
   if (newMode === 'FIGHTER') {
     if (currentMode === 'BATTROID') { currentFrame = 29; targetFrame = 44; }
     else if (currentMode === 'GERWALK') { currentFrame = 14; targetFrame = 0; }
@@ -41,7 +72,6 @@ function transformTo(newMode) {
   if (typeof playSFX === 'function') playSFX('transform', 0.8, 0);
   updateButtonsUI();
 }
-
 function startReverseGerwalk() {
   if (!mixer || isReverseGerwalk) return;
   if (isAccelerating) isAccelerating = false;
@@ -61,6 +91,8 @@ function startAcceleration() {
   isAttacking = false;
   isReverseGerwalk = false;
   isAccelerating = true;
+  battroidTrackMode = 'NONE';
+  battroidTrackedTarget = null;
   if (typeof playSFX === 'function') playSFX('boost', 0.85, 0);
   if (currentMode === 'BATTROID') {
     currentMode = 'FIGHTER';
@@ -98,6 +130,7 @@ function triggerGunpodMelee() {
   targetFrame = 91;
   updateButtonsUI();
 }
+
 function createPlumeTexture(isMainJet) {
   const canvas = document.createElement('canvas');
   canvas.width = 64;
@@ -206,28 +239,22 @@ function updateThrusters(isFullStop, keys) {
   if (thrusterFlames.length === 0) return;
 
   const isFighter = (currentMode === 'FIGHTER');
-
   const yawLeft = isFighter ? keys['KeyA'] : keys['ArrowLeft'];
   const yawRight = isFighter ? keys['KeyD'] : keys['ArrowRight'];
   const rollLeft = isFighter && keys['ArrowLeft'];
   const rollRight = isFighter && keys['ArrowRight'];
   const strafeLeft = !isFighter && keys['KeyA'];
   const strafeRight = !isFighter && keys['KeyD'];
-
   const pushUp = isFighter ? keys['ArrowDown'] : keys['ArrowUp'];
   const pushDown = isFighter ? keys['ArrowUp'] : keys['ArrowDown'];
   const pushForward = !isFighter && keys['KeyW'];
 
   let mainPower = 0.4;
-  if (isFullStop) {
-    mainPower = 0.0;
-  } else if (isAccelerating) {
-    mainPower = 2.6;
-  } else if (isReverseGerwalk) {
-    mainPower = 1.8;
-  } else if (isFighter) {
-    mainPower = throttle === 0 ? 0.3 : (0.65 + throttle * 1.2);
-  } else if (currentMode === 'GERWALK') {
+  if (isFullStop) mainPower = 0.0;
+  else if (isAccelerating) mainPower = 2.6;
+  else if (isReverseGerwalk) mainPower = 1.8;
+  else if (isFighter) mainPower = throttle === 0 ? 0.3 : (0.65 + throttle * 1.2);
+  else if (currentMode === 'GERWALK') {
     const moving = yawLeft || yawRight || strafeLeft || strafeRight || pushUp || pushDown || keys['KeyW'] || keys['KeyS'];
     mainPower = moving ? 1.25 : 0.7;
   } else if (currentMode === 'BATTROID') {
@@ -238,11 +265,7 @@ function updateThrusters(isFullStop, keys) {
   const flicker = 0.88 + Math.random() * 0.28;
 
   thrusterFlames.forEach((f) => {
-    if (isFullStop) {
-      f.group.visible = false;
-      return;
-    }
-
+    if (isFullStop) { f.group.visible = false; return; }
     if (f.isMain) {
       f.group.visible = true;
       const len = mainPower * 1.3 * flicker;
@@ -251,11 +274,9 @@ function updateThrusters(isFullStop, keys) {
       f.outerMat.color.setHex(isAccelerating ? 0xea580c : 0x0284c7);
       return;
     }
-
     if (f.isBackpack) {
-      if (!pushForward) {
-        f.group.visible = false;
-      } else {
+      if (!pushForward) { f.group.visible = false; }
+      else {
         f.group.visible = true;
         const packPulse = 1.7 + Math.random() * 0.6;
         f.group.scale.set(1.6, packPulse, 1.6);
@@ -263,7 +284,6 @@ function updateThrusters(isFullStop, keys) {
       }
       return;
     }
-
     const n = f.name;
     const isRightSide = n.startsWith('Frame05_') || n.startsWith('Frame06_') || n.startsWith('Frame12_');
     const isLeftSide  = n.startsWith('Frame08_') || n.startsWith('Frame10_') || n.startsWith('Frame13_');
@@ -278,9 +298,8 @@ function updateThrusters(isFullStop, keys) {
     if (pushUp && isBottom) fireVernier = true;
     if (pushDown && isTop) fireVernier = true;
 
-    if (!fireVernier) {
-      f.group.visible = false;
-    } else {
+    if (!fireVernier) { f.group.visible = false; }
+    else {
       f.group.visible = true;
       const vernierPulse = 0.95 + Math.random() * 0.45;
       f.group.scale.set(1.05, vernierPulse, 1.05);
@@ -288,6 +307,7 @@ function updateThrusters(isFullStop, keys) {
     }
   });
 }
+
 function updatePlayerAnimation(delta) {
   if (mixer && Math.abs(targetFrame - currentFrame) > 0.05) {
     const direction = Math.sign(targetFrame - currentFrame);
@@ -310,20 +330,19 @@ function resetPlayerMission(playerContainer, visualTiltGroup) {
   isGameOver = false;
   deathExplosionTimer = 0;
   score = 0;
-
   throttle = 0.35;
   turboHeat = 0.0;
   isOverheated = false;
   isAccelerating = false;
   isReverseGerwalk = false;
   isAttacking = false;
-
+  battroidTrackMode = 'NONE';
+  battroidTrackedTarget = null;
   velocity.set(0, 0, 0);
   playerContainer.position.set(0, 28, 80);
   playerContainer.quaternion.identity();
   visualTiltGroup.rotation.set(0, 0, 0);
   visualTiltGroup.position.set(0, 0, 0);
-
   currentMode = 'FIGHTER';
   currentFrame = 0;
   targetFrame = 0;
@@ -333,42 +352,30 @@ function resetPlayerMission(playerContainer, visualTiltGroup) {
 
 function getDynamicGroundY(x, z) {
   let modeOffset = 0.55;
-  if (currentMode === 'GERWALK') {
-    modeOffset = 0.95;
-  } else if (currentMode === 'BATTROID') {
-    modeOffset = 1.25;
-  }
-
+  if (currentMode === 'GERWALK') modeOffset = 0.95;
+  else if (currentMode === 'BATTROID') modeOffset = 1.25;
   if (typeof getTerrainHeight === 'function') {
     return Math.max(modeOffset, getTerrainHeight(x, z) + modeOffset);
   }
   return modeOffset;
 }
+
 function handlePlayerDeathSequence(delta, playerContainer, visualTiltGroup, camera, keys, hudEl, groundY) {
   updateThrusters(true, keys);
-
   if (isPlayerDying) {
     deathExplosionTimer -= delta;
     if (deathExplosionTimer <= 0) {
-      const boomPos = playerContainer.position.clone().add(new THREE.Vector3(
-        (Math.random() - 0.5) * 1.1,
-        (Math.random() - 0.5) * 0.7,
-        (Math.random() - 0.5) * 1.1
-      ));
+      const boomPos = playerContainer.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.1, (Math.random() - 0.5) * 0.7, (Math.random() - 0.5) * 1.1));
       spawnExplosion(scene, camera, boomPos, 0.85);
       spawnImpactSparks(scene, camera, boomPos);
       deathExplosionTimer = 0.22;
     }
-
     velocity.x *= (1.0 - 0.6 * delta);
     velocity.z *= (1.0 - 0.6 * delta);
     velocity.y -= 14.5 * delta;
-
     visualTiltGroup.rotation.z += 2.2 * delta;
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0.55, 2.0 * delta);
-
     playerContainer.position.addScaledVector(velocity, delta);
-
     if (playerContainer.position.y <= groundY) {
       playerContainer.position.y = groundY;
       velocity.set(0, 0, 0);
@@ -381,16 +388,11 @@ function handlePlayerDeathSequence(delta, playerContainer, visualTiltGroup, came
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0.12, 4.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, 0.45, 4.0 * delta);
   }
-
   const camOffset = new THREE.Vector3(0, 0.65, 2.4).applyQuaternion(playerContainer.quaternion);
   camera.position.lerp(playerContainer.position.clone().add(camOffset), 10.0 * delta);
   camera.up.lerp(new THREE.Vector3(0, 1, 0), 8.0 * delta);
   camera.lookAt(playerContainer.position);
-
-  hudEl.innerHTML =
-    'MODO: <b style="color:#ef4444;">CRITICAL // DOWN</b><br>' +
-    'EMPUJE: <b style="color:#ef4444;">OFFLINE</b><br>' +
-    'SCORE FINAL: <b>' + score + '</b>';
+  hudEl.textContent = 'MODO: DOWN | EMPUJE: OFFLINE | SCORE FINAL: ' + score;
 }
 function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, keys, hudEl) {
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
@@ -404,16 +406,16 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
 
   if (isAccelerating && !isOverheated) {
     turboHeat = Math.min(1.0, turboHeat + 0.22 * delta);
-    if (turboHeat >= 1.0) {
-      isOverheated = true;
-      stopAcceleration();
-    }
+    if (turboHeat >= 1.0) { isOverheated = true; stopAcceleration(); }
   } else {
     const coolRate = isFullStop ? 0.35 : 0.18;
     turboHeat = Math.max(0.0, turboHeat - coolRate * delta);
-    if (isOverheated && turboHeat <= 0.35) {
-      isOverheated = false;
-    }
+    if (isOverheated && turboHeat <= 0.35) isOverheated = false;
+  }
+
+  if (currentMode !== 'BATTROID') {
+    battroidTrackMode = 'NONE';
+    battroidTrackedTarget = null;
   }
 
   if (isFullStop) {
@@ -424,25 +426,18 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0, 8.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, 0, 8.0 * delta);
     visualTiltGroup.position.y = THREE.MathUtils.lerp(visualTiltGroup.position.y, 0, 8.0 * delta);
-
-    const yawRate = 1.6 * delta;
-    const rollRate = 2.4 * delta;
-    const pitchRate = 1.7 * delta;
-
+    const yawRate = 1.6 * delta, rollRate = 2.4 * delta, pitchRate = 1.7 * delta;
     if (keys['KeyA']) playerContainer.rotateY(yawRate);
     if (keys['KeyD']) playerContainer.rotateY(-yawRate);
     if (keys['ArrowLeft']) playerContainer.rotateZ(rollRate);
     if (keys['ArrowRight']) playerContainer.rotateZ(-rollRate);
     if (keys['ArrowDown']) playerContainer.rotateX(pitchRate);
     if (keys['ArrowUp']) playerContainer.rotateX(-pitchRate);
-
     if (keys['KeyW']) throttle = Math.min(1.0, throttle + 0.55 * delta);
     if (keys['KeyS']) throttle = Math.max(0.0, throttle - 0.55 * delta);
-
     const cruiseSpeed = throttle === 0 ? 0 : (5 + throttle * 17);
     const targetSpeed = isAccelerating ? 38 : cruiseSpeed;
     velocity.lerp(forward.clone().multiplyScalar(targetSpeed), 3.0 * delta);
-
     const targetFov = isAccelerating ? 74 : (58 + throttle * 6);
     camera.fov = THREE.MathUtils.lerp(camera.fov, targetFov, 5.0 * delta);
     camera.updateProjectionMatrix();
@@ -450,39 +445,26 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     const euler = new THREE.Euler().setFromQuaternion(playerContainer.quaternion, 'YXZ');
     const levelQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0, 'YXZ'));
     playerContainer.quaternion.slerp(levelQuat, 7.0 * delta);
-
     const yawRate = 2.3 * delta;
     if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
     if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
-
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
-
-    let tiltPitch = 0;
-    let tiltRoll = 0;
-
-    if (isReverseGerwalk) {
-      moveDir.sub(flatForward);
-      tiltPitch = 0.22;
-    } else {
+    let tiltPitch = 0, tiltRoll = 0;
+    if (isReverseGerwalk) { moveDir.sub(flatForward); tiltPitch = 0.22; }
+    else {
       if (keys['KeyW']) { moveDir.add(flatForward); tiltPitch = -0.14; }
       if (keys['KeyS']) { moveDir.sub(flatForward); tiltPitch = 0.16; }
     }
-
     if (keys['KeyA']) { moveDir.sub(flatRight); tiltRoll = 0.18; }
     if (keys['KeyD']) { moveDir.add(flatRight); tiltRoll = -0.18; }
     if (keys['ArrowUp']) moveDir.y += 0.85;
     if (keys['ArrowDown']) moveDir.y -= 0.85;
-
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, tiltPitch, 8.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, tiltRoll, 8.0 * delta);
-
-    const hoverTime = performance.now() * 0.003;
-    visualTiltGroup.position.y = Math.sin(hoverTime) * 0.035;
-
+    visualTiltGroup.position.y = Math.sin(performance.now() * 0.003) * 0.035;
     if (moveDir.lengthSq() > 0) moveDir.normalize();
-
     const gerwalkSpeed = isReverseGerwalk ? 16.5 : 14.0;
     velocity.lerp(moveDir.multiplyScalar(gerwalkSpeed), 4.5 * delta);
     camera.fov = THREE.MathUtils.lerp(camera.fov, 60, 5.0 * delta);
@@ -492,46 +474,43 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     const levelQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0, 'YXZ'));
     playerContainer.quaternion.slerp(levelQuat, 9.0 * delta);
     visualTiltGroup.position.y = THREE.MathUtils.lerp(visualTiltGroup.position.y, 0, 8.0 * delta);
-
     const yawRate = 2.8 * delta;
     if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
     if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
-
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
-
-    let tiltPitch = 0;
-    let tiltRoll = 0;
-
+    let tiltPitch = 0, tiltRoll = 0;
     if (keys['KeyW']) { moveDir.add(flatForward); tiltPitch = -0.15; }
     if (keys['KeyS']) { moveDir.sub(flatForward); tiltPitch = 0.14; }
     if (keys['KeyA']) { moveDir.sub(flatRight); tiltRoll = 0.16; }
     if (keys['KeyD']) { moveDir.add(flatRight); tiltRoll = -0.16; }
 
+    if (battroidTrackMode !== 'NONE') {
+      battroidTrackedTarget = getClosestBattroidTarget(playerContainer.position);
+      if (battroidTrackedTarget) {
+        const aimMat = new THREE.Matrix4().lookAt(playerContainer.position, battroidTrackedTarget.mesh.position, new THREE.Vector3(0, 1, 0));
+        const aimQuat = new THREE.Quaternion().setFromRotationMatrix(aimMat);
+        playerContainer.quaternion.slerp(aimQuat, 9.5 * delta);
+      }
+    } else {
+      battroidTrackedTarget = null;
+    }
+
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, tiltPitch, 10.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, tiltRoll, 10.0 * delta);
-
     if (moveDir.lengthSq() > 0) moveDir.normalize();
-
     const battroidSpeed = 11.5;
     velocity.x = THREE.MathUtils.lerp(velocity.x, moveDir.x * battroidSpeed, 7.0 * delta);
     velocity.z = THREE.MathUtils.lerp(velocity.z, moveDir.z * battroidSpeed, 7.0 * delta);
-
-    if (keys['ArrowUp']) {
-      velocity.y = THREE.MathUtils.lerp(velocity.y, 12.5, 6.0 * delta);
-    } else if (keys['ArrowDown']) {
-      velocity.y = THREE.MathUtils.lerp(velocity.y, -15.0, 6.0 * delta);
-    } else {
-      velocity.y -= 16.0 * delta;
-    }
-
+    if (keys['ArrowUp']) velocity.y = THREE.MathUtils.lerp(velocity.y, 12.5, 6.0 * delta);
+    else if (keys['ArrowDown']) velocity.y = THREE.MathUtils.lerp(velocity.y, -15.0, 6.0 * delta);
+    else velocity.y -= 16.0 * delta;
     camera.fov = THREE.MathUtils.lerp(camera.fov, 60, 5.0 * delta);
     camera.updateProjectionMatrix();
   }
 
   updateThrusters(isFullStop, keys);
-
   playerContainer.position.addScaledVector(velocity, delta);
   if (playerContainer.position.y < groundY) {
     playerContainer.position.y = groundY;
@@ -560,8 +539,5 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
   else if (currentMode === 'FIGHTER') statusLabel = isAccelerating ? 'MAX (TURBO)' : Math.round(throttle * 100) + '%';
   else if (currentMode === 'GERWALK') statusLabel = 'VTOL HOVER';
 
-  hudEl.innerHTML =
-    'MODO: <b>' + currentMode + '</b> | SCORE: <b>' + score + '</b><br>' +
-    'EMPUJE: <b>' + statusLabel + '</b><br>' +
-    'VEL: ' + speedKmh + ' KM/H | ALT: ' + altMeters + ' M';
+  hudEl.textContent = 'MODO: ' + currentMode + ' | SCORE: ' + score + ' | EMPUJE: ' + statusLabel + ' | VEL: ' + speedKmh + ' KM/H | ALT: ' + altMeters + ' M';
 }

@@ -19,7 +19,8 @@ let gunpodGain = null;
 let lockOnSource = null;
 let lockOnGain = null;
 
-let warningCooldown = 0;
+let warningSource = null;
+let warningGain = null;
 
 const SOUND_FILES = {
   bgm: './sounds/DogF.ogg',
@@ -51,7 +52,6 @@ function setBGMVolume(percent) {
 function toggleMusic() {
   bgmEnabled = !bgmEnabled;
 }
-
 function startBGMLoop() {
   if (!audioCtx || !soundBuffers.bgm || bgmSource) return;
 
@@ -115,6 +115,45 @@ function playSFX(name, volume, pitchVariation) {
   source.connect(gainNode);
   gainNode.connect(sfxMasterGain || audioCtx.destination);
   source.start(0);
+}
+
+function updateMissileWarningAudio(closestDist) {
+  if (!audioCtx || !soundBuffers.missileWarning) return;
+
+  const isThreatActive = (typeof closestDist === 'number' && closestDist < 120);
+
+  if (isThreatActive) {
+    const proximity = 1.0 - Math.max(0, Math.min(1, (closestDist - 12) / 108));
+    const targetVol = 0.15 + proximity * 0.75;
+
+    if (!warningSource) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      warningSource = audioCtx.createBufferSource();
+      warningSource.buffer = soundBuffers.missileWarning;
+      warningSource.loop = true;
+
+      warningGain = audioCtx.createGain();
+      warningGain.gain.setValueAtTime(targetVol, audioCtx.currentTime);
+
+      warningSource.connect(warningGain);
+      warningGain.connect(sfxMasterGain || audioCtx.destination);
+      warningSource.start(0);
+    } else {
+      warningGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.08);
+    }
+  } else if (warningSource) {
+    const srcToStop = warningSource;
+    const gainToFade = warningGain;
+    warningSource = null;
+    warningGain = null;
+
+    const now = audioCtx.currentTime;
+    gainToFade.gain.setValueAtTime(gainToFade.gain.value, now);
+    gainToFade.gain.linearRampToValueAtTime(0.0, now + 0.06);
+    setTimeout(() => {
+      try { srcToStop.stop(); } catch (e) {}
+    }, 70);
+  }
 }
 function updateGunpodAudio(isFiring) {
   if (!audioCtx || !soundBuffers.gunpod) return;
@@ -195,12 +234,11 @@ function startEngineLoop() {
   engineSource.start(0);
 }
 
-function updateEngineAudio(delta, isPaused, isFullStop, isAccelerating, currentMode, throttle, speed, hasIncomingFire, isFiringGun, hasLockedTargets) {
+function updateEngineAudio(delta, isPaused, isFullStop, isAccelerating, currentMode, throttle, speed, closestLockedMissileDist, isFiringGun, hasLockedTargets) {
   if (!audioCtx) return;
 
   const isDead = (typeof isPlayerDying !== 'undefined' && isPlayerDying) || (typeof isGameOver !== 'undefined' && isGameOver);
 
-  // Control de volumen suave para DogF.ogg (baja a 25% en pausa y se apaga al morir o silenciar con M)
   if (bgmMasterGain) {
     let targetBgmVol = bgmEnabled ? bgmVolumeLevel : 0.0;
     if (isDead) targetBgmVol = 0.0;
@@ -212,11 +250,13 @@ function updateEngineAudio(delta, isPaused, isFullStop, isAccelerating, currentM
     if (engineGain) engineGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.08);
     updateGunpodAudio(false);
     updateLockOnAudio(false);
+    updateMissileWarningAudio(Infinity);
     return;
   }
 
   updateGunpodAudio(isFiringGun);
   updateLockOnAudio(hasLockedTargets);
+  updateMissileWarningAudio(closestLockedMissileDist);
 
   if (!engineSource || !engineGain) return;
 
@@ -242,10 +282,4 @@ function updateEngineAudio(delta, isPaused, isFullStop, isAccelerating, currentM
 
   engineGain.gain.setTargetAtTime(targetVol, audioCtx.currentTime, 0.1);
   engineSource.playbackRate.setTargetAtTime(targetPitch, audioCtx.currentTime, 0.12);
-
-  if (warningCooldown > 0) warningCooldown -= delta;
-  if (hasIncomingFire && warningCooldown <= 0) {
-    playSFX('missileWarning', 0.65, 0);
-    warningCooldown = 2.2;
-  }
 }

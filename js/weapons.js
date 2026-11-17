@@ -1,5 +1,6 @@
 const bullets = new Array();
 const enemyBullets = new Array();
+const enemyMissiles = new Array();
 const missiles = new Array();
 const explosions = new Array();
 const sparks = new Array();
@@ -90,7 +91,12 @@ const beamMat = new THREE.MeshBasicMaterial({
 });
 
 const enemyBeamMat = new THREE.MeshBasicMaterial({
-  map: beamTex, color: 0xff3344, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+  map: beamTex,
+  color: 0xff3344,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  side: THREE.DoubleSide
 });
 const beamPlaneGeo = new THREE.PlaneGeometry(0.14, 1.4);
 beamPlaneGeo.rotateX(-Math.PI / 2);
@@ -117,16 +123,26 @@ const missileTipMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
 
 const missileFlameGeo = new THREE.PlaneGeometry(0.18, 0.18);
 const missileFlameMat = new THREE.MeshBasicMaterial({
-  map: flashTex, color: 0xff8800, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+  map: flashTex,
+  color: 0xff8800,
+  transparent: true,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  side: THREE.DoubleSide
 });
 
 const ZIGZAG_ANGLES_DEG = new Array(20, 35, 45, 60);
+
 function initWeaponsAndEnemies(scene, playerContainer) {
   playerContainer.add(impactSparkLight);
 
   muzzleGroup = new THREE.Group();
   const muzzleMat = new THREE.MeshBasicMaterial({
-    map: flashTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+    map: flashTex,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.DoubleSide
   });
   const mPlane1 = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.32), muzzleMat);
   const mPlane2 = mPlane1.clone();
@@ -140,7 +156,10 @@ function initWeaponsAndEnemies(scene, playerContainer) {
 
   const smokeInstGeo = new THREE.PlaneGeometry(0.16, 0.16);
   const smokeInstMat = new THREE.MeshBasicMaterial({
-    map: uniformSmokeTex, transparent: true, opacity: 0.72, depthWrite: false
+    map: uniformSmokeTex,
+    transparent: true,
+    opacity: 0.72,
+    depthWrite: false
   });
   smokeInstMesh = new THREE.InstancedMesh(smokeInstGeo, smokeInstMat, MAX_SMOKE);
   smokeInstMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -190,7 +209,6 @@ function initWeaponsAndEnemies(scene, playerContainer) {
     });
   }
 }
-
 function fireGunpod(scene, playerContainer, velocity) {
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
   const offset = new THREE.Vector3(0, -0.15, -0.9).applyQuaternion(playerContainer.quaternion);
@@ -226,12 +244,45 @@ function fireEnemyBolt(scene, enemy, playerContainer) {
   scene.add(boltGroup);
 
   const dir = new THREE.Vector3().subVectors(playerContainer.position, enemy.mesh.position).normalize();
-  dir.x += (Math.random() - 0.5) * 0.09;
-  dir.y += (Math.random() - 0.5) * 0.09;
-  dir.z += (Math.random() - 0.5) * 0.09;
+  dir.x += (Math.random() - 0.5) * 0.08;
+  dir.y += (Math.random() - 0.5) * 0.08;
+  dir.z += (Math.random() - 0.5) * 0.08;
   dir.normalize();
 
-  enemyBullets.push({ mesh: boltGroup, vel: dir.multiplyScalar(58), life: 2.2 });
+  enemyBullets.push({ mesh: boltGroup, vel: dir.multiplyScalar(62), life: 1.4 });
+  if (typeof playSFX === 'function') playSFX('lightLaser', 0.45, 0.1);
+}
+
+function fireEnemySalvo(scene, enemy, playerContainer) {
+  const count = Math.random() < 0.5 ? 1 : 2;
+
+  for (let i = 0; i < count; i++) {
+    const mGroup = new THREE.Group();
+    const body = new THREE.Mesh(missileBodyGeo, missileBodyMat);
+    const tip = new THREE.Mesh(missileTipGeo, missileTipMat);
+    const flame = new THREE.Mesh(missileFlameGeo, missileFlameMat);
+    flame.position.set(0, 0, 0.2);
+    mGroup.add(body, tip, flame);
+    mGroup.scale.set(1.45, 1.45, 1.45);
+
+    const sideSpread = count === 1 ? 0 : (i === 0 ? -0.9 : 0.9);
+    const rightVec = new THREE.Vector3(1, 0, 0).applyQuaternion(enemy.mesh.quaternion);
+    const spawnPos = enemy.mesh.position.clone().addScaledVector(rightVec, sideSpread);
+
+    mGroup.position.copy(spawnPos);
+    mGroup.lookAt(playerContainer.position);
+    mGroup.rotateY(Math.PI);
+    scene.add(mGroup);
+
+    enemyMissiles.push({
+      mesh: mGroup,
+      lastTailPos: spawnPos.clone(),
+      speed: 34,
+      life: 4.2,
+      homingTimer: 2.6,
+      isLockedOn: true
+    });
+  }
 }
 
 function pickRandomZigAngleRad() {
@@ -371,7 +422,7 @@ function spawnExplosion(scene, camera, pos, scaleMult) {
   const s = scaleMult || 1.0;
 
   const mat = new THREE.MeshBasicMaterial({
-    map: explosionFrames[0],
+    map: explosionFrames,
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide
@@ -419,6 +470,7 @@ function damageEnemy(scene, camera, enemy, dmg) {
     score += 100;
   }
 }
+
 function updateEnemies(delta, playerContainer) {
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies[i];
@@ -437,16 +489,22 @@ function updateEnemies(delta, playerContainer) {
     e.mesh.lookAt(playerContainer.position);
 
     const dist = e.mesh.position.distanceTo(playerContainer.position);
-    if (dist < 75 && !isPlayerDying && !isGameOver) {
+    if (!isPlayerDying && !isGameOver) {
       e.fireCooldown -= delta;
       if (e.fireCooldown <= 0) {
-        fireEnemyBolt(scene, e, playerContainer);
-        e.fireCooldown = 2.4 + Math.random() * 2.2;
+        if (dist < 38) {
+          fireEnemyBolt(scene, e, playerContainer);
+          e.fireCooldown = 1.6 + Math.random() * 1.4;
+        } else if (dist < 130) {
+          fireEnemySalvo(scene, e, playerContainer);
+          e.fireCooldown = 4.2 + Math.random() * 2.6;
+        } else {
+          e.fireCooldown = 1.0;
+        }
       }
     }
   }
 }
-
 function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   if (gunCooldown > 0) gunCooldown -= delta;
   if (missileCooldown > 0) missileCooldown -= delta;
@@ -494,6 +552,21 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
       }
     }
 
+    if (!hit) {
+      for (let k = enemyMissiles.length - 1; k >= 0; k--) {
+        const em = enemyMissiles[k];
+        if (b.mesh.position.distanceTo(em.mesh.position) < 1.35) {
+          spawnExplosion(scene, camera, em.mesh.position, 0.55);
+          spawnImpactSparks(scene, camera, em.mesh.position);
+          scene.remove(em.mesh);
+          enemyMissiles.splice(k, 1);
+          score += 25;
+          hit = true;
+          break;
+        }
+      }
+    }
+
     if (hit || b.life <= 0) {
       scene.remove(b.mesh);
       bullets.splice(i, 1);
@@ -514,6 +587,42 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     if (hitPlayer || eb.life <= 0) {
       scene.remove(eb.mesh);
       enemyBullets.splice(i, 1);
+    }
+  }
+
+  for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+    const em = enemyMissiles[i];
+
+    if (em.homingTimer > 0 && !isPlayerDying && !isGameOver) {
+      em.homingTimer -= delta;
+      em.isLockedOn = true;
+      tmpLookMat.lookAt(em.mesh.position, playerContainer.position, new THREE.Vector3(0, 1, 0));
+      tmpTargetQuat.setFromRotationMatrix(tmpLookMat);
+      em.mesh.quaternion.slerp(tmpTargetQuat, 3.6 * delta);
+    } else {
+      em.isLockedOn = false;
+    }
+
+    tmpForward.set(0, 0, -1).applyQuaternion(em.mesh.quaternion);
+    em.speed = Math.min(54, em.speed + 10 * delta);
+    em.mesh.position.addScaledVector(tmpForward, em.speed * delta);
+
+    tmpTailPos.copy(em.mesh.position).addScaledVector(tmpForward, -0.24);
+    const distFromPlayer = em.mesh.position.distanceTo(playerContainer.position);
+    spawnUniformSmokeSegment(em.lastTailPos, tmpTailPos, distFromPlayer);
+    em.lastTailPos.copy(tmpTailPos);
+
+    let hitPlayer = false;
+    if (!isPlayerDying && !isGameOver && distFromPlayer < 1.35) {
+      damagePlayerArmor(scene, camera, playerContainer, 25);
+      spawnExplosion(scene, camera, em.mesh.position, 0.75);
+      hitPlayer = true;
+    }
+
+    em.life -= delta;
+    if (hitPlayer || em.life <= 0) {
+      scene.remove(em.mesh);
+      enemyMissiles.splice(i, 1);
     }
   }
 
