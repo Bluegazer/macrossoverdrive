@@ -6,15 +6,27 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 
 ## Características Principales
 
+* **Pantalla de Despliegue Orbital:** Menú de inicio táctico con vista orbital en tiempo real sobre South Ataria antes de entrar en combate.
 * **Transformación en Tiempo Real:** Transición animada fluida entre los modos **Fighter**, **Gerwalk** y **Battroid** con físicas de vuelo independientes para cada configuración.
-* **Sistema de Control de Tiro DYRL:** HUD vectorial con efecto *bloom* CRT, retículas hexagonales enemigas, rastreadores con corchetes a 45° y **Multi-Lock simultáneo de hasta 4 blancos**.
-* **Armamento y Efectos:** Cañón Gunpod GU-11 con fogonazo e iluminación dinámica, salva de 4 micro-misiles guiados con trayectoria en zigzag y estela de humo instanciada (`InstancedMesh`).
-* **Gestión de Daño y Térmica:** Barra de integridad de armadura con regeneración, chispas de impacto iluminadas, secuencia de caída a tierra y control de sobrecalentamiento de turbinas (*Overheat*).
-* **Audio Dinámico en OGG:** Motor de sonido de baja latencia con modulación continua de tono/velocidad de turbinas, alertas de misiles y corte limpio de ráfagas.
+* **Sistema de Control de Tiro DYRL:** HUD vectorial con retículas hexagonales enemigas, rastreadores con corchetes a 45°, **Multi-Lock simultáneo de hasta 4 blancos** e indicadores circulares de alerta para misiles entrantes.
+* **Auto-Rastreo Táctico (Modo Battroid):** Sistema de fijación automática seleccionable para apuntar directamente al enemigo o al misil más cercano e interceptarlo en el aire.
+* **Armamento y Efectos:** Cañón Gunpod GU-11 con fogonazo e iluminación dinámica (capaz de derribar misiles enemigos en vuelo), salva de 4 micro-misiles guiados con trayectoria en zigzag y estela de humo instanciada (`InstancedMesh`).
+* **IA Enemiga Dinámica:** Unidades orbitales que atacan con disparos láser a corta distancia y lanzan salvas aleatorias de 1 o 2 misiles guiados a media y larga distancia.
+* **Gestión de Daño y Térmica:** Barra de integridad de armadura con regeneración automática, chispas de impacto iluminadas, secuencia de caída a tierra y control de sobrecalentamiento de turbinas (*Overheat*).
+* **Audio Dinámico en OGG:** Motor de sonido de baja latencia con música de fondo (`BGM`), controles de volumen independientes (`FX` / `BGM`), modulación continua de turbinas y alerta progresiva de misiles fijados.
 
 ---
 
 ## Controles de Vuelo y Combate
+
+### Navegación y Pantalla de Inicio
+
+| Tecla | Acción |
+| :--- | :--- |
+| **`Enter`** | **Iniciar misión** desde la pantalla de inicio |
+| **`P`** | **Pausar / Reanudar** la simulación |
+| **`M`** | **Silenciar / Activar** música de fondo (`BGM`) |
+| **`Y` / `N`** | Tras ser derribado: **`Y`** reinicia la misión / **`N`** regresa a la pantalla de inicio |
 
 ### Transformación de Modos
 
@@ -35,7 +47,7 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 | **`T`** *(mantener)* | **Turbo / Postcombustión** (vigilar temperatura de turbinas) |
 | **`X`** | **Full Stop** (frenado total a 0%) |
 
-### Movimiento en Modos Gerwalk (`G`) y Battroid (`B`)
+### Movimiento y Rastreo en Modos Gerwalk (`G`) y Battroid (`B`)
 
 | Tecla | Acción |
 | :--- | :--- |
@@ -43,17 +55,16 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 | **`A` / `D`** | Desplazamiento lateral (*Strafe* izquierda / derecha) |
 | **`Flecha Izq` / `Der`** | Girar sobre el eje vertical |
 | **`Flecha Arriba` / `Abajo`** | Ascender / Descender altitud |
-| **`R`** *(mantener)* | Reversa rápida en modo Gerwalk |
+| **`R`** *(mantener)* | Reversa rápida en modo **Gerwalk** |
+| **`N`** | Alternar auto-rastreo en modo **Battroid** (`ENEMY` ➔ `MISSILE` ➔ `NONE`) |
 | **`E`** | Ataque cuerpo a cuerpo con Gunpod (solo en modo **Battroid**) |
 
-### Armamento y Sistema
+### Armamento
 
 | Tecla | Acción |
 | :--- | :--- |
-| **`Shift Izq`** *(mantener)* | Disparar ráfaga continua de **Gunpod GU-11** |
+| **`Shift Izq`** *(mantener)* | Disparar ráfaga continua de **Gunpod GU-11** (efectivo contra enemigos y misiles) |
 | **`Espacio`** | Lanzar salva de **4 Micro-Misiles Guiados AMM-1** (repartidos en Multi-Lock) |
-| **`P`** | **Pausar / Reanudar** la simulación |
-| **`Y` / `N`** | Reiniciar misión (`YES` / `NO`) tras ser derribado |
 
 ---
 
@@ -61,18 +72,22 @@ Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Reme
 
 ```text
 macross-voxp-web/
-├── index.html          # Estructura principal, carga de fuentes y módulos
+├── index.html          # Estructura principal, pantalla de inicio y carga de módulos
 ├── three.min.js        # Motor gráfico Three.js (WebGL 2.0)
 ├── GLTFLoader.js       # Cargador de modelos 3D GLB
-├── fonts/              # Tipografía Conthrax para el HUD
+├── css/
+│   └── style.css       # Estilos de la pantalla de inicio, HUD y paneles de control
+├── fonts/              # Tipografía Conthrax para la interfaz y el HUD
 ├── models/             # Modelo 3D animado de la Valkyrie (vf1a.glb)
-├── sounds/             # Efectos de sonido y turbinas en formato OGG
+├── textures/           # Secuencia de sprites para explosiones
+├── sounds/             # Música de fondo (BGM), efectos de sonido y turbinas en OGG
 └── js/
-    ├── audio.js        # Motor Web Audio API y control continuo de turbina/armas
-    ├── hud.js          # Renderizado 2D del HUD, retículas Multi-Lock y medidores
-    ├── weapons.js      # Lógica de Gunpod, micro-misiles, humo instanciado y enemigos
-    ├── player.js       # Animaciones, propulsores de plasma, física y gestión térmica
-    └── main.js         # Bucle principal, controles de teclado y estado de pausa/reinicio
+    ├── audio.js        # Motor Web Audio API, control de volumen y alertas progresivas
+    ├── environment.js  # Escenario de South Ataria, océano, pistas y colisiones
+    ├── hud.js          # Renderizado 2D del HUD, retículas Multi-Lock y marcadores de misiles
+    ├── weapons.js      # Lógica de Gunpod, micro-misiles, humo instanciado e IA enemiga
+    ├── player.js       # Animaciones, propulsores, física, gestión térmica y auto-rastreo
+    └── main.js         # Bucle principal, cámara orbital de inicio, controles y estados
 ```
 
 ---
