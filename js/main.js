@@ -8,23 +8,31 @@ let isGameStarted = false;
 let isPaused = false;
 let restartDeclined = false;
 let introOrbitAngle = 0.65;
+let manualHourOffset = 0;
 
 const scene = new THREE.Scene();
 buildSouthAtariaEnvironment(scene);
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.25, 1400);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.25, 2400);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0xdbeafe, 0.85));
-const dirLight = new THREE.DirectionalLight(0xfff3d6, 2.6);
-dirLight.position.set(140, 160, 80);
+const ambientLight = new THREE.AmbientLight(0x7c93ad, 0.56);
+scene.add(ambientLight);
+const hemiLight = new THREE.HemisphereLight(0x5299c7, 0x28323e, 0.48);
+scene.add(hemiLight);
+const dirLight = new THREE.DirectionalLight(0xfff1d6, 1.65);
+dirLight.position.set(180, 220, 120);
 scene.add(dirLight);
 
+if (typeof updateDayNightCycle === 'function') {
+  updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+}
+
 const playerContainer = new THREE.Group();
-playerContainer.position.set(0, 28, 80);
+playerContainer.position.set(0, 38, 120);
 scene.add(playerContainer);
 
 const visualTiltGroup = new THREE.Group();
@@ -117,6 +125,14 @@ window.addEventListener('keydown', (e) => {
   const key = (e.key || '').toLowerCase();
   const code = e.code || '';
 
+  if (key === 'h' || code === 'KeyH') {
+    manualHourOffset = (manualHourOffset + 2) % 24;
+    if (typeof updateDayNightCycle === 'function') {
+      updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+    }
+    return;
+  }
+
   if (!isGameStarted) {
     if (key === 'enter' || code === 'Enter' || code === 'NumpadEnter') {
       startMission();
@@ -195,6 +211,10 @@ function animate() {
   requestAnimationFrame(animate);
   const rawDelta = clock.getDelta();
   const delta = (isPaused || !isGameStarted) ? 0 : Math.min(rawDelta, 0.05);
+
+  if (typeof updateDayNightCycle === 'function') {
+    updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+  }
 
   if (!isGameStarted) {
     const safeDelta = Math.min(rawDelta, 0.05);

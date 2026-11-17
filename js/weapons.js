@@ -32,20 +32,48 @@ let smokeCursor = 0;
 
 function createBeamTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 128;
+  canvas.width = 64;
+  canvas.height = 256;
   const ctx = canvas.getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, 0, 128);
-  grad.addColorStop(0.0, 'rgba(234, 88, 12, 0.0)');
-  grad.addColorStop(0.15, 'rgba(249, 115, 22, 1.0)');
-  grad.addColorStop(0.85, 'rgba(234, 88, 12, 1.0)');
-  grad.addColorStop(1.0, 'rgba(194, 65, 12, 0.0)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(4, 0, 24, 128);
-  ctx.fillStyle = 'rgba(255, 140, 30, 1.0)';
-  ctx.fillRect(11, 12, 10, 104);
-  return new THREE.CanvasTexture(canvas);
+
+  ctx.clearRect(0, 0, 64, 256);
+
+  // Degradado longitudinal para el efecto blur de velocidad (punta brillante -> cola desvanecida)
+  const lengthGrad = ctx.createLinearGradient(0, 12, 0, 248);
+  lengthGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.0)');
+  lengthGrad.addColorStop(0.12, 'rgba(255, 255, 255, 1.0)');
+  lengthGrad.addColorStop(0.45, 'rgba(255, 240, 90, 0.85)');
+  lengthGrad.addColorStop(0.82, 'rgba(255, 200, 0, 0.25)');
+  lengthGrad.addColorStop(1.0, 'rgba(255, 180, 0, 0.0)');
+
+  // 1. Halo exterior difuminado en forma de huso/gota (sin tocar los bordes del canvas)
+  ctx.save();
+  ctx.filter = 'blur(4px)';
+  ctx.fillStyle = lengthGrad;
+  ctx.beginPath();
+  ctx.moveTo(32, 14);
+  ctx.quadraticCurveTo(54, 75, 38, 242);
+  ctx.lineTo(26, 242);
+  ctx.quadraticCurveTo(10, 75, 32, 14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Núcleo central afilado de alta intensidad
+  ctx.fillStyle = lengthGrad;
+  ctx.beginPath();
+  ctx.moveTo(32, 20);
+  ctx.quadraticCurveTo(41, 70, 34, 215);
+  ctx.lineTo(30, 215);
+  ctx.quadraticCurveTo(23, 70, 32, 20);
+  ctx.closePath();
+  ctx.fill();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.anisotropy = 4;
+  return tex;
 }
+
 
 function createSoftCircleTexture(innerColor, midColor) {
   const canvas = document.createElement('canvas');
@@ -83,7 +111,7 @@ const sparkBloomTex = createSparkBloomTexture();
 
 const beamMat = new THREE.MeshBasicMaterial({
   map: beamTex,
-  color: 0xff6a00,
+  color: 0xffee00,
   transparent: true,
   blending: THREE.NormalBlending,
   depthWrite: false,
@@ -98,7 +126,7 @@ const enemyBeamMat = new THREE.MeshBasicMaterial({
   depthWrite: false,
   side: THREE.DoubleSide
 });
-const beamPlaneGeo = new THREE.PlaneGeometry(0.14, 1.4);
+const beamPlaneGeo = new THREE.PlaneGeometry(0.22, 2.4);
 beamPlaneGeo.rotateX(-Math.PI / 2);
 
 const sparkGeo = new THREE.PlaneGeometry(0.042, 0.042);

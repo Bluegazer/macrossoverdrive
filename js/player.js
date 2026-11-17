@@ -339,7 +339,7 @@ function resetPlayerMission(playerContainer, visualTiltGroup) {
   battroidTrackMode = 'NONE';
   battroidTrackedTarget = null;
   velocity.set(0, 0, 0);
-  playerContainer.position.set(0, 28, 80);
+  playerContainer.position.set(0, 38, 120);
   playerContainer.quaternion.identity();
   visualTiltGroup.rotation.set(0, 0, 0);
   visualTiltGroup.position.set(0, 0, 0);
