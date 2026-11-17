@@ -2,6 +2,14 @@ const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 const soundBuffers = {};
 
+let sfxMasterGain = null;
+let sfxVolumeLevel = 0.80;
+
+let bgmMasterGain = null;
+let bgmVolumeLevel = 0.65;
+let bgmEnabled = true;
+let bgmSource = null;
+
 let engineSource = null;
 let engineGain = null;
 
@@ -14,6 +22,7 @@ let lockOnGain = null;
 let warningCooldown = 0;
 
 const SOUND_FILES = {
+  bgm: './sounds/DogF.ogg',
   boost: './sounds/Boost.ogg',
   gunpod: './sounds/Gunpod.ogg',
   heavyLaser: './sounds/HeavyLaser.ogg',
@@ -25,9 +34,46 @@ const SOUND_FILES = {
   engine: './sounds/ValkyrieEngine.ogg'
 };
 
+function setSFXVolume(percent) {
+  sfxVolumeLevel = Math.max(0, Math.min(1, percent / 100));
+  if (audioCtx && sfxMasterGain) {
+    sfxMasterGain.gain.setTargetAtTime(sfxVolumeLevel, audioCtx.currentTime, 0.04);
+  }
+}
+
+function setBGMVolume(percent) {
+  bgmVolumeLevel = Math.max(0, Math.min(1, percent / 100));
+  if (audioCtx && bgmMasterGain && bgmEnabled) {
+    bgmMasterGain.gain.setTargetAtTime(bgmVolumeLevel, audioCtx.currentTime, 0.04);
+  }
+}
+
+function toggleMusic() {
+  bgmEnabled = !bgmEnabled;
+}
+
+function startBGMLoop() {
+  if (!audioCtx || !soundBuffers.bgm || bgmSource) return;
+
+  bgmSource = audioCtx.createBufferSource();
+  bgmSource.buffer = soundBuffers.bgm;
+  bgmSource.loop = true;
+
+  bgmSource.connect(bgmMasterGain);
+  bgmSource.start(0);
+}
+
 function initAudioSystem() {
   if (audioCtx) return;
   audioCtx = new AudioCtx();
+
+  sfxMasterGain = audioCtx.createGain();
+  sfxMasterGain.gain.value = sfxVolumeLevel;
+  sfxMasterGain.connect(audioCtx.destination);
+
+  bgmMasterGain = audioCtx.createGain();
+  bgmMasterGain.gain.value = bgmEnabled ? bgmVolumeLevel : 0;
+  bgmMasterGain.connect(audioCtx.destination);
 
   for (const key in SOUND_FILES) {
     fetch(SOUND_FILES[key])
@@ -36,6 +82,7 @@ function initAudioSystem() {
       .then((buffer) => {
         soundBuffers[key] = buffer;
         if (key === 'engine') startEngineLoop();
+        if (key === 'bgm') startBGMLoop();
       })
       .catch(() => {});
   }
@@ -66,11 +113,9 @@ function playSFX(name, volume, pitchVariation) {
   }
 
   source.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
+  gainNode.connect(sfxMasterGain || audioCtx.destination);
   source.start(0);
 }
-
-// Control continuo del Gunpod: no se superpone y corta con fundido rápido al soltar Shift
 function updateGunpodAudio(isFiring) {
   if (!audioCtx || !soundBuffers.gunpod) return;
 
@@ -85,7 +130,7 @@ function updateGunpodAudio(isFiring) {
       gunpodGain.gain.setValueAtTime(0.55, audioCtx.currentTime);
 
       gunpodSource.connect(gunpodGain);
-      gunpodGain.connect(audioCtx.destination);
+      gunpodGain.connect(sfxMasterGain || audioCtx.destination);
       gunpodSource.start(0);
     }
   } else if (gunpodSource) {
@@ -103,7 +148,6 @@ function updateGunpodAudio(isFiring) {
   }
 }
 
-// Control continuo del Lock-On: suena mientras haya blancos fijados y se corta al perderlos
 function updateLockOnAudio(hasLock) {
   if (!audioCtx || !soundBuffers.lockOn) return;
 
@@ -118,7 +162,7 @@ function updateLockOnAudio(hasLock) {
       lockOnGain.gain.setValueAtTime(0.65, audioCtx.currentTime);
 
       lockOnSource.connect(lockOnGain);
-      lockOnGain.connect(audioCtx.destination);
+      lockOnGain.connect(sfxMasterGain || audioCtx.destination);
       lockOnSource.start(0);
     }
   } else if (lockOnSource) {
@@ -147,7 +191,7 @@ function startEngineLoop() {
   engineGain.gain.value = 0.15;
 
   engineSource.connect(engineGain);
-  engineGain.connect(audioCtx.destination);
+  engineGain.connect(sfxMasterGain || audioCtx.destination);
   engineSource.start(0);
 }
 
@@ -155,6 +199,14 @@ function updateEngineAudio(delta, isPaused, isFullStop, isAccelerating, currentM
   if (!audioCtx) return;
 
   const isDead = (typeof isPlayerDying !== 'undefined' && isPlayerDying) || (typeof isGameOver !== 'undefined' && isGameOver);
+
+  // Control de volumen suave para DogF.ogg (baja a 25% en pausa y se apaga al morir o silenciar con M)
+  if (bgmMasterGain) {
+    let targetBgmVol = bgmEnabled ? bgmVolumeLevel : 0.0;
+    if (isDead) targetBgmVol = 0.0;
+    else if (isPaused) targetBgmVol *= 0.25;
+    bgmMasterGain.gain.setTargetAtTime(targetBgmVol, audioCtx.currentTime, 0.1);
+  }
 
   if (isPaused || isDead) {
     if (engineGain) engineGain.gain.setTargetAtTime(0.0, audioCtx.currentTime, 0.08);

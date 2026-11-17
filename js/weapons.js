@@ -35,14 +35,14 @@ function createBeamTexture() {
   canvas.height = 128;
   const ctx = canvas.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 0, 128);
-  grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.0)');
-  grad.addColorStop(0.2, 'rgba(255, 250, 210, 1.0)');
-  grad.addColorStop(0.8, 'rgba(255, 200, 60, 0.85)');
-  grad.addColorStop(1.0, 'rgba(255, 140, 0, 0.0)');
+  grad.addColorStop(0.0, 'rgba(234, 88, 12, 0.0)');
+  grad.addColorStop(0.15, 'rgba(249, 115, 22, 1.0)');
+  grad.addColorStop(0.85, 'rgba(234, 88, 12, 1.0)');
+  grad.addColorStop(1.0, 'rgba(194, 65, 12, 0.0)');
   ctx.fillStyle = grad;
-  ctx.fillRect(6, 0, 20, 128);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-  ctx.fillRect(13, 15, 6, 98);
+  ctx.fillRect(4, 0, 24, 128);
+  ctx.fillStyle = 'rgba(255, 140, 30, 1.0)';
+  ctx.fillRect(11, 12, 10, 104);
   return new THREE.CanvasTexture(canvas);
 }
 
@@ -76,13 +76,19 @@ function createSparkBloomTexture() {
 }
 
 const beamTex = createBeamTexture();
-const flashTex = createSoftCircleTexture('rgba(255, 255, 255, 1.0)', 'rgba(255, 210, 90, 0.75)');
+const flashTex = createSoftCircleTexture('rgba(255, 230, 190, 1.0)', 'rgba(249, 115, 22, 0.85)');
 const uniformSmokeTex = createSoftCircleTexture('rgba(255, 255, 255, 0.92)', 'rgba(230, 240, 255, 0.55)');
 const sparkBloomTex = createSparkBloomTexture();
 
 const beamMat = new THREE.MeshBasicMaterial({
-  map: beamTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+  map: beamTex,
+  color: 0xff6a00,
+  transparent: true,
+  blending: THREE.NormalBlending,
+  depthWrite: false,
+  side: THREE.DoubleSide
 });
+
 const enemyBeamMat = new THREE.MeshBasicMaterial({
   map: beamTex, color: 0xff3344, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
 });

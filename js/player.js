@@ -25,10 +25,8 @@ function updateButtonsUI() {
   document.getElementById('btnSweep').classList.toggle('active', isAccelerating);
   document.getElementById('btnMelee').classList.toggle('active', isAttacking);
 }
-
 function transformTo(newMode) {
   if (!mixer || isAttacking || isAccelerating || currentMode === newMode) return;
-  if (typeof playSFX === 'function') playSFX('transform', 0.8, 0);
   if (newMode === 'FIGHTER') {
     if (currentMode === 'BATTROID') { currentFrame = 29; targetFrame = 44; }
     else if (currentMode === 'GERWALK') { currentFrame = 14; targetFrame = 0; }
@@ -40,6 +38,7 @@ function transformTo(newMode) {
     else if (currentMode === 'GERWALK') { targetFrame = 29; }
   }
   currentMode = newMode;
+  if (typeof playSFX === 'function') playSFX('transform', 0.8, 0);
   updateButtonsUI();
 }
 
@@ -147,6 +146,11 @@ function createPlumeMesh(isMain) {
   if (isMain) p2.rotateZ(Math.PI / 2); else p2.rotateY(Math.PI / 2);
   const p3 = p1.clone();
   if (isMain) p3.rotateZ(Math.PI / 4); else p3.rotateY(Math.PI / 4);
+
+  p1.renderOrder = 10;
+  p2.renderOrder = 10;
+  p3.renderOrder = 10;
+
   group.add(p1, p2, p3);
   return { group: group, mat: mat };
 }
@@ -218,17 +222,17 @@ function updateThrusters(isFullStop, keys) {
   if (isFullStop) {
     mainPower = 0.0;
   } else if (isAccelerating) {
-    mainPower = 2.5;
+    mainPower = 2.6;
   } else if (isReverseGerwalk) {
-    mainPower = 1.7;
+    mainPower = 1.8;
   } else if (isFighter) {
-    mainPower = throttle === 0 ? 0.25 : (0.6 + throttle * 1.15);
+    mainPower = throttle === 0 ? 0.3 : (0.65 + throttle * 1.2);
   } else if (currentMode === 'GERWALK') {
     const moving = yawLeft || yawRight || strafeLeft || strafeRight || pushUp || pushDown || keys['KeyW'] || keys['KeyS'];
-    mainPower = moving ? 1.2 : 0.65;
+    mainPower = moving ? 1.25 : 0.7;
   } else if (currentMode === 'BATTROID') {
     const boosting = keys['ArrowUp'] || keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD'];
-    mainPower = keys['ArrowUp'] ? 1.8 : (boosting ? 1.0 : 0.35);
+    mainPower = keys['ArrowUp'] ? 1.85 : (boosting ? 1.05 : 0.4);
   }
 
   const flicker = 0.88 + Math.random() * 0.28;
@@ -241,10 +245,10 @@ function updateThrusters(isFullStop, keys) {
 
     if (f.isMain) {
       f.group.visible = true;
-      const len = mainPower * 1.25 * flicker;
-      const wid = Math.min(1.45, 0.85 + mainPower * 0.25);
+      const len = mainPower * 1.3 * flicker;
+      const wid = Math.min(1.5, 0.9 + mainPower * 0.25);
       f.group.scale.set(wid, wid, len);
-      f.outerMat.color.setHex(isAccelerating ? 0xff7b29 : 0x38bdf8);
+      f.outerMat.color.setHex(isAccelerating ? 0xea580c : 0x0284c7);
       return;
     }
 
@@ -253,9 +257,9 @@ function updateThrusters(isFullStop, keys) {
         f.group.visible = false;
       } else {
         f.group.visible = true;
-        const packPulse = 1.6 + Math.random() * 0.6;
-        f.group.scale.set(1.5, packPulse, 1.5);
-        f.outerMat.color.setHex(0x38bdf8);
+        const packPulse = 1.7 + Math.random() * 0.6;
+        f.group.scale.set(1.6, packPulse, 1.6);
+        f.outerMat.color.setHex(0x0284c7);
       }
       return;
     }
@@ -278,13 +282,12 @@ function updateThrusters(isFullStop, keys) {
       f.group.visible = false;
     } else {
       f.group.visible = true;
-      const vernierPulse = 0.75 + Math.random() * 0.45;
-      f.group.scale.set(0.85, vernierPulse, 0.85);
-      f.outerMat.color.setHex(0xbae6fd);
+      const vernierPulse = 0.95 + Math.random() * 0.45;
+      f.group.scale.set(1.05, vernierPulse, 1.05);
+      f.outerMat.color.setHex(0x0ea5e9);
     }
   });
 }
-
 function updatePlayerAnimation(delta) {
   if (mixer && Math.abs(targetFrame - currentFrame) > 0.05) {
     const direction = Math.sign(targetFrame - currentFrame);
@@ -316,7 +319,7 @@ function resetPlayerMission(playerContainer, visualTiltGroup) {
   isAttacking = false;
 
   velocity.set(0, 0, 0);
-  playerContainer.position.set(0, 10, 0);
+  playerContainer.position.set(0, 28, 80);
   playerContainer.quaternion.identity();
   visualTiltGroup.rotation.set(0, 0, 0);
   visualTiltGroup.position.set(0, 0, 0);
@@ -327,57 +330,75 @@ function resetPlayerMission(playerContainer, visualTiltGroup) {
   setModelFrame(0);
   updateButtonsUI();
 }
+
+function getDynamicGroundY(x, z) {
+  let modeOffset = 0.55;
+  if (currentMode === 'GERWALK') {
+    modeOffset = 0.95;
+  } else if (currentMode === 'BATTROID') {
+    modeOffset = 1.25;
+  }
+
+  if (typeof getTerrainHeight === 'function') {
+    return Math.max(modeOffset, getTerrainHeight(x, z) + modeOffset);
+  }
+  return modeOffset;
+}
+function handlePlayerDeathSequence(delta, playerContainer, visualTiltGroup, camera, keys, hudEl, groundY) {
+  updateThrusters(true, keys);
+
+  if (isPlayerDying) {
+    deathExplosionTimer -= delta;
+    if (deathExplosionTimer <= 0) {
+      const boomPos = playerContainer.position.clone().add(new THREE.Vector3(
+        (Math.random() - 0.5) * 1.1,
+        (Math.random() - 0.5) * 0.7,
+        (Math.random() - 0.5) * 1.1
+      ));
+      spawnExplosion(scene, camera, boomPos, 0.85);
+      spawnImpactSparks(scene, camera, boomPos);
+      deathExplosionTimer = 0.22;
+    }
+
+    velocity.x *= (1.0 - 0.6 * delta);
+    velocity.z *= (1.0 - 0.6 * delta);
+    velocity.y -= 14.5 * delta;
+
+    visualTiltGroup.rotation.z += 2.2 * delta;
+    visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0.55, 2.0 * delta);
+
+    playerContainer.position.addScaledVector(velocity, delta);
+
+    if (playerContainer.position.y <= groundY) {
+      playerContainer.position.y = groundY;
+      velocity.set(0, 0, 0);
+      isPlayerDying = false;
+      isGameOver = true;
+      spawnExplosion(scene, camera, playerContainer.position, 2.2);
+      spawnImpactSparks(scene, camera, playerContainer.position);
+    }
+  } else if (isGameOver) {
+    visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0.12, 4.0 * delta);
+    visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, 0.45, 4.0 * delta);
+  }
+
+  const camOffset = new THREE.Vector3(0, 0.65, 2.4).applyQuaternion(playerContainer.quaternion);
+  camera.position.lerp(playerContainer.position.clone().add(camOffset), 10.0 * delta);
+  camera.up.lerp(new THREE.Vector3(0, 1, 0), 8.0 * delta);
+  camera.lookAt(playerContainer.position);
+
+  hudEl.innerHTML =
+    'MODO: <b style="color:#ef4444;">CRITICAL // DOWN</b><br>' +
+    'EMPUJE: <b style="color:#ef4444;">OFFLINE</b><br>' +
+    'SCORE FINAL: <b>' + score + '</b>';
+}
 function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, keys, hudEl) {
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
   const isFullStop = Boolean(keys['KeyX']);
+  const groundY = getDynamicGroundY(playerContainer.position.x, playerContainer.position.z);
 
   if (isPlayerDying || isGameOver) {
-    updateThrusters(true, keys);
-
-    if (isPlayerDying) {
-      deathExplosionTimer -= delta;
-      if (deathExplosionTimer <= 0) {
-        const boomPos = playerContainer.position.clone().add(new THREE.Vector3(
-          (Math.random() - 0.5) * 1.1,
-          (Math.random() - 0.5) * 0.7,
-          (Math.random() - 0.5) * 1.1
-        ));
-        spawnExplosion(scene, camera, boomPos, 0.85);
-        spawnImpactSparks(scene, camera, boomPos);
-        deathExplosionTimer = 0.22;
-      }
-
-      velocity.x *= (1.0 - 0.6 * delta);
-      velocity.z *= (1.0 - 0.6 * delta);
-      velocity.y -= 14.5 * delta;
-
-      visualTiltGroup.rotation.z += 2.2 * delta;
-      visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0.55, 2.0 * delta);
-
-      playerContainer.position.addScaledVector(velocity, delta);
-
-      if (playerContainer.position.y <= 1.0) {
-        playerContainer.position.y = 1.0;
-        velocity.set(0, 0, 0);
-        isPlayerDying = false;
-        isGameOver = true;
-        spawnExplosion(scene, camera, playerContainer.position, 2.2);
-        spawnImpactSparks(scene, camera, playerContainer.position);
-      }
-    } else if (isGameOver) {
-      visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0.12, 4.0 * delta);
-      visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, 0.45, 4.0 * delta);
-    }
-
-    const camOffset = new THREE.Vector3(0, 0.65, 2.4).applyQuaternion(playerContainer.quaternion);
-    camera.position.lerp(playerContainer.position.clone().add(camOffset), 10.0 * delta);
-    camera.up.lerp(new THREE.Vector3(0, 1, 0), 8.0 * delta);
-    camera.lookAt(playerContainer.position);
-
-    hudEl.innerHTML =
-      'MODO: <b style="color:#ef4444;">CRITICAL // DOWN</b><br>' +
-      'EMPUJE: <b style="color:#ef4444;">OFFLINE</b><br>' +
-      'SCORE FINAL: <b>' + score + '</b>';
+    handlePlayerDeathSequence(delta, playerContainer, visualTiltGroup, camera, keys, hudEl, groundY);
     return;
   }
 
@@ -512,9 +533,16 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
   updateThrusters(isFullStop, keys);
 
   playerContainer.position.addScaledVector(velocity, delta);
-  if (playerContainer.position.y < 1.0) {
-    playerContainer.position.y = 1.0;
+  if (playerContainer.position.y < groundY) {
+    playerContainer.position.y = groundY;
     if (velocity.y < 0) velocity.y = 0;
+  }
+
+  if (typeof resolveStructureCollisions === 'function') {
+    const collided = resolveStructureCollisions(playerContainer.position, velocity);
+    if (collided && velocity.length() > 14 && typeof spawnImpactSparks === 'function') {
+      spawnImpactSparks(scene, camera, playerContainer.position);
+    }
   }
 
   const camOffset = new THREE.Vector3(0, 0.45, 1.85).applyQuaternion(playerContainer.quaternion);
@@ -524,7 +552,7 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
   camera.lookAt(playerContainer.position.clone().add(forward.multiplyScalar(4)));
 
   const speedKmh = Math.round(velocity.length() * 45);
-  const altMeters = Math.round((playerContainer.position.y - 1.0) * 10);
+  const altMeters = Math.max(0, Math.round((playerContainer.position.y - groundY) * 10));
   let statusLabel = 'MECHA THRUSTERS';
   if (isFullStop) statusLabel = 'FULL STOP (0%)';
   else if (isOverheated) statusLabel = 'TURBINE OVERHEAT';

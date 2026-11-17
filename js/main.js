@@ -5,35 +5,21 @@ let isPaused = false;
 let restartDeclined = false;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x060b19);
-scene.fog = new THREE.FogExp2(0x060b19, 0.007);
-scene.add(new THREE.GridHelper(300, 120, 0x2563eb, 0x1e293b));
+buildSouthAtariaEnvironment(scene);
 
-const starCount = 260;
-const starPositions = new Float32Array(starCount * 3);
-for (let i = 0; i < starCount; i++) {
-  starPositions[i * 3]     = (Math.random() - 0.5) * 200;
-  starPositions[i * 3 + 1] = Math.random() * 80 + 2;
-  starPositions[i * 3 + 2] = (Math.random() - 0.5) * 200;
-}
-const starsGeo = new THREE.BufferGeometry();
-starsGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-const starsMat = new THREE.PointsMaterial({ color: 0x64748b, size: 0.7 });
-scene.add(new THREE.Points(starsGeo, starsMat));
-
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.05, 400);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.25, 1400);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.AmbientLight(0xffffff, 1.6));
-const dirLight = new THREE.DirectionalLight(0xffffff, 2.2);
-dirLight.position.set(30, 50, 30);
+scene.add(new THREE.AmbientLight(0xdbeafe, 0.85));
+const dirLight = new THREE.DirectionalLight(0xfff3d6, 2.6);
+dirLight.position.set(140, 160, 80);
 scene.add(dirLight);
 
 const playerContainer = new THREE.Group();
-playerContainer.position.set(0, 10, 0);
+playerContainer.position.set(0, 28, 80);
 scene.add(playerContainer);
 
 const visualTiltGroup = new THREE.Group();
@@ -41,7 +27,6 @@ playerContainer.add(visualTiltGroup);
 
 initWeaponsAndEnemies(scene, playerContainer);
 loadPlayerModel(visualTiltGroup);
-
 function togglePause() {
   if (isPlayerDying || isGameOver) return;
   isPaused = !isPaused;
@@ -58,6 +43,23 @@ const btnSweep = document.getElementById('btnSweep');
 btnSweep.addEventListener('mousedown', () => { if (!isPaused && !isPlayerDying && !isGameOver) startAcceleration(); });
 btnSweep.addEventListener('mouseup', stopAcceleration);
 btnSweep.addEventListener('mouseleave', stopAcceleration);
+
+const sliderSFX = document.getElementById('sliderSFX');
+if (sliderSFX) {
+  sliderSFX.addEventListener('input', (e) => {
+    if (typeof setSFXVolume === 'function') setSFXVolume(Number(e.target.value));
+  });
+  sliderSFX.addEventListener('change', (e) => e.target.blur());
+}
+
+const sliderBGM = document.getElementById('sliderBGM');
+if (sliderBGM) {
+  sliderBGM.addEventListener('input', (e) => {
+    if (typeof setBGMVolume === 'function') setBGMVolume(Number(e.target.value));
+  });
+  sliderBGM.addEventListener('change', (e) => e.target.blur());
+}
+
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') e.preventDefault();
@@ -76,10 +78,16 @@ window.addEventListener('keydown', (e) => {
 
   if (e.repeat) return;
 
-  if (key === 'p' || code === 'KeyP') {
+    if (key === 'p' || code === 'KeyP') {
     togglePause();
     return;
   }
+
+  if (key === 'm' || code === 'KeyM') {
+    if (typeof toggleMusic === 'function') toggleMusic();
+    return;
+  }
+
 
   if (isPaused || (typeof isPlayerDying !== 'undefined' && isPlayerDying)) return;
   keys[code] = true;
@@ -93,6 +101,20 @@ window.addEventListener('keydown', (e) => {
   if (key === 'r' || code === 'KeyR') startReverseGerwalk();
 }, true);
 
+window.addEventListener('click', (e) => {
+  if (typeof isGameOver !== 'undefined' && isGameOver) {
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    if (Math.abs(e.clientY - (cy + 38)) < 28) {
+      if (Math.abs(e.clientX - (cx - 78)) < 55) {
+        window.location.reload();
+      } else if (Math.abs(e.clientX - (cx + 78)) < 55) {
+        restartDeclined = true;
+      }
+    }
+  }
+});
+
 window.addEventListener('keyup', (e) => {
   const key = (e.key || '').toLowerCase();
   const code = e.code || '';
@@ -100,7 +122,6 @@ window.addEventListener('keyup', (e) => {
   if (key === 't' || code === 'KeyT') stopAcceleration();
   if (key === 'r' || code === 'KeyR') stopReverseGerwalk();
 });
-
 
 let fpsFrames = 0;
 let fpsTime = 0;
@@ -122,6 +143,7 @@ function animate() {
   }
 
   if (!isPaused) {
+    if (typeof updateEnvironment === 'function') updateEnvironment(delta);
     updatePlayerAnimation(delta);
     updateEnemies(delta, playerContainer);
     updateWeapons(delta, scene, camera, playerContainer, velocity, keys);
@@ -132,7 +154,6 @@ function animate() {
   const hasIncoming = (typeof enemyBullets !== 'undefined' && enemyBullets.length > 0);
   const isFiringGun = Boolean(keys['ShiftLeft']);
   const hasLockedTargets = (typeof lockedEnemies !== 'undefined' && lockedEnemies.length > 0);
-
 
   if (typeof updateEngineAudio === 'function') {
     updateEngineAudio(

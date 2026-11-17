@@ -11,11 +11,11 @@ function drawDYRLEnemyHexagon(sx, sy, radius, distNum, subNum) {
   hudCtx.save();
   hudCtx.translate(sx, sy);
 
-  hudCtx.shadowColor = 'rgba(255, 255, 255, 0.85)';
-  hudCtx.shadowBlur = 7;
+  hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+  hudCtx.shadowBlur = 5;
 
-  hudCtx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-  hudCtx.lineWidth = 1.8;
+  hudCtx.strokeStyle = '#ffffff';
+  hudCtx.lineWidth = 2.2;
   hudCtx.lineCap = 'round';
   hudCtx.lineJoin = 'round';
 
@@ -74,8 +74,8 @@ function drawSeekerBrackets(sx, sy, spreadOffset, isLocked, enemyId, lockIndex) 
   hudCtx.save();
   hudCtx.translate(sx, sy);
 
-  hudCtx.shadowColor = glowColor;
-  hudCtx.shadowBlur = isLocked ? 12 : 9;
+  hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+  hudCtx.shadowBlur = 6;
 
   hudCtx.strokeStyle = color;
   hudCtx.lineWidth = isLocked ? 3.2 : 2.6;
@@ -439,6 +439,7 @@ function drawRestartOverlay(w, h) {
 
   hudCtx.restore();
 }
+
 function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   const w = hudCanvas.width;
   const h = hudCanvas.height;
@@ -529,14 +530,15 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
     drawSeekerBrackets(e.seekerX, e.seekerY, spreadOffset, isFullLock, e.id, i + 1);
   }
 
+  // Mira Central Vectorial con alto contraste diurno
   const rollAngle = new THREE.Euler().setFromQuaternion(playerContainer.quaternion, 'YXZ').z;
   hudCtx.save();
   hudCtx.translate(cx, cy);
 
-  hudCtx.shadowColor = 'rgba(56, 189, 248, 0.85)';
-  hudCtx.shadowBlur = 8;
-  hudCtx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
-  hudCtx.lineWidth = 1.8;
+  hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+  hudCtx.shadowBlur = 5;
+  hudCtx.strokeStyle = '#38bdf8';
+  hudCtx.lineWidth = 2.2;
   hudCtx.beginPath();
   hudCtx.arc(0, 0, 88, -Math.PI * 0.35, Math.PI * 0.35);
   hudCtx.stroke();
@@ -546,10 +548,10 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
 
   hudCtx.save();
   hudCtx.rotate(-rollAngle);
-  hudCtx.shadowColor = 'rgba(34, 197, 94, 0.85)';
-  hudCtx.shadowBlur = 7;
-  hudCtx.strokeStyle = 'rgba(34, 197, 94, 0.8)';
-  hudCtx.lineWidth = 1.5;
+  hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+  hudCtx.shadowBlur = 5;
+  hudCtx.strokeStyle = '#22c55e';
+  hudCtx.lineWidth = 2.0;
   hudCtx.beginPath();
   hudCtx.moveTo(-64, 0); hudCtx.lineTo(-24, 0);
   hudCtx.moveTo(24, 0); hudCtx.lineTo(64, 0);
@@ -560,10 +562,10 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.stroke();
   hudCtx.restore();
 
-  hudCtx.shadowColor = 'rgba(34, 197, 94, 0.95)';
-  hudCtx.shadowBlur = 9;
-  hudCtx.strokeStyle = '#22c55e';
-  hudCtx.lineWidth = 2.0;
+  hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+  hudCtx.shadowBlur = 5;
+  hudCtx.strokeStyle = '#4ade80';
+  hudCtx.lineWidth = 2.4;
   hudCtx.beginPath();
   hudCtx.moveTo(0, -18); hudCtx.lineTo(0, -6);
   hudCtx.moveTo(0, 6); hudCtx.lineTo(0, 18);
@@ -571,7 +573,6 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.moveTo(6, 0); hudCtx.lineTo(18, 0);
   hudCtx.stroke();
 
-  hudCtx.shadowColor = 'rgba(56, 189, 248, 1.0)';
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillRect(-2, -2, 4, 4);
   hudCtx.restore();
