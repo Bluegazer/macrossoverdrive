@@ -19,6 +19,82 @@ body {
   user-select: none;
 }
 
+.hidden {
+  display: none !important;
+}
+
+/* Pantalla de Inicio */
+#startScreen {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(6, 12, 24, 0.35) 0%, rgba(2, 6, 23, 0.85) 100%);
+  backdrop-filter: blur(2px);
+}
+
+.start-box {
+  text-align: center;
+  background: rgba(6, 12, 24, 0.88);
+  border: 2px solid #38bdf8;
+  box-shadow: 0 0 28px rgba(56, 189, 248, 0.35), inset 0 0 18px rgba(56, 189, 248, 0.15);
+  padding: 36px 48px;
+  border-radius: 8px;
+  max-width: 540px;
+  width: 90%;
+}
+
+.start-tag {
+  font-size: 10px;
+  color: #22c55e;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.start-title {
+  margin: 0;
+  font-size: 32px;
+  color: #ffffff;
+  letter-spacing: 2.5px;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.85);
+}
+
+.start-subtitle {
+  font-size: 11px;
+  color: #38bdf8;
+  letter-spacing: 1.5px;
+  margin-top: 8px;
+  margin-bottom: 28px;
+}
+
+.start-btn {
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  background: #1d4ed8;
+  color: #ffffff;
+  border: 1.5px solid #38bdf8;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+  transition: all 0.18s ease;
+}
+
+.start-btn:hover {
+  background: #2563eb;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.9);
+  transform: translateY(-1px);
+}
+
+.start-hint {
+  margin-top: 16px;
+  font-size: 9px;
+  color: #94a3b8;
+  letter-spacing: 1px;
+}
 #hudCanvas {
   position: absolute;
   top: 0;
@@ -115,7 +191,6 @@ button.warn {
   letter-spacing: 0.8px;
 }
 
-/* Panel de audio ajustado al ancho del recuadro */
 .audio-panel {
   display: flex;
   justify-content: space-between;
