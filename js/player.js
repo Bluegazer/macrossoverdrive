@@ -11,6 +11,15 @@ let animSpeed = 48, isAttacking = false, isAccelerating = false, isReverseGerwal
 
 let battroidTrackMode = 'NONE';
 let battroidTrackedTarget = null;
+let gamepadCameraSide = 0;
+let gamepadCameraFocus = 'pilot';
+
+function setGamepadCameraView(action) {
+  if (action === 'cameraLeft') { gamepadCameraSide = -1; gamepadCameraFocus = 'pilot'; }
+  else if (action === 'cameraRight') { gamepadCameraSide = 1; gamepadCameraFocus = 'pilot'; }
+  else if (action === 'cameraEnemy') { gamepadCameraSide = 0; gamepadCameraFocus = gamepadCameraFocus === 'enemy' ? 'pilot' : 'enemy'; }
+  else if (action === 'cameraMissiles') { gamepadCameraSide = 0; gamepadCameraFocus = gamepadCameraFocus === 'missile' ? 'pilot' : 'missile'; }
+}
 
 function cycleBattroidTracking() {
   if (currentMode !== 'BATTROID') return;
@@ -20,16 +29,16 @@ function cycleBattroidTracking() {
   battroidTrackedTarget = null;
 }
 
-function getClosestBattroidTarget(playerPos) {
+function getClosestBattroidTarget(playerPos, trackMode = battroidTrackMode) {
   let closest = null;
   let minDist = 99999;
-  if (battroidTrackMode === 'ENEMY' && typeof enemies !== 'undefined') {
+  if (trackMode === 'ENEMY' && typeof enemies !== 'undefined') {
     for (let i = 0; i < enemies.length; i++) {
       if (enemies[i].respawnTimer > 0) continue;
       const d = playerPos.distanceTo(enemies[i].mesh.position);
       if (d < minDist) { minDist = d; closest = enemies[i]; }
     }
-  } else if (battroidTrackMode === 'MISSILE' && typeof enemyMissiles !== 'undefined') {
+  } else if (trackMode === 'MISSILE' && typeof enemyMissiles !== 'undefined') {
     for (let i = 0; i < enemyMissiles.length; i++) {
       const d = playerPos.distanceTo(enemyMissiles[i].mesh.position);
       if (d < minDist) { minDist = d; closest = enemyMissiles[i]; }
@@ -109,6 +118,24 @@ function startAcceleration() {
   updateButtonsUI();
 }
 
+function triggerBattroidImpulse(keys) {
+  if (currentMode !== 'BATTROID' || isOverheated) return;
+  const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
+  const right = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
+  const impulse = new THREE.Vector3();
+  if (keys.KeyW) impulse.add(forward);
+  if (keys.KeyS) impulse.sub(forward);
+  if (keys.KeyD || keys.GamepadRB) impulse.add(right);
+  if (keys.KeyA || keys.GamepadLB) impulse.sub(right);
+  if (keys.ArrowUp) impulse.y += 0.8;
+  if (keys.ArrowDown || keys.GamepadDescend) impulse.y -= 0.8;
+  if (impulse.lengthSq() === 0) impulse.y = 1;
+  impulse.normalize().multiplyScalar(13);
+  velocity.add(impulse);
+  turboHeat = Math.min(1, turboHeat + 0.28);
+  if (turboHeat >= 1) isOverheated = true;
+  if (typeof playSFX === 'function') playSFX('boost', 0.75, 0);
+}
 function stopAcceleration() {
   if (!isAccelerating) return;
   isAccelerating = false;
@@ -243,8 +270,8 @@ function updateThrusters(isFullStop, keys) {
   const yawRight = isFighter ? keys['KeyD'] : keys['ArrowRight'];
   const rollLeft = isFighter && keys['ArrowLeft'];
   const rollRight = isFighter && keys['ArrowRight'];
-  const strafeLeft = !isFighter && keys['KeyA'];
-  const strafeRight = !isFighter && keys['KeyD'];
+  const strafeLeft = !isFighter && (keys['KeyA'] || keys['GamepadLB']);
+  const strafeRight = !isFighter && (keys['KeyD'] || keys['GamepadRB']);
   const pushUp = isFighter ? keys['ArrowDown'] : keys['ArrowUp'];
   const pushDown = isFighter ? keys['ArrowUp'] : keys['ArrowDown'];
   const pushForward = !isFighter && keys['KeyW'];
@@ -426,15 +453,16 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0, 8.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, 0, 8.0 * delta);
     visualTiltGroup.position.y = THREE.MathUtils.lerp(visualTiltGroup.position.y, 0, 8.0 * delta);
-    const yawRate = 1.6 * delta, rollRate = 2.4 * delta, pitchRate = 1.7 * delta;
-    if (keys['KeyA']) playerContainer.rotateY(yawRate);
-    if (keys['KeyD']) playerContainer.rotateY(-yawRate);
-    if (keys['ArrowLeft']) playerContainer.rotateZ(rollRate);
-    if (keys['ArrowRight']) playerContainer.rotateZ(-rollRate);
-    if (keys['ArrowDown']) playerContainer.rotateX(pitchRate);
-    if (keys['ArrowUp']) playerContainer.rotateX(-pitchRate);
-    if (keys['KeyW']) throttle = Math.min(1.0, throttle + 0.55 * delta);
-    if (keys['KeyS']) throttle = Math.max(0.0, throttle - 0.55 * delta);
+    const tightTurn = (keys['GamepadLB'] || keys['GamepadRB']) ? 1.75 : 1;
+    const yawRate = 1.6 * delta * tightTurn, rollRate = 2.4 * delta * tightTurn, pitchRate = 1.7 * delta * tightTurn;
+    if (keys['KeyA'] || keys['GamepadTurnLeft']) playerContainer.rotateY(yawRate);
+    if (keys['KeyD'] || keys['GamepadTurnRight']) playerContainer.rotateY(-yawRate);
+    if (keys['ArrowLeft'] && !keys['GamepadTurnLeft']) playerContainer.rotateZ(rollRate);
+    if (keys['ArrowRight'] && !keys['GamepadTurnRight']) playerContainer.rotateZ(-rollRate);
+    if (keys['ArrowDown'] || keys['GamepadMoveBack'] || keys['GamepadSlowdown']) playerContainer.rotateX(pitchRate);
+    if (keys['ArrowUp'] || keys['GamepadMoveForward']) playerContainer.rotateX(-pitchRate);
+    if (keys['KeyW'] && !keys['GamepadMoveForward']) throttle = Math.min(1.0, throttle + 0.55 * delta);
+    if ((keys['KeyS'] && !keys['GamepadMoveBack']) || keys['GamepadSlowdown']) throttle = Math.max(0.0, throttle - 0.55 * delta);
     const cruiseSpeed = throttle === 0 ? 0 : (5 + throttle * 17);
     const targetSpeed = isAccelerating ? 38 : cruiseSpeed;
     velocity.lerp(forward.clone().multiplyScalar(targetSpeed), 3.0 * delta);
@@ -446,21 +474,24 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     const levelQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0, 'YXZ'));
     playerContainer.quaternion.slerp(levelQuat, 7.0 * delta);
     const yawRate = 2.3 * delta;
-    if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
-    if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
+    if (keys['ArrowLeft'] || keys['KeyA']) playerContainer.rotateY(yawRate);
+    if (keys['ArrowRight'] || keys['KeyD']) playerContainer.rotateY(-yawRate);
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
     let tiltPitch = 0, tiltRoll = 0;
     if (isReverseGerwalk) { moveDir.sub(flatForward); tiltPitch = 0.22; }
     else {
-      if (keys['KeyW']) { moveDir.add(flatForward); tiltPitch = -0.14; }
-      if (keys['KeyS']) { moveDir.sub(flatForward); tiltPitch = 0.16; }
+      if (keys['KeyW'] || keys['GamepadThrust']) { moveDir.add(flatForward); tiltPitch = -0.14; }
+      if (keys['KeyS'] || keys['GamepadSlowdown']) { moveDir.sub(flatForward); tiltPitch = 0.16; }
     }
-    if (keys['KeyA']) { moveDir.sub(flatRight); tiltRoll = 0.18; }
-    if (keys['KeyD']) { moveDir.add(flatRight); tiltRoll = -0.18; }
+    if (keys['GamepadLB'] && keys['GamepadRB']) moveDir.y += 0.85;
+    else {
+      if (keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.18; }
+      if (keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.18; }
+    }
     if (keys['ArrowUp']) moveDir.y += 0.85;
-    if (keys['ArrowDown']) moveDir.y -= 0.85;
+    if (keys['ArrowDown'] || keys['GamepadDescend']) moveDir.y -= 0.85;
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, tiltPitch, 8.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, tiltRoll, 8.0 * delta);
     visualTiltGroup.position.y = Math.sin(performance.now() * 0.003) * 0.035;
@@ -475,19 +506,20 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     playerContainer.quaternion.slerp(levelQuat, 9.0 * delta);
     visualTiltGroup.position.y = THREE.MathUtils.lerp(visualTiltGroup.position.y, 0, 8.0 * delta);
     const yawRate = 2.8 * delta;
-    if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
-    if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
+    if (keys['ArrowLeft'] || keys['KeyA']) playerContainer.rotateY(yawRate);
+    if (keys['ArrowRight'] || keys['KeyD']) playerContainer.rotateY(-yawRate);
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
     let tiltPitch = 0, tiltRoll = 0;
     if (keys['KeyW']) { moveDir.add(flatForward); tiltPitch = -0.15; }
     if (keys['KeyS']) { moveDir.sub(flatForward); tiltPitch = 0.14; }
-    if (keys['KeyA']) { moveDir.sub(flatRight); tiltRoll = 0.16; }
-    if (keys['KeyD']) { moveDir.add(flatRight); tiltRoll = -0.16; }
+    if (keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.16; }
+    if (keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.16; }
 
-    if (battroidTrackMode !== 'NONE') {
-      battroidTrackedTarget = getClosestBattroidTarget(playerContainer.position);
+    const activeBattroidTrackMode = keys['GamepadTargetLock'] ? 'ENEMY' : battroidTrackMode;
+    if (activeBattroidTrackMode !== 'NONE') {
+      battroidTrackedTarget = getClosestBattroidTarget(playerContainer.position, activeBattroidTrackMode);
       if (battroidTrackedTarget) {
         const aimMat = new THREE.Matrix4().lookAt(playerContainer.position, battroidTrackedTarget.mesh.position, new THREE.Vector3(0, 1, 0));
         const aimQuat = new THREE.Quaternion().setFromRotationMatrix(aimMat);
@@ -504,7 +536,7 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     velocity.x = THREE.MathUtils.lerp(velocity.x, moveDir.x * battroidSpeed, 7.0 * delta);
     velocity.z = THREE.MathUtils.lerp(velocity.z, moveDir.z * battroidSpeed, 7.0 * delta);
     if (keys['ArrowUp']) velocity.y = THREE.MathUtils.lerp(velocity.y, 12.5, 6.0 * delta);
-    else if (keys['ArrowDown']) velocity.y = THREE.MathUtils.lerp(velocity.y, -15.0, 6.0 * delta);
+    else if (keys['ArrowDown'] || keys['GamepadDescend']) velocity.y = THREE.MathUtils.lerp(velocity.y, -15.0, 6.0 * delta);
     else velocity.y -= 16.0 * delta;
     camera.fov = THREE.MathUtils.lerp(camera.fov, 60, 5.0 * delta);
     camera.updateProjectionMatrix();
@@ -525,10 +557,26 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
   }
 
   const camOffset = new THREE.Vector3(0, 0.45, 1.85).applyQuaternion(playerContainer.quaternion);
+  camOffset.add(new THREE.Vector3(gamepadCameraSide * 1.15, 0, 0).applyQuaternion(playerContainer.quaternion));
   camera.position.lerp(playerContainer.position.clone().add(camOffset), 14.0 * delta);
   const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(playerContainer.quaternion);
   camera.up.lerp(camUp, 10.0 * delta);
-  camera.lookAt(playerContainer.position.clone().add(forward.multiplyScalar(4)));
+  let cameraTarget = playerContainer.position.clone().add(forward.clone().multiplyScalar(4));
+  if (gamepadCameraFocus === 'enemy' && typeof enemies !== 'undefined') {
+    const target = enemies.reduce((closest, enemy) => {
+      if (enemy.respawnTimer > 0) return closest;
+      const distance = enemy.mesh.position.distanceToSquared(playerContainer.position);
+      return !closest || distance < closest.distance ? { enemy, distance } : closest;
+    }, null);
+    if (target) cameraTarget = target.enemy.mesh.position.clone();
+  } else if (gamepadCameraFocus === 'missile' && typeof enemyMissiles !== 'undefined') {
+    const target = enemyMissiles.reduce((closest, missile) => {
+      const distance = missile.mesh.position.distanceToSquared(playerContainer.position);
+      return !closest || distance < closest.distance ? { missile, distance } : closest;
+    }, null);
+    if (target) cameraTarget = target.missile.mesh.position.clone();
+  }
+  camera.lookAt(cameraTarget);
 
   const speedKmh = Math.round(velocity.length() * 45);
   const altMeters = Math.max(0, Math.round((playerContainer.position.y - groundY) * 10));

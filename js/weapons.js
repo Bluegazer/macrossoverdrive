@@ -21,6 +21,25 @@ let deathExplosionTimer = 0;
 
 let gunCooldown = 0;
 let missileCooldown = 0;
+const missileProfiles = [
+  { id: 'LIGERO', count: 4, speed: 42, life: 3.6, damage: 1, cooldown: 0.45 },
+  { id: 'PESADO', count: 1, speed: 30, life: 5.0, damage: 3, cooldown: 0.9 },
+  { id: 'ESPECIAL', count: 4, speed: 38, life: 4.4, damage: 2, cooldown: 0.65 }
+];
+let missileProfileIndex = 0;
+
+function cycleMissileType() {
+  missileProfileIndex = (missileProfileIndex + 1) % missileProfiles.length;
+  return missileProfiles[missileProfileIndex].id;
+}
+
+function getCurrentMissileType() {
+  return missileProfiles[missileProfileIndex].id;
+}
+
+function getCurrentMissileCooldown() {
+  return missileProfiles[missileProfileIndex].cooldown;
+}
 let muzzleFlashTimer = 0;
 
 let muzzleGroup = null;
@@ -329,6 +348,7 @@ function planNextZigTarget(missileObj) {
 }
 
 function fireMicroMissiles(scene, playerContainer) {
+  const profile = missileProfiles[missileProfileIndex];
   const activeTargets = lockedEnemies.filter((e) => e && e.respawnTimer <= 0);
   const offsets = new Array(
     new THREE.Vector3(-0.65, -0.04, -0.15),
@@ -336,7 +356,8 @@ function fireMicroMissiles(scene, playerContainer) {
     new THREE.Vector3(-0.42, -0.04, -0.15),
     new THREE.Vector3(0.42, -0.04, -0.15)
   );
-  offsets.forEach((localOff, idx) => {
+  for (let idx = 0; idx < profile.count; idx++) {
+    const localOff = offsets[idx % offsets.length];
     const worldOff = localOff.clone().applyQuaternion(playerContainer.quaternion);
     const mGroup = new THREE.Group();
 
@@ -361,14 +382,15 @@ function fireMicroMissiles(scene, playerContainer) {
       baseQuat: playerContainer.quaternion.clone(),
       targetQuat: playerContainer.quaternion.clone(),
       targetEnemy: assignedEnemy,
-      speed: 38,
-      life: 3.4,
+      speed: profile.speed,
+      life: profile.life,
+      damage: profile.damage,
       straightTimer: 0.26,
       zigTimer: 0,
       zigCount: 0,
       zigSign: (idx % 2 === 0 ? 1 : -1)
     });
-  });
+  }
 
   if (typeof playSFX === 'function') playSFX('missileLaunch', 0.8, 0.05);
 }
@@ -561,7 +583,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     }
     if (keys['Space'] && missileCooldown <= 0) {
       fireMicroMissiles(scene, playerContainer);
-      missileCooldown = 0.55;
+      missileCooldown = getCurrentMissileCooldown();
     }
   }
 
@@ -686,7 +708,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     for (let j = 0; j < enemies.length; j++) {
       const e = enemies[j];
       if (e.respawnTimer <= 0 && m.mesh.position.distanceTo(e.mesh.position) < 2.2) {
-        damageEnemy(scene, camera, e, 3);
+        damageEnemy(scene, camera, e, m.damage || 3);
         hit = true;
         break;
       }

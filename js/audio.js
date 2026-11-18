@@ -52,6 +52,12 @@ function setBGMVolume(percent) {
   if (audioCtx && bgmMasterGain && bgmEnabled) {
     bgmMasterGain.gain.setTargetAtTime(bgmVolumeLevel, audioCtx.currentTime, 0.04);
   }
+  if (titleAudio) updateTitleMusicVolume();
+}
+
+function updateTitleMusicVolume() {
+  if (!titleAudio) return;
+  titleAudio.volume = Math.max(0, Math.min(1, TITLE_BGM_VOLUME * bgmVolumeLevel / 0.65));
 }
 
 function toggleMusic() {
@@ -61,14 +67,14 @@ function initTitleMusic() {
   if (titleAudio) return;
   titleAudio = new Audio(TITLE_BGM_FILE);
   titleAudio.loop = true;
-  titleAudio.volume = TITLE_BGM_VOLUME;
+  updateTitleMusicVolume();
 }
 
 function playTitleMusic() {
   isTitleMusicActive = true;
   initTitleMusic();
   if (titleAudio && titleAudio.paused) {
-    titleAudio.volume = TITLE_BGM_VOLUME;
+    updateTitleMusicVolume();
     titleAudio.play().catch(() => {});
   }
 }

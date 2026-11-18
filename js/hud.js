@@ -271,7 +271,7 @@ function drawWeaponStatusPanel(w) {
   const hasLock = lockCount > 0;
 
   hudCtx.fillStyle = '#38bdf8';
-  hudCtx.fillText('MSL: AMM-1', x + 14, y + 110);
+  hudCtx.fillText('MSL: ' + (typeof getCurrentMissileType === 'function' ? getCurrentMissileType() : 'AMM-1'), x + 14, y + 110);
 
   hudCtx.shadowColor = hasLock ? 'rgba(239, 68, 68, 0.9)' : 'rgba(56, 189, 248, 0.6)';
   hudCtx.shadowBlur = 6;

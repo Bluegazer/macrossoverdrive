@@ -4,6 +4,9 @@ const startScreenEl = document.getElementById('startScreen');
 const uiPanelEl = document.getElementById('ui');
 
 const keys = {};
+const keyboardHeldActions = new Set();
+let gamepadHeldActions = new Set();
+const continuousControlActions = ['moveForward', 'moveBack', 'moveLeft', 'moveRight', 'turnLeft', 'turnRight', 'verticalUp', 'verticalDown', 'gunpod', 'missiles', 'brake', 'slowdown'];
 let isGameStarted = false;
 let isPaused = false;
 let restartDeclined = false;
@@ -115,17 +118,43 @@ if (sliderSFX) {
 const sliderBGM = document.getElementById('sliderBGM');
 if (sliderBGM) {
   sliderBGM.addEventListener('input', (e) => {
-    if (typeof setBGMVolume === 'function') setBGMVolume(Number(e.target.value));
+    const volume = Number(e.target.value);
+    if (typeof setBGMVolume === 'function') setBGMVolume(volume);
+    const tester = document.getElementById('soundTester');
+    if (tester) tester.volume = volume / 100;
   });
   sliderBGM.addEventListener('change', (e) => e.target.blur());
 }
+
+const soundTestTrack = document.getElementById('soundTestTrack');
+const soundTester = document.getElementById('soundTester');
+const audioStatus = document.getElementById('audioStatus');
+if (soundTestTrack && soundTester) {
+  soundTestTrack.addEventListener('change', () => {
+    soundTester.pause();
+    soundTester.src = soundTestTrack.value;
+    soundTester.load();
+    if (audioStatus) audioStatus.textContent = 'Pista lista para reproducir.';
+  });
+  soundTester.addEventListener('play', () => {
+    if (audioStatus) audioStatus.textContent = `Reproduciendo: ${soundTestTrack.selectedOptions[0].textContent}.`;
+  });
+  soundTester.addEventListener('pause', () => {
+    if (audioStatus) audioStatus.textContent = 'Reproductor de prueba pausado.';
+  });
+  soundTester.addEventListener('error', () => {
+    if (audioStatus) audioStatus.textContent = 'No se pudo cargar esta pista.';
+  });
+  soundTester.volume = sliderBGM ? Number(sliderBGM.value) / 100 : 0.65;
+}
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') e.preventDefault();
-
-  const key = (e.key || '').toLowerCase();
   const code = e.code || '';
+  if (window.gameControls.isOptionsOpen()) return;
+  const actions = window.gameControls.getActionsForCode(code);
+  if (code === 'Space' || actions.includes('missiles')) e.preventDefault();
+  if (!actions.length) return;
 
-  if (key === 'h' || code === 'KeyH') {
+  if (actions.includes('advanceTime')) {
     manualHourOffset = (manualHourOffset + 2) % 24;
     if (typeof updateDayNightCycle === 'function') {
       updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
@@ -134,49 +163,52 @@ window.addEventListener('keydown', (e) => {
   }
 
   if (!isGameStarted) {
-    if (key === 'enter' || code === 'Enter' || code === 'NumpadEnter') {
-      startMission();
-    }
-    return;
-  }
-
-  if (key === 'escape' || code === 'Escape') {
-    returnToStartScreen();
+    if (actions.includes('startMission')) startMission();
     return;
   }
 
   if (typeof isGameOver !== 'undefined' && isGameOver) {
-    if (key === 'y' || code === 'KeyY') {
+    if (actions.includes('restartAfterDefeat')) {
       window.location.reload();
-    } else if (key === 'n' || code === 'KeyN') {
+    } else if (actions.includes('menuAfterDefeat') || actions.includes('returnMenu')) {
       returnToStartScreen();
     }
     return;
   }
 
+  if (actions.includes('returnMenu')) {
+    returnToStartScreen();
+    return;
+  }
+
   if (e.repeat) return;
 
-  if (key === 'p' || code === 'KeyP') {
+  if (actions.includes('pause')) {
     togglePause();
     return;
   }
 
-  if (key === 'm' || code === 'KeyM') {
+  if (actions.includes('music')) {
     if (typeof toggleMusic === 'function') toggleMusic();
     return;
   }
 
   if (isPaused || (typeof isPlayerDying !== 'undefined' && isPlayerDying)) return;
-  keys[code] = true;
 
-  if (key === 'f') transformTo('FIGHTER');
-  if (key === 'g') transformTo('GERWALK');
-  if (key === 'b') transformTo('BATTROID');
-  if (key === 'e') triggerGunpodMelee();
-  if (key === 't' || code === 'KeyT') startAcceleration();
-  if (key === 'x' || code === 'KeyX') triggerFullStop();
-  if (key === 'r' || code === 'KeyR') startReverseGerwalk();
-  if (key === 'n' || code === 'KeyN') {
+  for (const action of continuousControlActions) {
+    if (actions.includes(action)) {
+      keyboardHeldActions.add(action);
+      keys[window.gameControls.getStateKey(action)] = true;
+    }
+  }
+  if (actions.includes('fighter')) transformTo('FIGHTER');
+  if (actions.includes('gerwalk')) transformTo('GERWALK');
+  if (actions.includes('battroid')) transformTo('BATTROID');
+  if (actions.includes('melee')) triggerGunpodMelee();
+  if (actions.includes('turbo')) startAcceleration();
+  if (actions.includes('brake')) triggerFullStop();
+  if (actions.includes('reverse')) startReverseGerwalk();
+  if (actions.includes('tracking')) {
     if (typeof cycleBattroidTracking === 'function') cycleBattroidTracking();
   }
 }, true);
@@ -197,11 +229,98 @@ window.addEventListener('click', (e) => {
 });
 
 window.addEventListener('keyup', (e) => {
-  const key = (e.key || '').toLowerCase();
   const code = e.code || '';
-  keys[code] = false;
-  if (key === 't' || code === 'KeyT') stopAcceleration();
-  if (key === 'r' || code === 'KeyR') stopReverseGerwalk();
+  const actions = window.gameControls.getActionsForCode(code);
+  for (const action of continuousControlActions) {
+    if (actions.includes(action)) {
+      keyboardHeldActions.delete(action);
+      keys[window.gameControls.getStateKey(action)] = gamepadHeldActions.has(action) || (action === 'moveBack' && gamepadHeldActions.has('slowdown'));
+    }
+  }
+  if (window.gameControls.isOptionsOpen()) return;
+  if (actions.includes('turbo')) stopAcceleration();
+  if (actions.includes('reverse')) stopReverseGerwalk();
+});
+
+window.addEventListener('macross:clear-inputs', () => {
+  keyboardHeldActions.clear();
+  gamepadHeldActions.clear();
+  for (const action of continuousControlActions) keys[window.gameControls.getStateKey(action)] = false;
+  stopAcceleration();
+  stopReverseGerwalk();
+});
+
+function handleGamepadActionPress(action) {
+  if (!isGameStarted) {
+    if (action === 'startMission') startMission();
+    return;
+  }
+  if (typeof isGameOver !== 'undefined' && isGameOver) {
+    if (action === 'restartAfterDefeat') window.location.reload();
+    else if (action === 'menuAfterDefeat' || action === 'returnMenu') returnToStartScreen();
+    return;
+  }
+  if (action === 'returnMenu') { returnToStartScreen(); return; }
+  if (action === 'pause') { togglePause(); return; }
+  if (action === 'music') { if (typeof toggleMusic === 'function') toggleMusic(); return; }
+  if (action === 'advanceTime') {
+    manualHourOffset = (manualHourOffset + 2) % 24;
+    if (typeof updateDayNightCycle === 'function') updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+    return;
+  }
+  if (isPaused || (typeof isPlayerDying !== 'undefined' && isPlayerDying)) return;
+  if (action === 'fighter') transformTo('FIGHTER');
+  if (action === 'gerwalk') transformTo('GERWALK');
+  if (action === 'battroid') transformTo('BATTROID');
+  if (action === 'transformNext' || action === 'transformPrevious') {
+    if (action === 'transformPrevious' && currentMode === 'BATTROID') return;
+    const modes = ['FIGHTER', 'GERWALK', 'BATTROID'];
+    const currentIndex = Math.max(0, modes.indexOf(currentMode));
+    const offset = action === 'transformNext' ? 1 : -1;
+    transformTo(modes[(currentIndex + offset + modes.length) % modes.length]);
+  }
+  if (action === 'melee') triggerGunpodMelee();
+  if (action === 'tracking' && typeof cycleBattroidTracking === 'function') cycleBattroidTracking();
+  if (action === 'missileType' && typeof cycleMissileType === 'function') cycleMissileType();
+  if (action.startsWith('camera') && typeof setGamepadCameraView === 'function') setGamepadCameraView(action);
+}
+
+window.addEventListener('macross:gamepad-frame', event => {
+  const next = new Set(event.detail.pressedActions || []);
+  for (const action of continuousControlActions) {
+    const keyCode = window.gameControls.getStateKey(action);
+    keys[keyCode] = next.has(action) || keyboardHeldActions.has(action);
+  }
+  keys.GamepadMoveForward = next.has('moveForward');
+  keys.GamepadMoveBack = next.has('moveBack');
+  keys.GamepadTurnLeft = next.has('turnLeft');
+  keys.GamepadTurnRight = next.has('turnRight');
+  keys.GamepadLB = next.has('strafeLeft');
+  keys.GamepadRB = next.has('strafeRight');
+  keys.GamepadDescend = next.has('descend');
+  keys.GamepadTargetLock = next.has('targetLock');
+  keys.GamepadThrust = next.has('turbo') && currentMode === 'GERWALK';
+  keys.GamepadSlowdown = next.has('slowdown');
+
+  const transformCombo = next.has('transformPrevious') && next.has('transformNext');
+  const justTransformCombo = transformCombo && !(gamepadHeldActions.has('transformPrevious') && gamepadHeldActions.has('transformNext'));
+  if (justTransformCombo && isGameStarted && !isPaused && !isGameOver && !isPlayerDying) {
+    transformTo(currentMode === 'FIGHTER' ? 'BATTROID' : 'FIGHTER');
+  }
+
+  if (next.has('turbo') && !gamepadHeldActions.has('turbo') && isGameStarted && !isPaused) {
+    if (currentMode === 'BATTROID' && typeof triggerBattroidImpulse === 'function') triggerBattroidImpulse(keys);
+    else if (currentMode === 'FIGHTER') startAcceleration();
+  }
+  if (!next.has('turbo') && gamepadHeldActions.has('turbo')) stopAcceleration();
+  for (const action of next) {
+    if (!gamepadHeldActions.has(action)) {
+      const isHeldAction = ['turbo', 'slowdown', 'strafeLeft', 'strafeRight', 'descend', 'targetLock'].includes(action) || continuousControlActions.includes(action);
+      const isTransformAction = action === 'transformPrevious' || action === 'transformNext';
+      if (!isHeldAction && !(justTransformCombo && isTransformAction)) handleGamepadActionPress(action);
+    }
+  }
+  gamepadHeldActions = next;
 });
 let fpsFrames = 0;
 let fpsTime = 0;
@@ -210,7 +329,7 @@ const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   const rawDelta = clock.getDelta();
-  const delta = (isPaused || !isGameStarted) ? 0 : Math.min(rawDelta, 0.05);
+  const delta = (isPaused || !isGameStarted || window.gameControls.isOptionsOpen()) ? 0 : Math.min(rawDelta, 0.05);
 
   if (typeof updateDayNightCycle === 'function') {
     updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
