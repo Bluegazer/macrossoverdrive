@@ -57,12 +57,18 @@ function setModelFrame(frame) {
 }
 
 function updateButtonsUI() {
-  document.getElementById('btnFighter').classList.toggle('active', currentMode === 'FIGHTER');
-  document.getElementById('btnGerwalk').classList.toggle('active', currentMode === 'GERWALK');
-  document.getElementById('btnBattroid').classList.toggle('active', currentMode === 'BATTROID');
-  document.getElementById('btnSweep').classList.toggle('active', isAccelerating);
-  document.getElementById('btnMelee').classList.toggle('active', isAttacking);
+  const bF = document.getElementById('btnFighter');
+  const bG = document.getElementById('btnGerwalk');
+  const bB = document.getElementById('btnBattroid');
+  const bS = document.getElementById('btnSweep');
+  const bM = document.getElementById('btnMelee');
+  if (bF) bF.classList.toggle('active', currentMode === 'FIGHTER');
+  if (bG) bG.classList.toggle('active', currentMode === 'GERWALK');
+  if (bB) bB.classList.toggle('active', currentMode === 'BATTROID');
+  if (bS) bS.classList.toggle('active', isAccelerating);
+  if (bM) bM.classList.toggle('active', isAttacking);
 }
+
 
 function transformTo(newMode) {
   if (!mixer || isAttacking || isAccelerating || currentMode === newMode) return;
@@ -473,9 +479,9 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     const euler = new THREE.Euler().setFromQuaternion(playerContainer.quaternion, 'YXZ');
     const levelQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0, 'YXZ'));
     playerContainer.quaternion.slerp(levelQuat, 7.0 * delta);
-    const yawRate = 2.3 * delta;
-    if (keys['ArrowLeft'] || keys['KeyA']) playerContainer.rotateY(yawRate);
-    if (keys['ArrowRight'] || keys['KeyD']) playerContainer.rotateY(-yawRate);
+        const yawRate = 2.3 * delta;
+    if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
+    if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
@@ -487,8 +493,8 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     }
     if (keys['GamepadLB'] && keys['GamepadRB']) moveDir.y += 0.85;
     else {
-      if (keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.18; }
-      if (keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.18; }
+      if (keys['KeyA'] || keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.18; }
+      if (keys['KeyD'] || keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.18; }
     }
     if (keys['ArrowUp']) moveDir.y += 0.85;
     if (keys['ArrowDown'] || keys['GamepadDescend']) moveDir.y -= 0.85;
@@ -506,17 +512,16 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     playerContainer.quaternion.slerp(levelQuat, 9.0 * delta);
     visualTiltGroup.position.y = THREE.MathUtils.lerp(visualTiltGroup.position.y, 0, 8.0 * delta);
     const yawRate = 2.8 * delta;
-    if (keys['ArrowLeft'] || keys['KeyA']) playerContainer.rotateY(yawRate);
-    if (keys['ArrowRight'] || keys['KeyD']) playerContainer.rotateY(-yawRate);
+    if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
+    if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
     let tiltPitch = 0, tiltRoll = 0;
     if (keys['KeyW']) { moveDir.add(flatForward); tiltPitch = -0.15; }
     if (keys['KeyS']) { moveDir.sub(flatForward); tiltPitch = 0.14; }
-    if (keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.16; }
-    if (keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.16; }
-
+    if (keys['KeyA'] || keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.16; }
+    if (keys['KeyD'] || keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.16; }
     const activeBattroidTrackMode = keys['GamepadTargetLock'] ? 'ENEMY' : battroidTrackMode;
     if (activeBattroidTrackMode !== 'NONE') {
       battroidTrackedTarget = getClosestBattroidTarget(playerContainer.position, activeBattroidTrackMode);
@@ -580,12 +585,36 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
 
   const speedKmh = Math.round(velocity.length() * 45);
   const altMeters = Math.max(0, Math.round((playerContainer.position.y - groundY) * 10));
-  let statusLabel = 'MECHA THRUSTERS';
-  if (isFullStop) statusLabel = 'FULL STOP (0%)';
-  else if (isOverheated) statusLabel = 'TURBINE OVERHEAT';
-  else if (isReverseGerwalk) statusLabel = 'GERWALK REVERSE';
-  else if (currentMode === 'FIGHTER') statusLabel = isAccelerating ? 'MAX (TURBO)' : Math.round(throttle * 100) + '%';
-  else if (currentMode === 'GERWALK') statusLabel = 'VTOL HOVER';
+  const altStr = String(altMeters).padStart(4, '0');
 
-  hudEl.textContent = 'MODO: ' + currentMode + ' | SCORE: ' + score + ' | EMPUJE: ' + statusLabel + ' | VEL: ' + speedKmh + ' KM/H | ALT: ' + altMeters + ' M';
+  const headingDeg = (Math.round(Math.atan2(forward.x, -forward.z) * (180 / Math.PI)) + 360) % 360;
+  const headingStr = String(headingDeg).padStart(3, '0');
+  const dirs = ['N ', 'NE', 'E ', 'SE', 'S ', 'SO', 'O ', 'NO'];
+  const cardinalDir = dirs[Math.round(headingDeg / 45) % 8];
+
+  let closestEnemyText = 'SIN BLANCOS';
+  if (typeof enemies !== 'undefined' && enemies.length > 0) {
+    let minEnemyDist = Infinity;
+    let closestId = '';
+    for (let i = 0; i < enemies.length; i++) {
+      if (enemies[i].respawnTimer > 0) continue;
+      const d = playerContainer.position.distanceTo(enemies[i].mesh.position);
+      if (d < minEnemyDist) {
+        minEnemyDist = d;
+        closestId = enemies[i].id;
+      }
+    }
+    if (minEnemyDist < Infinity) {
+      const distStr = String(Math.round(minEnemyDist * 10)).padStart(4, '0');
+      closestEnemyText = closestId + ' (' + distStr + ' M)';
+    }
+  }
+
+  hudEl.innerHTML =
+    'MODO: <b>' + currentMode + '</b> | SCORE: <b>' + score + '</b><br>' +
+    'ALTITUD: <b>' + altStr + ' M</b> | RUMBO: <b>' + cardinalDir + ' (' + headingStr + '°)</b><br>' +
+    'ENEMIGO CERCANO: <b>' + closestEnemyText + '</b>';
 }
+
+
+

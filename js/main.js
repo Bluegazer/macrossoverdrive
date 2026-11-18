@@ -96,16 +96,7 @@ function togglePause() {
   clock.getDelta();
 }
 
-document.getElementById('btnFighter').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('FIGHTER'); });
-document.getElementById('btnGerwalk').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('GERWALK'); });
-document.getElementById('btnBattroid').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('BATTROID'); });
-document.getElementById('btnMelee').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) triggerGunpodMelee(); });
-document.getElementById('btnStop').addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) triggerFullStop(); });
 
-const btnSweep = document.getElementById('btnSweep');
-btnSweep.addEventListener('mousedown', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) startAcceleration(); });
-btnSweep.addEventListener('mouseup', stopAcceleration);
-btnSweep.addEventListener('mouseleave', stopAcceleration);
 
 const sliderSFX = document.getElementById('sliderSFX');
 if (sliderSFX) {
