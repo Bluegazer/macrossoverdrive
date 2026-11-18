@@ -21,24 +21,24 @@ let deathExplosionTimer = 0;
 
 let gunCooldown = 0;
 let missileCooldown = 0;
-const missileProfiles = [
+const missileProfiles = new Array(
   { id: 'LIGERO', count: 4, speed: 42, life: 3.6, damage: 1, cooldown: 0.45 },
   { id: 'PESADO', count: 1, speed: 30, life: 5.0, damage: 3, cooldown: 0.9 },
   { id: 'ESPECIAL', count: 4, speed: 38, life: 4.4, damage: 2, cooldown: 0.65 }
-];
+);
 let missileProfileIndex = 0;
 
 function cycleMissileType() {
   missileProfileIndex = (missileProfileIndex + 1) % missileProfiles.length;
-  return missileProfiles[missileProfileIndex].id;
+  return missileProfiles.at(missileProfileIndex).id;
 }
 
 function getCurrentMissileType() {
-  return missileProfiles[missileProfileIndex].id;
+  return missileProfiles.at(missileProfileIndex).id;
 }
 
 function getCurrentMissileCooldown() {
-  return missileProfiles[missileProfileIndex].cooldown;
+  return missileProfiles.at(missileProfileIndex).cooldown;
 }
 let muzzleFlashTimer = 0;
 const chaffFlares = new Array();
@@ -83,31 +83,22 @@ function deployChaff(scene, playerContainer) {
       .addScaledVector(right, spreadSide * (7.5 + Math.random() * 5))
       .addScaledVector(up, spreadUp * 6.0);
 
-    chaffFlares.push({
-      mesh: mesh,
-      mat: mat,
-      vel: ejectVel,
-      life: 2.6,
-      maxLife: 2.6
-    });
+    chaffFlares.push({ mesh: mesh, mat: mat, vel: ejectVel, life: 2.6, maxLife: 2.6 });
   }
 
-  // Romper bloqueo de misiles enemigos cercanos y desviarlos hacia los señuelos
   for (let k = 0; k < enemyMissiles.length; k++) {
-    const em = enemyMissiles[k];
+    const em = enemyMissiles.at(k);
     const dist = em.mesh.position.distanceTo(playerContainer.position);
     if (dist < 65 && chaffFlares.length > 0) {
       em.isLockedOn = false;
       em.homingTimer = 0;
-      em.decoyTarget = chaffFlares[Math.floor(Math.random() * chaffFlares.length)];
+      em.decoyTarget = chaffFlares.at(Math.floor(Math.random() * chaffFlares.length));
     }
   }
 
   if (typeof playChaffSFX === 'function') playChaffSFX();
   return true;
 }
-
-
 let muzzleGroup = null;
 let smokeInstMesh = null;
 const MAX_SMOKE = 480;
@@ -296,14 +287,14 @@ function cloneSkinnedScene(source) {
 
   const clone = source.clone(true);
 
-  const srcNodes = [];
-  const clnNodes = [];
+  const srcNodes = new Array();
+  const clnNodes = new Array();
   source.traverse((n) => srcNodes.push(n));
   clone.traverse((n) => clnNodes.push(n));
 
   for (let i = 0; i < srcNodes.length; i++) {
-    sourceLookup.set(clnNodes[i], srcNodes[i]);
-    cloneLookup.set(srcNodes[i], clnNodes[i]);
+    sourceLookup.set(clnNodes.at(i), srcNodes.at(i));
+    cloneLookup.set(srcNodes.at(i), clnNodes.at(i));
   }
 
   clone.traverse((node) => {
@@ -319,8 +310,8 @@ function cloneSkinnedScene(source) {
   return clone;
 }
 const REGULT_TOTAL_FRAMES = 24;
-const CITY_STREETS_X = [-180, -152, -124, -96, -68];
-const CITY_STREETS_Z = [-14, 14, 42, 70, 98];
+const CITY_STREETS_X = new Array(-180, -152, -124, -96, -68);
+const CITY_STREETS_Z = new Array(-14, 14, 42, 70, 98);
 
 function getValidCityStreetPoint() {
   for (let attempt = 0; attempt < 25; attempt++) {
@@ -328,10 +319,10 @@ function getValidCityStreetPoint() {
     let lx = 0;
     let lz = 0;
     if (alongX) {
-      lz = CITY_STREETS_Z[Math.floor(Math.random() * CITY_STREETS_Z.length)];
+      lz = CITY_STREETS_Z.at(Math.floor(Math.random() * CITY_STREETS_Z.length));
       lx = -180 + Math.random() * 112;
     } else {
-      lx = CITY_STREETS_X[Math.floor(Math.random() * CITY_STREETS_X.length)];
+      lx = CITY_STREETS_X.at(Math.floor(Math.random() * CITY_STREETS_X.length));
       lz = -14 + Math.random() * 112;
     }
 
@@ -360,8 +351,8 @@ function setRegultFrame(enemyObj, frame) {
 }
 function setupRegultInstance(enemyObj, baseScene, animations) {
   const model = cloneSkinnedScene(baseScene);
-  const flamerList = [];
-  const gunMuzzles = [];
+  const flamerList = new Array();
+  const gunMuzzles = new Array();
 
   model.traverse((child) => {
     if (child.isMesh) {
@@ -385,11 +376,7 @@ function setupRegultInstance(enemyObj, baseScene, animations) {
         plume.group.rotation.x = Math.PI / 2;
       }
       child.add(plume.group);
-      flamerList.push({
-        group: plume.group,
-        outerMat: plume.mat,
-        isFootJet: isFootJet
-      });
+      flamerList.push({ group: plume.group, outerMat: plume.mat, isFootJet: isFootJet });
     }
 
     if (child.name === 'Frame6_regult_big_gun_L' || child.name === 'Frame7_regult_big_gun_R') {
@@ -409,7 +396,7 @@ function setupRegultInstance(enemyObj, baseScene, animations) {
   enemyObj.flames = flamerList;
   enemyObj.gunMuzzles = gunMuzzles;
 
-  const clip = (animations && animations.length > 0) ? animations[0] : null;
+  const clip = (animations && animations.length > 0) ? animations.at(0) : null;
   if (clip) {
     enemyObj.mixer = new THREE.AnimationMixer(model);
     enemyObj.clipDuration = clip.duration;
@@ -502,8 +489,8 @@ function initWeaponsAndEnemies(scene, playerContainer) {
       mixer: null,
       action: null,
       clipDuration: 0,
-      flames: [],
-      gunMuzzles: []
+      flames: new Array(),
+      gunMuzzles: new Array()
     });
   }
 
@@ -511,7 +498,7 @@ function initWeaponsAndEnemies(scene, playerContainer) {
     const loader = new THREE.GLTFLoader();
     loader.load('./models/regult.glb', (gltf) => {
       for (let i = 0; i < enemies.length; i++) {
-        setupRegultInstance(enemies[i], gltf.scene, gltf.animations);
+        setupRegultInstance(enemies.at(i), gltf.scene, gltf.animations);
       }
     });
   }
@@ -540,7 +527,7 @@ function fireGunpod(scene, playerContainer, velocity) {
 }
 
 function fireRegultVioletLaser(scene, enemy, playerContainer) {
-  const muzzles = (enemy.gunMuzzles && enemy.gunMuzzles.length > 0) ? enemy.gunMuzzles : [null, null];
+  const muzzles = (enemy.gunMuzzles && enemy.gunMuzzles.length > 0) ? enemy.gunMuzzles : new Array(null, null);
 
   for (let m = 0; m < muzzles.length; m++) {
     const boltGroup = new THREE.Group();
@@ -550,8 +537,8 @@ function fireRegultVioletLaser(scene, enemy, playerContainer) {
     boltGroup.add(p1, p2);
 
     const originPos = new THREE.Vector3();
-    if (muzzles[m]) {
-      muzzles[m].getWorldPosition(originPos);
+    if (muzzles.at(m)) {
+      muzzles.at(m).getWorldPosition(originPos);
     } else {
       const side = (m === 0 ? -0.42 : 0.42);
       const rightVec = new THREE.Vector3(1, 0, 0).applyQuaternion(enemy.mesh.quaternion);
@@ -609,7 +596,7 @@ function fireEnemySalvo(scene, enemy, playerContainer) {
 
 function pickRandomZigAngleRad() {
   const idx = Math.floor(Math.random() * ZIGZAG_ANGLES_DEG.length);
-  return THREE.MathUtils.degToRad(ZIGZAG_ANGLES_DEG[idx]);
+  return THREE.MathUtils.degToRad(ZIGZAG_ANGLES_DEG.at(idx));
 }
 
 function planNextZigTarget(missileObj) {
@@ -622,7 +609,7 @@ function planNextZigTarget(missileObj) {
   missileObj.zigTimer = 0.36 + Math.random() * 0.18;
 }
 function fireMicroMissiles(scene, playerContainer) {
-  const profile = missileProfiles[missileProfileIndex];
+  const profile = missileProfiles.at(missileProfileIndex);
   const activeTargets = lockedEnemies.filter((e) => e && e.respawnTimer <= 0);
   const offsets = new Array(
     new THREE.Vector3(-0.65, -0.04, -0.15),
@@ -631,7 +618,7 @@ function fireMicroMissiles(scene, playerContainer) {
     new THREE.Vector3(0.42, -0.04, -0.15)
   );
   for (let idx = 0; idx < profile.count; idx++) {
-    const localOff = offsets[idx % offsets.length];
+    const localOff = offsets.at(idx % offsets.length);
     const worldOff = localOff.clone().applyQuaternion(playerContainer.quaternion);
     const mGroup = new THREE.Group();
 
@@ -647,7 +634,7 @@ function fireMicroMissiles(scene, playerContainer) {
     scene.add(mGroup);
 
     const assignedEnemy = activeTargets.length > 0
-      ? activeTargets[idx % activeTargets.length]
+      ? activeTargets.at(idx % activeTargets.length)
       : null;
 
     missiles.push({
@@ -745,7 +732,7 @@ function spawnExplosion(scene, camera, pos, scaleMult) {
   const s = scaleMult || 1.0;
 
   const mat = new THREE.MeshBasicMaterial({
-    map: explosionFrames[0],
+    map: explosionFrames.at(0),
     transparent: true,
     depthWrite: false,
     side: THREE.DoubleSide
@@ -757,12 +744,7 @@ function spawnExplosion(scene, camera, pos, scaleMult) {
   mesh.quaternion.copy(camera.quaternion);
   scene.add(mesh);
 
-  explosions.push({
-    mesh: mesh,
-    mat: mat,
-    life: 0.52,
-    maxLife: 0.52
-  });
+  explosions.push({ mesh: mesh, mat: mat, life: 0.52, maxLife: 0.52 });
 }
 
 function damagePlayerArmor(scene, camera, playerContainer, dmg) {
@@ -794,11 +776,32 @@ function damageEnemy(scene, camera, enemy, dmg) {
     score += 100;
   }
 }
+function getInteriorStreetSpawn() {
+  const lanesX = new Array(-19.5, -11.0, 11.0, 19.5);
+  const wx = lanesX.at(Math.floor(Math.random() * lanesX.length));
+  const wz = (Math.random() - 0.5) * 760;
+  return { wx: wx, wy: 0.0, wz: wz };
+}
+
+function chooseNextInteriorWaypoint(enemy) {
+  const lanesX = new Array(-19.5, -11.0, 11.0, 19.5);
+  const nextX = lanesX.at(Math.floor(Math.random() * lanesX.length));
+  const stepZ = (Math.random() < 0.5 ? 1 : -1) * (55 + Math.random() * 85);
+  const nextZ = Math.max(-420, Math.min(420, enemy.mesh.position.z + stepZ));
+  enemy.targetWorldX = nextX;
+  enemy.targetWorldZ = nextZ;
+}
+
 function chooseNextCityWaypoint(enemy) {
+  if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3') {
+    chooseNextInteriorWaypoint(enemy);
+    return;
+  }
+
   const snapX = CITY_STREETS_X.reduce((prev, curr) => Math.abs(curr - enemy.cityLx) < Math.abs(prev - enemy.cityLx) ? curr : prev);
   const snapZ = CITY_STREETS_Z.reduce((prev, curr) => Math.abs(curr - enemy.cityLz) < Math.abs(prev - enemy.cityLz) ? curr : prev);
 
-  const options = [];
+  const options = new Array();
   if (snapX - 28 >= -180) options.push({ lx: snapX - 28, lz: snapZ });
   if (snapX + 28 <= -68)  options.push({ lx: snapX + 28, lz: snapZ });
   if (snapZ - 28 >= -14)  options.push({ lx: snapX, lz: snapZ - 28 });
@@ -814,15 +817,15 @@ function chooseNextCityWaypoint(enemy) {
   });
 
   if (validOptions.length > 0) {
-    let chosen = validOptions[Math.floor(Math.random() * validOptions.length)];
+    let chosen = validOptions.at(Math.floor(Math.random() * validOptions.length));
     if (Math.random() < 0.65 && typeof playerContainer !== 'undefined') {
       let bestDist = Infinity;
       for (let i = 0; i < validOptions.length; i++) {
-        const wp = localToWorldXZ(validOptions[i].lx, validOptions[i].lz);
+        const wp = localToWorldXZ(validOptions.at(i).lx, validOptions.at(i).lz);
         const d = Math.hypot(wp.x - playerContainer.position.x, wp.z - playerContainer.position.z);
         if (d < bestDist) {
           bestDist = d;
-          chosen = validOptions[i];
+          chosen = validOptions.at(i);
         }
       }
     }
@@ -833,10 +836,11 @@ function chooseNextCityWaypoint(enemy) {
 
 function updateRegultFlames(enemy) {
   if (!enemy.flames || enemy.flames.length === 0) return;
+  const isSpaceBattle = (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_2');
   const flicker = 0.85 + Math.random() * 0.35;
   for (let i = 0; i < enemy.flames.length; i++) {
-    const f = enemy.flames[i];
-    if (enemy.isAerial) {
+    const f = enemy.flames.at(i);
+    if (enemy.isAerial || isSpaceBattle) {
       f.group.visible = true;
       const len = (f.isFootJet ? 1.55 : 0.95) * flicker;
       f.group.scale.set(1.1, len, 1.1);
@@ -847,22 +851,33 @@ function updateRegultFlames(enemy) {
   }
 }
 function updateEnemies(delta, playerContainer) {
+  const isSpaceBattle = (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_2');
+  const isInteriorBattle = (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3');
+
   for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
+    const e = enemies.at(i);
 
     if (e.respawnTimer > 0) {
       e.respawnTimer -= delta;
       if (e.respawnTimer <= 0) {
         e.hp = 3;
         e.mesh.visible = true;
-        if (!e.isAerial) {
-          const pt = getValidCityStreetPoint();
-          e.cityLx = pt.lx;
-          e.cityLz = pt.lz;
-          e.mesh.position.set(pt.wx, pt.wy, pt.wz);
-          e.walkState = 'WALK';
-          e.stateTimer = 3.5;
-          chooseNextCityWaypoint(e);
+        if (!e.isAerial && !isSpaceBattle) {
+          if (isInteriorBattle) {
+            const sp = getInteriorStreetSpawn();
+            e.mesh.position.set(sp.wx, sp.wy, sp.wz);
+            e.walkState = 'WALK';
+            e.stateTimer = 3.5;
+            chooseNextInteriorWaypoint(e);
+          } else {
+            const pt = getValidCityStreetPoint();
+            e.cityLx = pt.lx;
+            e.cityLz = pt.lz;
+            e.mesh.position.set(pt.wx, pt.wy, pt.wz);
+            e.walkState = 'WALK';
+            e.stateTimer = 3.5;
+            chooseNextCityWaypoint(e);
+          }
         }
       }
       continue;
@@ -870,14 +885,21 @@ function updateEnemies(delta, playerContainer) {
 
     updateRegultFlames(e);
 
-    if (e.isAerial) {
+    if (e.isAerial || isSpaceBattle) {
       setRegultFrame(e, 0);
 
       e.orbitAngle += e.orbitSpeed * delta;
-      const goalX = playerContainer.position.x * 0.55 + Math.cos(e.orbitAngle) * e.orbitRadius;
-      const goalZ = playerContainer.position.z * 0.55 + Math.sin(e.orbitAngle) * e.orbitRadius;
-      const minFloor = (typeof getTerrainHeight === 'function') ? getTerrainHeight(goalX, goalZ) + 12 : 16;
-      const goalY = Math.max(minFloor, Math.min(85, playerContainer.position.y * 0.65 + e.baseY * 0.45 + Math.sin(e.orbitAngle * 2.0) * 6.0));
+      let goalX = playerContainer.position.x * 0.55 + Math.cos(e.orbitAngle) * e.orbitRadius;
+      let goalZ = playerContainer.position.z * 0.55 + Math.sin(e.orbitAngle) * e.orbitRadius;
+      const rawFloor = (typeof getTerrainHeight === 'function') ? getTerrainHeight(goalX, goalZ) + 12 : 16;
+      const minFloor = isSpaceBattle ? -450 : (isInteriorBattle ? 26 : rawFloor);
+      const maxCeil = isSpaceBattle ? 450 : (isInteriorBattle ? 130 : 85);
+      let goalY = Math.max(minFloor, Math.min(maxCeil, playerContainer.position.y * 0.65 + e.baseY * 0.45 + Math.sin(e.orbitAngle * 2.0) * 6.0));
+
+      if (isInteriorBattle) {
+        goalX = Math.max(-245, Math.min(245, goalX));
+        goalZ = Math.max(-425, Math.min(425, goalZ));
+      }
 
       e.mesh.position.x += (goalX - e.mesh.position.x) * Math.min(1, 0.85 * delta);
       e.mesh.position.y += (goalY - e.mesh.position.y) * Math.min(1, 1.1 * delta);
@@ -911,25 +933,42 @@ function updateEnemies(delta, playerContainer) {
         }
         setRegultFrame(e, e.animFrame);
 
-        const dx = e.targetLx - e.cityLx;
-        const dz = e.targetLz - e.cityLz;
-        const distWp = Math.hypot(dx, dz);
+        if (isInteriorBattle) {
+          if (typeof e.targetWorldX !== 'number') chooseNextInteriorWaypoint(e);
+          const dx = e.targetWorldX - e.mesh.position.x;
+          const dz = e.targetWorldZ - e.mesh.position.z;
+          const distWp = Math.hypot(dx, dz);
 
-        if (distWp < 1.2) {
-          chooseNextCityWaypoint(e);
+          if (distWp < 1.5) {
+            chooseNextInteriorWaypoint(e);
+          } else {
+            const walkSpeed = 6.5;
+            e.mesh.position.x += (dx / distWp) * walkSpeed * delta;
+            e.mesh.position.z += (dz / distWp) * walkSpeed * delta;
+            e.mesh.position.y = 0.0;
+            e.mesh.lookAt(e.targetWorldX, 0.0, e.targetWorldZ);
+          }
         } else {
-          const walkSpeed = 5.8;
-          e.cityLx += (dx / distWp) * walkSpeed * delta;
-          e.cityLz += (dz / distWp) * walkSpeed * delta;
-        }
+          const dx = e.targetLx - e.cityLx;
+          const dz = e.targetLz - e.cityLz;
+          const distWp = Math.hypot(dx, dz);
 
-        if (typeof localToWorldXZ === 'function') {
-          const wp = localToWorldXZ(e.cityLx, e.cityLz);
-          const groundY = (typeof getTerrainHeight === 'function') ? getTerrainHeight(wp.x, wp.z) : 3.25;
-          e.mesh.position.set(wp.x, groundY, wp.z);
+          if (distWp < 1.2) {
+            chooseNextCityWaypoint(e);
+          } else {
+            const walkSpeed = 5.8;
+            e.cityLx += (dx / distWp) * walkSpeed * delta;
+            e.cityLz += (dz / distWp) * walkSpeed * delta;
+          }
 
-          const nextWp = localToWorldXZ(e.targetLx, e.targetLz);
-          e.mesh.lookAt(nextWp.x, groundY, nextWp.z);
+          if (typeof localToWorldXZ === 'function') {
+            const wp = localToWorldXZ(e.cityLx, e.cityLz);
+            const groundY = (typeof getTerrainHeight === 'function') ? getTerrainHeight(wp.x, wp.z) : 3.25;
+            e.mesh.position.set(wp.x, groundY, wp.z);
+
+            const nextWp = localToWorldXZ(e.targetLx, e.targetLz);
+            e.mesh.lookAt(nextWp.x, groundY, nextWp.z);
+          }
         }
 
         if (e.stateTimer <= 0) {
@@ -972,7 +1011,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   if (chaffCooldown > 0) chaffCooldown = Math.max(0, chaffCooldown - delta);
 
   for (let i = chaffFlares.length - 1; i >= 0; i--) {
-    const cf = chaffFlares[i];
+    const cf = chaffFlares.at(i);
     cf.life -= delta;
     cf.vel.multiplyScalar(1.0 - 1.4 * delta);
     cf.vel.y -= 4.2 * delta;
@@ -1021,13 +1060,13 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   }
 
   for (let i = bullets.length - 1; i >= 0; i--) {
-    const b = bullets[i];
+    const b = bullets.at(i);
     b.mesh.position.addScaledVector(b.vel, delta);
     b.life -= delta;
 
     let hit = false;
     for (let j = 0; j < enemies.length; j++) {
-      const e = enemies[j];
+      const e = enemies.at(j);
       const hitCenter = e.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
       if (e.respawnTimer <= 0 && b.mesh.position.distanceTo(hitCenter) < 1.9) {
         damageEnemy(scene, camera, e, 1);
@@ -1038,7 +1077,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
 
     if (!hit) {
       for (let k = enemyMissiles.length - 1; k >= 0; k--) {
-        const em = enemyMissiles[k];
+        const em = enemyMissiles.at(k);
         if (b.mesh.position.distanceTo(em.mesh.position) < 1.35) {
           spawnExplosion(scene, camera, em.mesh.position, 0.55);
           spawnImpactSparks(scene, camera, em.mesh.position);
@@ -1058,7 +1097,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   }
 
   for (let i = enemyBullets.length - 1; i >= 0; i--) {
-    const eb = enemyBullets[i];
+    const eb = enemyBullets.at(i);
     eb.mesh.position.addScaledVector(eb.vel, delta);
     eb.life -= delta;
 
@@ -1075,9 +1114,9 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   }
 
   for (let i = enemyMissiles.length - 1; i >= 0; i--) {
-    const em = enemyMissiles[i];
+    const em = enemyMissiles.at(i);
 
-        if (em.decoyTarget && em.decoyTarget.life > 0) {
+    if (em.decoyTarget && em.decoyTarget.life > 0) {
       em.isLockedOn = false;
       tmpLookMat.lookAt(em.mesh.position, em.decoyTarget.mesh.position, new THREE.Vector3(0, 1, 0));
       tmpTargetQuat.setFromRotationMatrix(tmpLookMat);
@@ -1097,7 +1136,6 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     } else {
       em.isLockedOn = false;
     }
-
 
     tmpForward.set(0, 0, -1).applyQuaternion(em.mesh.quaternion);
     em.speed = Math.min(54, em.speed + 10 * delta);
@@ -1121,9 +1159,8 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
       enemyMissiles.splice(i, 1);
     }
   }
-
   for (let i = missiles.length - 1; i >= 0; i--) {
-    const m = missiles[i];
+    const m = missiles.at(i);
 
     if (m.straightTimer > 0) {
       m.straightTimer -= delta;
@@ -1153,7 +1190,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
 
     let hit = false;
     for (let j = 0; j < enemies.length; j++) {
-      const e = enemies[j];
+      const e = enemies.at(j);
       const hitCenter = e.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
       if (e.respawnTimer <= 0 && m.mesh.position.distanceTo(hitCenter) < 2.2) {
         damageEnemy(scene, camera, e, m.damage || 3);
@@ -1193,7 +1230,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   if (anyUpdated) smokeInstMesh.instanceMatrix.needsUpdate = true;
 
   for (let i = sparks.length - 1; i >= 0; i--) {
-    const sp = sparks[i];
+    const sp = sparks.at(i);
     sp.life -= delta;
     sp.vel.multiplyScalar(1.0 - 2.5 * delta);
     sp.mesh.position.addScaledVector(sp.vel, delta);
@@ -1207,7 +1244,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   }
 
   for (let i = explosions.length - 1; i >= 0; i--) {
-    const ex = explosions[i];
+    const ex = explosions.at(i);
     ex.life -= delta;
     ex.mesh.quaternion.copy(camera.quaternion);
 
@@ -1215,7 +1252,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     if (total > 0) {
       const progress = 1.0 - Math.max(0, ex.life / ex.maxLife);
       const frameIndex = Math.min(total - 1, Math.floor(progress * total));
-      ex.mat.map = explosionFrames[frameIndex];
+      ex.mat.map = explosionFrames.at(frameIndex);
     }
 
     if (ex.life <= 0) {
@@ -1227,38 +1264,82 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
 }
 
 function clearAllProjectiles(scene) {
-  for (let i = bullets.length - 1; i >= 0; i--) { scene.remove(bullets[i].mesh); }
+  for (let i = bullets.length - 1; i >= 0; i--) { scene.remove(bullets.at(i).mesh); }
   bullets.length = 0;
 
-  for (let i = enemyBullets.length - 1; i >= 0; i--) { scene.remove(enemyBullets[i].mesh); }
-  enemyBullets.length = 0;
-
-  for (let i = enemyMissiles.length - 1; i >= 0; i--) { scene.remove(enemyMissiles[i].mesh); }
-  enemyMissiles.length = 0;
-
-  for (let i = missiles.length - 1; i >= 0; i--) { scene.remove(missiles[i].mesh); }
-  missiles.length = 0;
-
-  for (let i = explosions.length - 1; i >= 0; i--) {
-    scene.remove(explosions[i].mesh);
-    explosions[i].mat.dispose();
-  }
-  explosions.length = 0;
-
-  for (let i = sparks.length - 1; i >= 0; i--) {
-    scene.remove(sparks[i].mesh);
-    sparks[i].mat.dispose();
-  }
-  sparks.length = 0;
-
-  // <-- AQUÍ VAN LAS NUEVAS LÍNEAS DEL CHAFF
-  for (let i = chaffFlares.length - 1; i >= 0; i--) {
-    scene.remove(chaffFlares[i].mesh);
-    chaffFlares[i].mat.dispose();
-  }
-  chaffFlares.length = 0;
-  chaffCooldown = 0;
-
-  lockedEnemies.length = 0;
+  for (let i = enemyBullets.length - 1; i >= 0; i--) { scene.remove(enemyBullets.at
+(i).mesh); }
+enemyBullets.length = 0;
+for (let i = enemyMissiles.length - 1; i >= 0; i--) { scene.remove(enemyMissiles.at(i).mesh); }
+enemyMissiles.length = 0;
+for (let i = missiles.length - 1; i >= 0; i--) { scene.remove(missiles.at(i).mesh); }
+missiles.length = 0;
+for (let i = explosions.length - 1; i >= 0; i--) {
+scene.remove(explosions.at(i).mesh);
+explosions.at(i).mat.dispose();
 }
+explosions.length = 0;
+for (let i = sparks.length - 1; i >= 0; i--) {
+scene.remove(sparks.at(i).mesh);
+sparks.at(i).mat.dispose();
+}
+sparks.length = 0;
+for (let i = chaffFlares.length - 1; i >= 0; i--) {
+scene.remove(chaffFlares.at(i).mesh);
+chaffFlares.at(i).mat.dispose();
+}
+chaffFlares.length = 0;
+chaffCooldown = 0;
+lockedEnemies.length = 0;
+}
+function onEnvironmentMapChanged(mapId) {
+  if (typeof clearAllProjectiles === 'function' && typeof scene !== 'undefined') {
+    clearAllProjectiles(scene);
+  }
 
+  try {
+    if (playerContainer) {
+      if (mapId === 'MAPA_3') {
+        playerContainer.position.set(0, 34, 180);
+      } else {
+        playerContainer.position.set(0, 38, 120);
+      }
+      playerContainer.quaternion.identity();
+      if (typeof velocity !== 'undefined') velocity.set(0, 0, 0);
+    }
+  } catch (e) {}
+
+for (let i = 0; i < enemies.length; i++) {
+const e = enemies.at(i);
+e.hp = 3;
+e.respawnTimer = 0;
+e.mesh.visible = true;
+e.lockProgress = 0;
+if (mapId === 'MAPA_3') {
+if (e.isAerial) {
+const angle = (i / 3) * Math.PI * 2;
+e.mesh.position.set(Math.cos(angle) * 70, 52 + i * 14, Math.sin(angle) * 140);
+} else {
+const sp = getInteriorStreetSpawn();
+e.mesh.position.set(sp.wx, sp.wy, sp.wz);
+e.walkState = 'WALK';
+e.stateTimer = 3.0 + Math.random() * 2.5;
+chooseNextInteriorWaypoint(e);
+}
+} else if (mapId === 'MAPA_1') {
+if (e.isAerial) {
+const angle = (i / 3) * Math.PI * 2;
+const radius = 55 + i * 16;
+e.mesh.position.set(Math.cos(angle) * radius, 26 + i * 7, -40 + Math.sin(angle) * radius);
+} else {
+const pt = getValidCityStreetPoint();
+e.cityLx = pt.lx;
+e.cityLz = pt.lz;
+e.mesh.position.set(pt.wx, pt.wy, pt.wz);
+e.walkState = 'WALK';
+e.stateTimer = 3.0 + Math.random() * 2.5;
+chooseNextCityWaypoint(e);
+}
+}
+}
+}

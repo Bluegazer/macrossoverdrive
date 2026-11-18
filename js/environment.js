@@ -77,6 +77,9 @@ function getCalderaBlend(x, z) {
 }
 
 function getTerrainHeight(x, z) {
+  if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_2') return -9999;
+  if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3' && typeof getInteriorTerrainHeight === 'function') return getInteriorTerrainHeight(x, z);
+
   for (let i = 0; i < ISLETS.length; i++) {
     const isl = ISLETS[i];
     const nx = (x - isl.x) / isl.rx;
@@ -146,7 +149,6 @@ function resolveStructureCollisions(pos, vel) {
   for (let i = 0; i < structureColliders.length; i++) {
     const b = structureColliders[i];
 
-    // Transformar posición del jugador al espacio local de la caja (soportando rotación rotY)
     const dx = pos.x - b.cx;
     const dz = pos.z - b.cz;
     const lx = b.rotY === 0 ? dx : (dx * b.cos + dz * b.sin);
@@ -179,7 +181,6 @@ function resolveStructureCollisions(pos, vel) {
           corrLz = (lz >= 0 ? 1 : -1) * penZ;
         }
 
-        // Volver a coordenadas mundiales
         const invCos = b.cos;
         const invSin = -b.sin;
         pos.x += (corrLx * invCos + corrLz * invSin);
@@ -191,7 +192,6 @@ function resolveStructureCollisions(pos, vel) {
   }
   return hit;
 }
-
 let waterNormalTex1 = null;
 let waterNormalTex2 = null;
 let skyCanvas = null;
@@ -256,6 +256,8 @@ function paintSkyGradient(c0, c1, c2, c3) {
 }
 
 function updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset) {
+  if (typeof activeMapId !== 'undefined' && activeMapId !== 'MAPA_1') return;
+
   const now = new Date();
   let decHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
   if (typeof manualHourOffset === 'number' && manualHourOffset !== 0) {
@@ -401,6 +403,15 @@ function buildSkyClouds(scene, toonGradient) {
   scene.add(cloudInstMesh);
 }
 function updateEnvironment(delta) {
+  if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_2') {
+    if (typeof updateSaturnEnvironment === 'function') updateSaturnEnvironment(delta);
+    return;
+  }
+  if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3') {
+    if (typeof updateInteriorEnvironment === 'function') updateInteriorEnvironment(delta);
+    return;
+  }
+
   if (waterNormalTex1 && waterNormalTex2) {
     waterNormalTex1.offset.x += 0.032 * delta;
     waterNormalTex1.offset.y += 0.020 * delta;
@@ -534,6 +545,7 @@ function createHangarTextures() {
   sideTex.anisotropy = 4;
   return { door: doorTex, side: sideTex };
 }
+
 function createControlTowerTexture() {
   const diffCanvas = document.createElement('canvas');
   diffCanvas.width = 128;
@@ -650,6 +662,7 @@ function createCityAvenueTexture() {
   tex.anisotropy = 4;
   return tex;
 }
+
 function createStreetLightEmissiveMap() {
   const size = 1024;
   const cell = 256;
@@ -752,6 +765,7 @@ function createBuildingFacadePair(baseHex, windowLitHex, cols, rows) {
   emissiveTex.anisotropy = 4;
   return { diffuse: diffuseTex, emissive: emissiveTex };
 }
+
 function createBuildingRoofTexture(hasHelipad) {
   const canvas = document.createElement('canvas');
   canvas.width = 128;
@@ -824,11 +838,11 @@ function createBuildingMaterialSet(toonGradient) {
     makeBoxMats(pair3, roofStandard)
   ];
 }
+
 function isInsideReservedSDF1Local(lx, lz) {
   return Math.abs(lx - SDF1_LOCAL_DOCK.x) < (SDF1_LOCAL_DOCK.width * 0.5 + 10) &&
          Math.abs(lz - SDF1_LOCAL_DOCK.z) < (SDF1_LOCAL_DOCK.length * 0.5 + 10);
 }
-
 function buildSDF1DockZone(complexGroup, toonGradient) {
   const dockGroup = new THREE.Group();
   dockGroup.position.set(SDF1_LOCAL_DOCK.x, 0.03, SDF1_LOCAL_DOCK.z);
@@ -909,9 +923,7 @@ function loadSDF1Model() {
       if (child.isMesh) {
         if (child.material) {
           const mats = Array.isArray(child.material) ? child.material : new Array(child.material);
-          mats.forEach((m) => {
-            m.side = THREE.DoubleSide;
-          });
+          mats.forEach((m) => { m.side = THREE.DoubleSide; });
         }
 
         const posAttr = child.geometry && child.geometry.attributes && child.geometry.attributes.position;
@@ -945,22 +957,18 @@ function loadSDF1Model() {
         const wp = localToWorldXZ(localCellX, localCellZ);
 
         registerBoxCollider(
-          wp.x,
-          COMPLEX_CONFIG.groundY + midY,
-          wp.z,
-          cellW * 0.96,
-          h,
-          cellD * 0.96,
-          COMPLEX_CONFIG.rotY
+          wp.x, COMPLEX_CONFIG.groundY + midY, wp.z,
+          cellW * 0.96, h, cellD * 0.96, COMPLEX_CONFIG.rotY
         );
       }
     }
 
-    // Fuerza la subida a GPU y compilación de shaders en segundo plano antes de mostrarlo
     model.visible = true;
-    if (typeof renderer !== 'undefined' && typeof camera !== 'undefined' && typeof scene !== 'undefined') {
-      renderer.compile(model, camera, scene);
-    }
+    try {
+      if (typeof renderer !== 'undefined' && renderer && typeof camera !== 'undefined' && typeof scene !== 'undefined') {
+        renderer.compile(model, camera, scene);
+      }
+    } catch (e) {}
   });
 }
 
@@ -969,10 +977,7 @@ function buildStreetLights(complexGroup, toonGradient) {
 
   const poleMat = new THREE.MeshToonMaterial({ color: 0x334155, gradientMap: toonGradient });
   const bulbMat = new THREE.MeshToonMaterial({
-    color: 0x94a3b8,
-    emissive: new THREE.Color(0xfef08a),
-    emissiveIntensity: 0.0,
-    gradientMap: toonGradient
+    color: 0x94a3b8, emissive: new THREE.Color(0xfef08a), emissiveIntensity: 0.0, gradientMap: toonGradient
   });
   nightEmissiveMaterials.push(bulbMat);
 
@@ -1049,6 +1054,7 @@ function buildStreetLights(complexGroup, toonGradient) {
     streetPointLights.push(pLight);
   }
 }
+
 function buildMacrossCityGrid(complexGroup, toonGradient) {
   const cityGroundGeo = new THREE.PlaneGeometry(168, 168);
   cityGroundGeo.rotateX(-Math.PI / 2);
@@ -1116,221 +1122,239 @@ function buildMacrossCityGrid(complexGroup, toonGradient) {
   for (let m = 0; m < 3; m++) {
     const list = buckets[m];
     if (list.length === 0) continue;
-    const instMesh = new THREE.InstancedMesh(bldgGeo, materialSets[m], list.length);
-    for (let i = 0; i < list.length; i++) instMesh.setMatrixAt(i, list[i]);
-    instMesh.instanceMatrix.needsUpdate = true;
-    complexGroup.add(instMesh);
-  }
-
-  buildStreetLights(complexGroup, toonGradient);
+const instMesh = new THREE.InstancedMesh(bldgGeo, materialSets[m], list.length);
+for (let i = 0; i < list.length; i++) instMesh.setMatrixAt(i, list[i]);
+instMesh.instanceMatrix.needsUpdate = true;
+complexGroup.add(instMesh);
+}
+buildStreetLights(complexGroup, toonGradient);
 }
 function buildNavalCarriers(scene, toonGradient) {
-  const hullMat = new THREE.MeshToonMaterial({ color: 0x334155, gradientMap: toonGradient });
-  const deckMat = new THREE.MeshToonMaterial({ color: 0x18181b, gradientMap: toonGradient });
-  const islandMat = new THREE.MeshToonMaterial({ color: 0x64748b, gradientMap: toonGradient });
-
-  const carriers = [
-    { x: 105, z: 245, rotY: 0.45 },
-    { x: 45,  z: 278, rotY: 0.45 }
-  ];
-
-  carriers.forEach((c) => {
-    const ship = new THREE.Group();
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(11, 4.2, 56), hullMat);
-    hull.position.y = 1.6;
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.6, 60), deckMat);
-    deck.position.y = 3.9;
-    const bridge = new THREE.Mesh(new THREE.BoxGeometry(2.6, 4.5, 7.5), islandMat);
-    bridge.position.set(5.2, 6.2, -4);
-
-    ship.add(hull, deck, bridge);
-    ship.position.set(c.x, -0.35, c.z);
-    ship.rotation.y = c.rotY;
-    scene.add(ship);
-
-    registerBoxCollider(c.x, 2.2, c.z, 15, 6.5, 60);
-  });
+const hullMat = new THREE.MeshToonMaterial({ color: 0x334155, gradientMap: toonGradient });
+const deckMat = new THREE.MeshToonMaterial({ color: 0x18181b, gradientMap: toonGradient });
+const islandMat = new THREE.MeshToonMaterial({ color: 0x64748b, gradientMap: toonGradient });
+const carriers = [
+{ x: 105, z: 245, rotY: 0.45 },
+{ x: 45,  z: 278, rotY: 0.45 }
+];
+carriers.forEach((c) => {
+const ship = new THREE.Group();
+const hull = new THREE.Mesh(new THREE.BoxGeometry(11, 4.2, 56), hullMat);
+hull.position.y = 1.6;
+const deck = new THREE.Mesh(new THREE.BoxGeometry(14.5, 0.6, 60), deckMat);
+deck.position.y = 3.9;
+const bridge = new THREE.Mesh(new THREE.BoxGeometry(2.6, 4.5, 7.5), islandMat);
+bridge.position.set(5.2, 6.2, -4);
+ship.add(hull, deck, bridge);
+ship.position.set(c.x, -0.35, c.z);
+ship.rotation.y = c.rotY;
+scene.add(ship);
+registerBoxCollider(c.x, 2.2, c.z, 15, 6.5, 60);
+});
 }
-
 function buildAirbaseAndCity(scene, toonGradient) {
-  const complexGroup = new THREE.Group();
-  complexGroup.position.set(COMPLEX_CONFIG.centerX, COMPLEX_CONFIG.groundY, COMPLEX_CONFIG.centerZ);
-  complexGroup.rotation.y = COMPLEX_CONFIG.rotY;
-  scene.add(complexGroup);
-
-  const runwayTex = createRunwayTexture();
-  const runwayMat = new THREE.MeshToonMaterial({ map: runwayTex, gradientMap: toonGradient });
-
-  const rwyMain1 = new THREE.Mesh(new THREE.PlaneGeometry(14, 310).rotateX(-Math.PI / 2), runwayMat);
-  rwyMain1.position.set(-10, 0.04, -68);
-  rwyMain1.rotation.y = Math.PI / 2;
-  complexGroup.add(rwyMain1);
-
-  const rwyMain2 = new THREE.Mesh(new THREE.PlaneGeometry(11, 275).rotateX(-Math.PI / 2), runwayMat);
-  rwyMain2.position.set(-4, 0.03, -48);
-  rwyMain2.rotation.y = Math.PI / 2;
-  complexGroup.add(rwyMain2);
-
-  const taxiMat = new THREE.MeshToonMaterial({ color: 0x1e242d, gradientMap: toonGradient });
-  const taxiOffsets = [-95, -35, 35, 95];
-  for (let i = 0; i < taxiOffsets.length; i++) {
-    const taxi = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 32).rotateX(-Math.PI / 2), taxiMat);
-    taxi.position.set(taxiOffsets[i], 0.025, -52);
-    complexGroup.add(taxi);
-  }
-
-  const apronMat = new THREE.MeshToonMaterial({ map: createApronTexture(), gradientMap: toonGradient });
-  const apron = new THREE.Mesh(new THREE.PlaneGeometry(118, 125).rotateX(-Math.PI / 2), apronMat);
-  apron.position.set(86, 0.02, 24);
-  complexGroup.add(apron);
-
-  const hangarTexSet = createHangarTextures();
-  const hangarSideMat = new THREE.MeshToonMaterial({ map: hangarTexSet.side, gradientMap: toonGradient });
-  const hangarDoorMat = new THREE.MeshToonMaterial({ map: hangarTexSet.door, gradientMap: toonGradient });
-  const roofMat = new THREE.MeshToonMaterial({ map: createBuildingRoofTexture(false), gradientMap: toonGradient });
-
-  const hangarBoxMats = [hangarSideMat, hangarSideMat, roofMat, roofMat, hangarDoorMat, hangarDoorMat];
-  const beaconMat = new THREE.MeshToonMaterial({
-    color: 0xef4444, emissive: new THREE.Color(0xef4444), emissiveIntensity: 0.2, gradientMap: toonGradient
-  });
-  nightEmissiveMaterials.push(beaconMat);
-
-  for (let i = 0; i < 8; i++) {
-    const row = Math.floor(i / 4);
-    const col = i % 4;
-    const lx = 52 + col * 22;
-    const lz = -16 + row * 28;
-    if (isInsideReservedSDF1Local(lx, lz)) continue;
-
-    const hGroup = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(12, 4.4, 16), hangarBoxMats);
-    body.position.y = 2.2;
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.8, 16.6), roofMat);
-    roof.position.y = 4.6;
-    const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), beaconMat);
-    beacon.position.set(0, 5.2, 7.6);
-
-    hGroup.add(body, roof, beacon);
-    hGroup.position.set(lx, 0, lz);
-    complexGroup.add(hGroup);
-
-    const wp = localToWorldXZ(lx, lz);
-    registerBoxCollider(wp.x, COMPLEX_CONFIG.groundY + 2.5, wp.z, 15, 5.2, 16);
-  }
-
-  const towerTexPair = createControlTowerTexture();
-  const towerBaseMat = new THREE.MeshToonMaterial({
-    map: towerTexPair.diffuse, emissiveMap: towerTexPair.emissive,
-    emissive: new THREE.Color(0xffffff), emissiveIntensity: 0.0, gradientMap: toonGradient
-  });
-  nightEmissiveMaterials.push(towerBaseMat);
-
-  const towerBase = new THREE.Mesh(new THREE.BoxGeometry(4.5, 13, 4.5), towerBaseMat);
-  towerBase.position.set(38, 6.5, -24);
-
-  towerCabMat = new THREE.MeshToonMaterial({
-    color: 0x0284c7, emissive: new THREE.Color(0x38bdf8), emissiveIntensity: 0.35, gradientMap: toonGradient
-  });
-  const towerCab = new THREE.Mesh(new THREE.BoxGeometry(6.5, 3.0, 6.5), towerCabMat);
-  towerCab.position.set(38, 14.2, -24);
-
-  const towerRoof = new THREE.Mesh(new THREE.BoxGeometry(7.0, 0.6, 7.0), roofMat);
-  towerRoof.position.set(38, 15.9, -24);
-
-  towerRadarMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(3.8, 0.7, 0.4),
-    new THREE.MeshToonMaterial({ color: 0xe2e8f0, gradientMap: toonGradient })
-  );
-  towerRadarMesh.position.set(38, 16.9, -24);
-  complexGroup.add(towerBase, towerCab, towerRoof, towerRadarMesh);
-
-  const towerWp = localToWorldXZ(38, -24);
-  registerBoxCollider(towerWp.x, COMPLEX_CONFIG.groundY + 8.2, towerWp.z, 6.5, 16.4, 6.5);
-
-  const facilityMat = new THREE.MeshToonMaterial({ map: hangarTexSet.side, gradientMap: toonGradient });
-  const facilityMesh = new THREE.Mesh(new THREE.BoxGeometry(24, 6, 18), facilityMat);
-  facilityMesh.position.set(360, 14.0, -490);
-  scene.add(facilityMesh);
-  registerBoxCollider(360, 17.0, -490, 24, 6, 18);
-
-  buildSDF1DockZone(complexGroup, toonGradient);
-  buildMacrossCityGrid(complexGroup, toonGradient);
-  buildNavalCarriers(scene, toonGradient);
+const complexGroup = new THREE.Group();
+complexGroup.position.set(COMPLEX_CONFIG.centerX, COMPLEX_CONFIG.groundY, COMPLEX_CONFIG.centerZ);
+complexGroup.rotation.y = COMPLEX_CONFIG.rotY;
+scene.add(complexGroup);
+const runwayTex = createRunwayTexture();
+const runwayMat = new THREE.MeshToonMaterial({ map: runwayTex, gradientMap: toonGradient });
+const rwyMain1 = new THREE.Mesh(new THREE.PlaneGeometry(14, 310).rotateX(-Math.PI / 2), runwayMat);
+rwyMain1.position.set(-10, 0.04, -68);
+rwyMain1.rotation.y = Math.PI / 2;
+complexGroup.add(rwyMain1);
+const rwyMain2 = new THREE.Mesh(new THREE.PlaneGeometry(11, 275).rotateX(-Math.PI / 2), runwayMat);
+rwyMain2.position.set(-4, 0.03, -48);
+rwyMain2.rotation.y = Math.PI / 2;
+complexGroup.add(rwyMain2);
+const taxiMat = new THREE.MeshToonMaterial({ color: 0x1e242d, gradientMap: toonGradient });
+const taxiOffsets = [-95, -35, 35, 95];
+for (let i = 0; i < taxiOffsets.length; i++) {
+const taxi = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 32).rotateX(-Math.PI / 2), taxiMat);
+taxi.position.set(taxiOffsets[i], 0.025, -52);
+complexGroup.add(taxi);
+}
+const apronMat = new THREE.MeshToonMaterial({ map: createApronTexture(), gradientMap: toonGradient });
+const apron = new THREE.Mesh(new THREE.PlaneGeometry(118, 125).rotateX(-Math.PI / 2), apronMat);
+apron.position.set(86, 0.02, 24);
+complexGroup.add(apron);
+const hangarTexSet = createHangarTextures();
+const hangarSideMat = new THREE.MeshToonMaterial({ map: hangarTexSet.side, gradientMap: toonGradient });
+const hangarDoorMat = new THREE.MeshToonMaterial({ map: hangarTexSet.door, gradientMap: toonGradient });
+const roofMat = new THREE.MeshToonMaterial({ map: createBuildingRoofTexture(false), gradientMap: toonGradient });
+const hangarBoxMats = [hangarSideMat, hangarSideMat, roofMat, roofMat, hangarDoorMat, hangarDoorMat];
+const beaconMat = new THREE.MeshToonMaterial({
+color: 0xef4444, emissive: new THREE.Color(0xef4444), emissiveIntensity: 0.2, gradientMap: toonGradient
+});
+nightEmissiveMaterials.push(beaconMat);
+for (let i = 0; i < 8; i++) {
+const row = Math.floor(i / 4);
+const col = i % 4;
+const lx = 52 + col * 22;
+const lz = -16 + row * 28;
+if (isInsideReservedSDF1Local(lx, lz)) continue;
+const hGroup = new THREE.Group();
+const body = new THREE.Mesh(new THREE.BoxGeometry(12, 4.4, 16), hangarBoxMats);
+body.position.y = 2.2;
+const roof = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.8, 16.6), roofMat);
+roof.position.y = 4.6;
+const beacon = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), beaconMat);
+beacon.position.set(0, 5.2, 7.6);
+hGroup.add(body, roof, beacon);
+hGroup.position.set(lx, 0, lz);
+complexGroup.add(hGroup);
+const wp = localToWorldXZ(lx, lz);
+registerBoxCollider(wp.x, COMPLEX_CONFIG.groundY + 2.5, wp.z, 15, 5.2, 16);
+}
+const towerTexPair = createControlTowerTexture();
+const towerBaseMat = new THREE.MeshToonMaterial({
+map: towerTexPair.diffuse, emissiveMap: towerTexPair.emissive,
+emissive: new THREE.Color(0xffffff), emissiveIntensity: 0.0, gradientMap: toonGradient
+});
+nightEmissiveMaterials.push(towerBaseMat);
+const towerBase = new THREE.Mesh(new THREE.BoxGeometry(4.5, 13, 4.5), towerBaseMat);
+towerBase.position.set(38, 6.5, -24);
+towerCabMat = new THREE.MeshToonMaterial({
+color: 0x0284c7, emissive: new THREE.Color(0x38bdf8), emissiveIntensity: 0.35, gradientMap: toonGradient
+});
+const towerCab = new THREE.Mesh(new THREE.BoxGeometry(6.5, 3.0, 6.5), towerCabMat);
+towerCab.position.set(38, 14.2, -24);
+const towerRoof = new THREE.Mesh(new THREE.BoxGeometry(7.0, 0.6, 7.0), roofMat);
+towerRoof.position.set(38, 15.9, -24);
+towerRadarMesh = new THREE.Mesh(
+new THREE.BoxGeometry(3.8, 0.7, 0.4),
+new THREE.MeshToonMaterial({ color: 0xe2e8f0, gradientMap: toonGradient })
+);
+towerRadarMesh.position.set(38, 16.9, -24);
+complexGroup.add(towerBase, towerCab, towerRoof, towerRadarMesh);
+const towerWp = localToWorldXZ(38, -24);
+registerBoxCollider(towerWp.x, COMPLEX_CONFIG.groundY + 8.2, towerWp.z, 6.5, 16.4, 6.5);
+const facilityMat = new THREE.MeshToonMaterial({ map: hangarTexSet.side, gradientMap: toonGradient });
+const facilityMesh = new THREE.Mesh(new THREE.BoxGeometry(24, 6, 18), facilityMat);
+facilityMesh.position.set(360, 14.0, -490);
+scene.add(facilityMesh);
+registerBoxCollider(360, 17.0, -490, 24, 6, 18);
+buildSDF1DockZone(complexGroup, toonGradient);
+buildMacrossCityGrid(complexGroup, toonGradient);
+buildNavalCarriers(scene, toonGradient);
 }
 function buildSouthAtariaEnvironment(scene) {
-  const dynamicSky = initDynamicSkyTexture();
-  scene.background = dynamicSky;
-  scene.fog = new THREE.FogExp2(0x6b92a8, 0.00062);
-
-  const toonGradient = createAnimeToonGradient();
-
-  waterNormalTex1 = createWaterNormalTexture();
-  waterNormalTex2 = waterNormalTex1.clone();
-  waterNormalTex2.needsUpdate = true;
-  waterNormalTex2.repeat.set(48, 48);
-
-  const oceanGeo = new THREE.PlaneGeometry(5200, 5200);
-  oceanGeo.rotateX(-Math.PI / 2);
-  oceanMeshMat = new THREE.MeshStandardMaterial({
-    color: 0x0b3556,
-    roughness: 0.22,
-    metalness: 0.72,
-    normalMap: waterNormalTex1,
-    normalScale: new THREE.Vector2(0.45, 0.45),
-    envMap: dynamicSky,
-    envMapIntensity: 0.90
-  });
-  const ocean = new THREE.Mesh(oceanGeo, oceanMeshMat);
-  ocean.position.y = -0.35;
-  scene.add(ocean);
-
-  const size = 1480;
-  const segments = 250;
-  const terrainGeo = new THREE.PlaneGeometry(size, size, segments, segments);
-  terrainGeo.rotateX(-Math.PI / 2);
-
-  const posAttr = terrainGeo.attributes.position;
-  const colors = new Float32Array(posAttr.count * 3);
-  const cColor = new THREE.Color();
-
-  for (let i = 0; i < posAttr.count; i++) {
-    const vx = posAttr.getX(i);
-    const vz = posAttr.getZ(i);
-    const vy = getTerrainHeight(vx, vz);
-    posAttr.setY(i, vy);
-
-    const inMainCannonZone = (vx < -140 && vz < -160 && vx + vz * 0.45 > -480);
-
-    if (vy < 0.05) {
-      cColor.setHex(0x16536b);
-    } else if (vy < 1.65) {
-      cColor.setHex(0x6b6150);
-    } else if (inMainCannonZone && vy > 4.5) {
-      cColor.setHex(0x574e3d);
-    } else if (vy < 12.0) {
-      cColor.setHex(0x36472d);
-    } else if (vy < 26.0) {
-      cColor.setHex(0x2a3823);
-    } else {
-      cColor.setHex(0x4f483b);
-    }
-
-    colors[i * 3]     = cColor.r;
-    colors[i * 3 + 1] = cColor.g;
-    colors[i * 3 + 2] = cColor.b;
-  }
-
-  terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  terrainGeo.computeVertexNormals();
-
-  const terrainMat = new THREE.MeshToonMaterial({
-    vertexColors: true,
-    gradientMap: toonGradient
-  });
-
-  const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
-  scene.add(terrainMesh);
-
-  buildAirbaseAndCity(scene, toonGradient);
-  buildSkyClouds(scene, toonGradient);
+const dynamicSky = initDynamicSkyTexture();
+scene.background = dynamicSky;
+scene.fog = new THREE.FogExp2(0x6b92a8, 0.00062);
+const toonGradient = createAnimeToonGradient();
+waterNormalTex1 = createWaterNormalTexture();
+waterNormalTex2 = waterNormalTex1.clone();
+waterNormalTex2.needsUpdate = true;
+waterNormalTex2.repeat.set(48, 48);
+const oceanGeo = new THREE.PlaneGeometry(5200, 5200);
+oceanGeo.rotateX(-Math.PI / 2);
+oceanMeshMat = new THREE.MeshStandardMaterial({
+color: 0x0b3556,
+roughness: 0.22,
+metalness: 0.72,
+normalMap: waterNormalTex1,
+normalScale: new THREE.Vector2(0.45, 0.45),
+envMap: dynamicSky,
+envMapIntensity: 0.90
+});
+const ocean = new THREE.Mesh(oceanGeo, oceanMeshMat);
+ocean.position.y = -0.35;
+scene.add(ocean);
+const size = 1480;
+const segments = 250;
+const terrainGeo = new THREE.PlaneGeometry(size, size, segments, segments);
+terrainGeo.rotateX(-Math.PI / 2);
+const posAttr = terrainGeo.attributes.position;
+const colors = new Float32Array(posAttr.count * 3);
+const cColor = new THREE.Color();
+for (let i = 0; i < posAttr.count; i++) {
+const vx = posAttr.getX(i);
+const vz = posAttr.getZ(i);
+const vy = getTerrainHeight(vx, vz);
+posAttr.setY(i, vy);
+const inMainCannonZone = (vx < -140 && vz < -160 && vx + vz * 0.45 > -480);
+if (vy < 0.05) {
+cColor.setHex(0x16536b);
+} else if (vy < 1.65) {
+cColor.setHex(0x6b6150);
+} else if (inMainCannonZone && vy > 4.5) {
+cColor.setHex(0x574e3d);
+} else if (vy < 12.0) {
+cColor.setHex(0x36472d);
+} else if (vy < 26.0) {
+cColor.setHex(0x2a3823);
+} else {
+cColor.setHex(0x4f483b);
+}
+colors[i * 3]     = cColor.r;
+colors[i * 3 + 1] = cColor.g;
+colors[i * 3 + 2] = cColor.b;
+}
+terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+terrainGeo.computeVertexNormals();
+const terrainMat = new THREE.MeshToonMaterial({
+vertexColors: true,
+gradientMap: toonGradient
+});
+const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
+scene.add(terrainMesh);
+buildAirbaseAndCity(scene, toonGradient);
+buildSkyClouds(scene, toonGradient);
+}
+let activeMapId = 'MAPA_1';
+let environmentGroup = null;
+function clearCurrentEnvironment() {
+structureColliders.length = 0;
+nightEmissiveMaterials.length = 0;
+streetPointLights.length = 0;
+cloudData.length = 0;
+lastSkyKey = '';
+sdf1AnchorGroup = null;
+cloudInstMesh = null;
+towerRadarMesh = null;
+towerCabMat = null;
+oceanMeshMat = null;
+if (environmentGroup) {
+while (environmentGroup.children.length > 0) {
+const child = environmentGroup.children[0];
+environmentGroup.remove(child);
+}
+}
+}
+function switchEnvironmentMap(scene, mapId) {
+if (!scene) return;
+if (!environmentGroup) {
+environmentGroup = new THREE.Group();
+environmentGroup.name = 'EnvironmentMasterGroup';
+scene.add(environmentGroup);
+}
+activeMapId = mapId || 'MAPA_1';
+clearCurrentEnvironment();
+const envTarget = {
+add: (obj) => environmentGroup.add(obj),
+remove: (obj) => environmentGroup.remove(obj),
+set background(val) { scene.background = val; },
+get background() { return scene.background; },
+set fog(val) { scene.fog = val; },
+get fog() { return scene.fog; }
+};
+if (activeMapId === 'MAPA_1') {
+buildSouthAtariaEnvironment(envTarget);
+} else if (activeMapId === 'MAPA_2') {
+if (typeof buildSaturnOrbitEnvironment === 'function') {
+buildSaturnOrbitEnvironment(scene, environmentGroup);
+} else {
+buildSouthAtariaEnvironment(envTarget);
+}
+} else if (activeMapId === 'MAPA_3') {
+if (typeof buildMacrossInteriorEnvironment === 'function') {
+buildMacrossInteriorEnvironment(scene, environmentGroup);
+} else {
+buildSouthAtariaEnvironment(envTarget);
+}
+}
+if (typeof onEnvironmentMapChanged === 'function') {
+onEnvironmentMapChanged(activeMapId);
+}
 }

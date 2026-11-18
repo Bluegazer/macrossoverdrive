@@ -14,7 +14,7 @@ let introOrbitAngle = 0.65;
 let manualHourOffset = 0;
 
 const scene = new THREE.Scene();
-buildSouthAtariaEnvironment(scene);
+switchEnvironmentMap(scene, 'MAPA_1');
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.25, 2400);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
@@ -93,6 +93,35 @@ function togglePause() {
   isPaused = !isPaused;
   clock.getDelta();
 }
+
+let selectedMapId = 'MAPA_1';
+
+const MAP_TITLES = {
+  MAPA_1: '01 // ISLA SOUTH ATARIA',
+  MAPA_2: '02 // ÓRBITA DE SATURNO',
+  MAPA_3: '03 // MACROSS CITY INTERIOR (DYRL)'
+};
+
+const mapSelectButtons = document.querySelectorAll('.map-select-btn');
+const selectedMapTitleEl = document.getElementById('selectedMapTitle');
+
+mapSelectButtons.forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const mapKey = btn.dataset.map;
+    if (!mapKey || mapKey === selectedMapId) return;
+
+    selectedMapId = mapKey;
+    mapSelectButtons.forEach((b) => b.classList.toggle('active', b === btn));
+    if (selectedMapTitleEl) {
+      selectedMapTitleEl.textContent = MAP_TITLES[mapKey] || mapKey;
+    }
+
+    if (typeof switchEnvironmentMap === 'function') {
+      switchEnvironmentMap(scene, selectedMapId);
+    }
+  });
+});
+
 const btnFighter = document.getElementById('btnFighter');
 if (btnFighter) btnFighter.addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('FIGHTER'); });
 const btnGerwalk = document.getElementById('btnGerwalk');
