@@ -29,7 +29,6 @@ scene.add(hemiLight);
 const dirLight = new THREE.DirectionalLight(0xfff1d6, 1.65);
 dirLight.position.set(180, 220, 120);
 scene.add(dirLight);
-
 if (typeof updateDayNightCycle === 'function') {
   updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
 }
@@ -56,7 +55,6 @@ function startMission() {
   if (typeof playSFX === 'function') playSFX('transform', 0.85, 0);
   clock.getDelta();
 }
-
 function returnToStartScreen() {
   isGameStarted = false;
   isPaused = false;
@@ -95,8 +93,23 @@ function togglePause() {
   isPaused = !isPaused;
   clock.getDelta();
 }
+const btnFighter = document.getElementById('btnFighter');
+if (btnFighter) btnFighter.addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('FIGHTER'); });
+const btnGerwalk = document.getElementById('btnGerwalk');
+if (btnGerwalk) btnGerwalk.addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('GERWALK'); });
+const btnBattroid = document.getElementById('btnBattroid');
+if (btnBattroid) btnBattroid.addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('BATTROID'); });
+const btnMelee = document.getElementById('btnMelee');
+if (btnMelee) btnMelee.addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) triggerGunpodMelee(); });
+const btnStop = document.getElementById('btnStop');
+if (btnStop) btnStop.addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) triggerFullStop(); });
 
-
+const btnSweep = document.getElementById('btnSweep');
+if (btnSweep) {
+  btnSweep.addEventListener('mousedown', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) startAcceleration(); });
+  btnSweep.addEventListener('mouseup', stopAcceleration);
+  btnSweep.addEventListener('mouseleave', stopAcceleration);
+}
 
 const sliderSFX = document.getElementById('sliderSFX');
 if (sliderSFX) {
@@ -116,7 +129,6 @@ if (sliderBGM) {
   });
   sliderBGM.addEventListener('change', (e) => e.target.blur());
 }
-
 const soundTestTrack = document.getElementById('soundTestTrack');
 const soundTester = document.getElementById('soundTester');
 const audioStatus = document.getElementById('audioStatus');
@@ -138,13 +150,19 @@ if (soundTestTrack && soundTester) {
   });
   soundTester.volume = sliderBGM ? Number(sliderBGM.value) / 100 : 0.65;
 }
+
 window.addEventListener('keydown', (e) => {
   const code = e.code || '';
   if (window.gameControls.isOptionsOpen()) return;
+
+  if (code === 'KeyC' && isGameStarted && !isPaused && !e.repeat) {
+    if (typeof deployChaff === 'function') deployChaff(scene, playerContainer);
+    return;
+  }
+
   const actions = window.gameControls.getActionsForCode(code);
   if (code === 'Space' || actions.includes('missiles')) e.preventDefault();
   if (!actions.length) return;
-
   if (actions.includes('advanceTime')) {
     manualHourOffset = (manualHourOffset + 2) % 24;
     if (typeof updateDayNightCycle === 'function') {
@@ -185,7 +203,6 @@ window.addEventListener('keydown', (e) => {
   }
 
   if (isPaused || (typeof isPlayerDying !== 'undefined' && isPlayerDying)) return;
-
   for (const action of continuousControlActions) {
     if (actions.includes(action)) {
       keyboardHeldActions.add(action);
@@ -232,7 +249,6 @@ window.addEventListener('keyup', (e) => {
   if (actions.includes('turbo')) stopAcceleration();
   if (actions.includes('reverse')) stopReverseGerwalk();
 });
-
 window.addEventListener('macross:clear-inputs', () => {
   keyboardHeldActions.clear();
   gamepadHeldActions.clear();
@@ -275,7 +291,6 @@ function handleGamepadActionPress(action) {
   if (action === 'missileType' && typeof cycleMissileType === 'function') cycleMissileType();
   if (action.startsWith('camera') && typeof setGamepadCameraView === 'function') setGamepadCameraView(action);
 }
-
 window.addEventListener('macross:gamepad-frame', event => {
   const next = new Set(event.detail.pressedActions || []);
   for (const action of continuousControlActions) {
@@ -313,6 +328,7 @@ window.addEventListener('macross:gamepad-frame', event => {
   }
   gamepadHeldActions = next;
 });
+
 let fpsFrames = 0;
 let fpsTime = 0;
 const clock = new THREE.Clock();

@@ -175,7 +175,7 @@ function drawBattroidTrackReticle(w, h, camera) {
 }
 function drawWeaponStatusPanel(w) {
   const boxW = 295;
-  const boxH = 166;
+  const boxH = 196;
   const x = w - boxW - 15;
   const y = 15;
   const cut = 10;
@@ -318,7 +318,38 @@ function drawWeaponStatusPanel(w) {
   hudCtx.shadowBlur = (isBattroid && tMode !== 'NONE') ? 6 : 0;
   hudCtx.fillStyle = trackColor;
   hudCtx.fillText(trackLabel, x + 135, y + 148);
+  hudCtx.shadowBlur = 0;
+  hudCtx.beginPath();
+  hudCtx.moveTo(x + 12, y + 160);
+  hudCtx.lineTo(x + boxW - 12, y + 160);
+  hudCtx.stroke();
 
+  const isFighterMode = (typeof currentMode !== 'undefined' && currentMode === 'FIGHTER');
+  const cCooldown = (typeof chaffCooldown !== 'undefined') ? chaffCooldown : 0;
+  const cActive = (typeof chaffFlares !== 'undefined' && chaffFlares.length > 0);
+
+  hudCtx.fillStyle = '#38bdf8';
+  hudCtx.fillText('CHAFF [C]', x + 14, y + 183);
+
+  let chaffLabel = 'N/A (F-ONLY)';
+  let chaffColor = '#64748b';
+  if (isFighterMode) {
+    if (cActive) {
+      chaffLabel = 'DEPLOYED // FLARE';
+      chaffColor = '#facc15';
+    } else if (cCooldown > 0) {
+      chaffLabel = 'RELOAD // ' + cCooldown.toFixed(1) + 'S';
+      chaffColor = '#f59e0b';
+    } else {
+      chaffLabel = 'READY // DECOY';
+      chaffColor = '#22c55e';
+    }
+  }
+
+  hudCtx.shadowColor = chaffColor;
+  hudCtx.shadowBlur = (isFighterMode && (cActive || cCooldown <= 0)) ? 6 : 0;
+  hudCtx.fillStyle = chaffColor;
+  hudCtx.fillText(chaffLabel, x + 135, y + 183);
   hudCtx.restore();
 }
 function drawPropulsionPanel(h) {

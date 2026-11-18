@@ -70,6 +70,60 @@ function initTitleMusic() {
   updateTitleMusicVolume();
 }
 
+function playChaffSFX() {
+  if (typeof unlockAudio === 'function') unlockAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const now = audioCtx.currentTime;
+  const outputNode = sfxMasterGain || audioCtx.destination;
+
+  const sampleRate = audioCtx.sampleRate;
+  const noiseLen = Math.floor(sampleRate * 0.28);
+  const noiseBuffer = audioCtx.createBuffer(1, noiseLen, sampleRate);
+  const channelData = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < noiseLen; i++) {
+    channelData[i] = Math.random() * 2 - 1;
+  }
+
+  for (let p = 0; p < 5; p++) {
+    const startTime = now + p * 0.045;
+
+    // 1. Estallido seco de eyección pirotécnica (más grave y con pegada)
+    const osc = audioCtx.createOscillator();
+    const oscGain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(280 + p * 25, startTime);
+    osc.frequency.exponentialRampToValueAtTime(55, startTime + 0.08);
+
+    oscGain.gain.setValueAtTime(0.65, startTime);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.085);
+
+    osc.connect(oscGain);
+    oscGain.connect(outputNode);
+    osc.start(startTime);
+    osc.stop(startTime + 0.09);
+
+    // 2. Chisporroteo brillante de bengala (filtro highpass abierto para máxima claridad)
+    const noiseSrc = audioCtx.createBufferSource();
+    noiseSrc.buffer = noiseBuffer;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(1400, startTime);
+
+    const nGain = audioCtx.createGain();
+    nGain.gain.setValueAtTime(0.75, startTime);
+    nGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.24);
+
+    noiseSrc.connect(filter);
+    filter.connect(nGain);
+    nGain.connect(outputNode);
+    noiseSrc.start(startTime);
+    noiseSrc.stop(startTime + 0.25);
+  }
+}
+
 function playTitleMusic() {
   isTitleMusicActive = true;
   initTitleMusic();
