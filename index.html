@@ -8,16 +8,28 @@
   <script src="./GLTFLoader.js"></script>
   <link rel="preload" href="./models/sdf1.glb" as="fetch" crossorigin>
   <link rel="preload" href="./models/vf1a.glb" as="fetch" crossorigin>
+  <link rel="preload" href="./models/regult.glb" as="fetch" crossorigin>
+  <link rel="preload" href="./textures/saturn.webp" as="image">
 </head>
 <body>
   <!-- Pantalla de Inicio -->
   <div id="startScreen">
     <div class="start-box">
-      <div class="start-tag">U.N. SPACY // SOUTH ATARIA DEFENSE</div>
+      <div class="start-tag">U.N. SPACY COMBAT PROGRAM</div>
       <h1 class="start-title">MACROSS OVERDRIVE</h1>
       <div class="start-subtitle">VF-1 VALKYRIE // ARCADE - SIM</div>
       <button id="btnStartGame" class="start-btn">INICIAR MISIÓN</button>
       <button id="btnOptions" class="start-options-btn" type="button">OPCIONES</button>
+	  <div class="map-selector-box">
+      <div class="map-selector-label">TEATRO DE OPERACIONES</div>
+      <div class="map-btn-group">
+      <button type="button" class="map-select-btn active" data-map="MAPA_1">MAPA 1</button>
+      <button type="button" class="map-select-btn" data-map="MAPA_2">MAPA 2</button>
+      <button type="button" class="map-select-btn" data-map="MAPA_3">MAPA 3</button>
+      </div>
+      <div id="selectedMapTitle" class="selected-map-title">01 // ISLA SOUTH ATARIA</div>
+      </div>
+
       <div class="start-hint">PRESIONA [ENTER] O HAZ CLIC PARA DESPEGAR</div>
     </div>
   </div>
@@ -227,6 +239,8 @@
   <script src="./js/weapons.js"></script>
   <script src="./js/player.js"></script>
   <script src="./js/environment.js"></script>
+  <script src="./js/env_saturn.js"></script>
+  <script src="./js/env_macross_interior.js"></script>
   <script src="./js/controls.js"></script>
   <script src="./js/main.js"></script>
 </body>
