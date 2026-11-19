@@ -10,8 +10,8 @@ const MAX_MULTI_LOCK = 4;
 const lockedEnemies = new Array();
 let score = 0;
 
-let playerArmor = 100;
-const playerMaxArmor = 100;
+let playerArmor = 140;
+const playerMaxArmor = 140;
 let armorDamageFlash = 0;
 let armorRegenDelay = 0;
 
@@ -85,11 +85,10 @@ function deployChaff(scene, playerContainer) {
 
     chaffFlares.push({ mesh: mesh, mat: mat, vel: ejectVel, life: 2.6, maxLife: 2.6 });
   }
-
   for (let k = 0; k < enemyMissiles.length; k++) {
     const em = enemyMissiles.at(k);
     const dist = em.mesh.position.distanceTo(playerContainer.position);
-    if (dist < 65 && chaffFlares.length > 0) {
+    if (dist < 75 && chaffFlares.length > 0) {
       em.isLockedOn = false;
       em.homingTimer = 0;
       em.decoyTarget = chaffFlares.at(Math.floor(Math.random() * chaffFlares.length));
@@ -99,13 +98,13 @@ function deployChaff(scene, playerContainer) {
   if (typeof playChaffSFX === 'function') playChaffSFX();
   return true;
 }
+
 let muzzleGroup = null;
 let smokeInstMesh = null;
 const MAX_SMOKE = 480;
 const smokePool = new Array(MAX_SMOKE);
 const dummyObj = new THREE.Object3D();
 let smokeCursor = 0;
-
 function createBeamTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 64;
@@ -226,7 +225,6 @@ const violetLaserTex = createVioletLaserTexture();
 const flashTex = createSoftCircleTexture('rgba(255, 230, 190, 1.0)', 'rgba(249, 115, 22, 0.85)');
 const uniformSmokeTex = createSoftCircleTexture('rgba(255, 255, 255, 0.92)', 'rgba(230, 240, 255, 0.55)');
 const sparkBloomTex = createSparkBloomTexture();
-
 const beamMat = new THREE.MeshBasicMaterial({
   map: beamTex,
   color: 0xffee00,
@@ -260,7 +258,6 @@ const explosionPlaneGeo = new THREE.PlaneGeometry(4.2, 4.2);
 for (let i = 1; i <= 10; i++) {
   explosionFrames.push(texLoader.load('./textures/exp' + i + '.webp'));
 }
-
 const missileBodyGeo = new THREE.CylinderGeometry(0.022, 0.025, 0.34, 6);
 missileBodyGeo.rotateX(Math.PI / 2);
 const missileBodyMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
@@ -281,10 +278,10 @@ const missileFlameMat = new THREE.MeshBasicMaterial({
 });
 
 const ZIGZAG_ANGLES_DEG = new Array(20, 35, 45, 60);
+
 function cloneSkinnedScene(source) {
   const sourceLookup = new Map();
   const cloneLookup = new Map();
-
   const clone = source.clone(true);
 
   const srcNodes = new Array();
@@ -306,7 +303,6 @@ function cloneSkinnedScene(source) {
       }
     }
   });
-
   return clone;
 }
 const REGULT_TOTAL_FRAMES = 24;
@@ -372,9 +368,7 @@ function setupRegultInstance(enemyObj, baseScene, animations) {
     if (child.name && child.name.includes('Flare') && typeof createPlumeMesh === 'function') {
       const isFootJet = child.name.includes('Flare00') || child.name.includes('Flare01');
       const plume = createPlumeMesh(isFootJet);
-      if (isFootJet) {
-        plume.group.rotation.x = Math.PI / 2;
-      }
+      if (isFootJet) plume.group.rotation.x = Math.PI / 2;
       child.add(plume.group);
       flamerList.push({ group: plume.group, outerMat: plume.mat, isFootJet: isFootJet });
     }
@@ -470,7 +464,7 @@ function initWeaponsAndEnemies(scene, playerContainer) {
       mesh: group,
       hp: 3,
       respawnTimer: 0,
-      fireCooldown: 1.5 + Math.random() * 2.0,
+      fireCooldown: 2.2 + Math.random() * 2.5,
       lockProgress: 0,
       seekerX: window.innerWidth / 2,
       seekerY: window.innerHeight / 2,
@@ -525,7 +519,6 @@ function fireGunpod(scene, playerContainer, velocity) {
   muzzleGroup.scale.set(s, s, s);
   muzzleFlashTimer = 0.04;
 }
-
 function fireRegultVioletLaser(scene, enemy, playerContainer) {
   const muzzles = (enemy.gunMuzzles && enemy.gunMuzzles.length > 0) ? enemy.gunMuzzles : new Array(null, null);
 
@@ -550,18 +543,18 @@ function fireRegultVioletLaser(scene, enemy, playerContainer) {
     scene.add(boltGroup);
 
     const dir = new THREE.Vector3().subVectors(playerContainer.position, originPos).normalize();
-    dir.x += (Math.random() - 0.5) * 0.05;
-    dir.y += (Math.random() - 0.5) * 0.05;
-    dir.z += (Math.random() - 0.5) * 0.05;
+    dir.x += (Math.random() - 0.5) * 0.08;
+    dir.y += (Math.random() - 0.5) * 0.08;
+    dir.z += (Math.random() - 0.5) * 0.08;
     dir.normalize();
 
-    enemyBullets.push({ mesh: boltGroup, vel: dir.multiplyScalar(68), life: 1.8 });
+    enemyBullets.push({ mesh: boltGroup, vel: dir.multiplyScalar(56), life: 1.8 });
   }
 
   if (typeof playSFX === 'function') playSFX('lightLaser', 0.5, 0.1);
 }
 function fireEnemySalvo(scene, enemy, playerContainer) {
-  const count = Math.random() < 0.5 ? 1 : 2;
+  const count = Math.random() < 0.65 ? 1 : 2;
 
   for (let i = 0; i < count; i++) {
     const mGroup = new THREE.Group();
@@ -586,10 +579,12 @@ function fireEnemySalvo(scene, enemy, playerContainer) {
     enemyMissiles.push({
       mesh: mGroup,
       lastTailPos: spawnPos.clone(),
-      speed: 34,
-      life: 4.2,
-      homingTimer: 2.6,
-      isLockedOn: true
+      speed: 28,
+      life: 4.4,
+      homingTimer: 2.2,
+      isLockedOn: true,
+      minDistToPlayer: spawnPos.distanceTo(playerContainer.position),
+      overshot: false
     });
   }
 }
@@ -752,7 +747,7 @@ function damagePlayerArmor(scene, camera, playerContainer, dmg) {
 
   playerArmor = Math.max(0, playerArmor - dmg);
   armorDamageFlash = 0.35;
-  armorRegenDelay = 3.5;
+  armorRegenDelay = 2.4;
 
   spawnImpactSparks(scene, camera, playerContainer.position);
 
@@ -776,7 +771,6 @@ function damageEnemy(scene, camera, enemy, dmg) {
     score += 100;
   }
 }
-
 function getInteriorStreetSpawn() {
   const lanesX = new Array(-0.85, -0.45, 0.45, 0.85);
   const wx = lanesX.at(Math.floor(Math.random() * lanesX.length));
@@ -792,7 +786,6 @@ function chooseNextInteriorWaypoint(enemy) {
   enemy.targetWorldX = nextX;
   enemy.targetWorldZ = nextZ;
 }
-
 
 function chooseNextCityWaypoint(enemy) {
   if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3') {
@@ -835,7 +828,6 @@ function chooseNextCityWaypoint(enemy) {
     enemy.targetLz = chosen.lz;
   }
 }
-
 function updateRegultFlames(enemy) {
   if (!enemy.flames || enemy.flames.length === 0) return;
   const isSpaceBattle = (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_2');
@@ -852,6 +844,7 @@ function updateRegultFlames(enemy) {
     }
   }
 }
+
 function updateEnemies(delta, playerContainer) {
   const isSpaceBattle = (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_2');
   const isInteriorBattle = (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3');
@@ -884,7 +877,6 @@ function updateEnemies(delta, playerContainer) {
       }
       continue;
     }
-
     updateRegultFlames(e);
 
     if (e.isAerial || isSpaceBattle) {
@@ -914,9 +906,9 @@ function updateEnemies(delta, playerContainer) {
         if (e.fireCooldown <= 0) {
           if (dist < 145) {
             fireEnemySalvo(scene, e, playerContainer);
-            e.fireCooldown = 3.8 + Math.random() * 2.6;
+            e.fireCooldown = 5.2 + Math.random() * 3.0;
           } else {
-            e.fireCooldown = 1.0;
+            e.fireCooldown = 1.2;
           }
         }
       }
@@ -998,9 +990,9 @@ function updateEnemies(delta, playerContainer) {
         if (e.fireCooldown <= 0) {
           if (dist < 110) {
             fireRegultVioletLaser(scene, e, playerContainer);
-            e.fireCooldown = 1.9 + Math.random() * 1.6;
+            e.fireCooldown = 2.8 + Math.random() * 2.0;
           } else {
-            e.fireCooldown = 0.8;
+            e.fireCooldown = 1.0;
           }
         }
       }
@@ -1021,9 +1013,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     cf.mesh.quaternion.copy(camera.quaternion);
     cf.mat.opacity = Math.max(0, cf.life / cf.maxLife);
 
-    if (Math.random() < 0.35) {
-      spawnSmokeParticle(cf.mesh.position, 0.45);
-    }
+    if (Math.random() < 0.35) spawnSmokeParticle(cf.mesh.position, 0.45);
 
     if (cf.life <= 0) {
       scene.remove(cf.mesh);
@@ -1041,7 +1031,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     if (armorRegenDelay > 0) {
       armorRegenDelay -= delta;
     } else if (playerArmor < playerMaxArmor) {
-      playerArmor = Math.min(playerMaxArmor, playerArmor + 8.0 * delta);
+      playerArmor = Math.min(playerMaxArmor, playerArmor + 10.0 * delta);
     }
   }
 
@@ -1051,26 +1041,37 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   }
 
   if (!isPlayerDying && !isGameOver) {
-    if (keys['ShiftLeft'] && gunCooldown <= 0) {
+    if (keys.ShiftLeft && gunCooldown <= 0) {
       fireGunpod(scene, playerContainer, velocity);
       gunCooldown = 0.085;
     }
-    if (keys['Space'] && missileCooldown <= 0) {
+    if (keys.Space && missileCooldown <= 0) {
       fireMicroMissiles(scene, playerContainer);
       missileCooldown = getCurrentMissileCooldown();
     }
   }
+  
+    const segStart = new THREE.Vector3();
+  const segVec = new THREE.Vector3();
+  const closestPt = new THREE.Vector3();
 
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets.at(i);
+    segStart.copy(b.mesh.position);
     b.mesh.position.addScaledVector(b.vel, delta);
+    segVec.subVectors(b.mesh.position, segStart);
+    const segLenSq = segVec.lengthSq();
     b.life -= delta;
 
     let hit = false;
     for (let j = 0; j < enemies.length; j++) {
       const e = enemies.at(j);
-      const hitCenter = e.mesh.position.clone().add(new THREE.Vector3(0, 1.2, 0));
-      if (e.respawnTimer <= 0 && b.mesh.position.distanceTo(hitCenter) < 1.9) {
+      if (e.respawnTimer > 0) continue;
+      const hitCenter = e.mesh.position.clone().add(new THREE.Vector3(0, 1.35, 0));
+      const t = segLenSq > 0 ? Math.max(0, Math.min(1, hitCenter.clone().sub(segStart).dot(segVec) / segLenSq)) : 0;
+      closestPt.copy(segStart).addScaledVector(segVec, t);
+      if (closestPt.distanceTo(hitCenter) < 2.35) {
+        spawnImpactSparks(scene, camera, closestPt);
         damageEnemy(scene, camera, e, 1);
         hit = true;
         break;
@@ -1080,7 +1081,9 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     if (!hit) {
       for (let k = enemyMissiles.length - 1; k >= 0; k--) {
         const em = enemyMissiles.at(k);
-        if (b.mesh.position.distanceTo(em.mesh.position) < 1.35) {
+        const t = segLenSq > 0 ? Math.max(0, Math.min(1, em.mesh.position.clone().sub(segStart).dot(segVec) / segLenSq)) : 0;
+        closestPt.copy(segStart).addScaledVector(segVec, t);
+        if (closestPt.distanceTo(em.mesh.position) < 1.65) {
           spawnExplosion(scene, camera, em.mesh.position, 0.55);
           spawnImpactSparks(scene, camera, em.mesh.position);
           scene.remove(em.mesh);
@@ -1098,6 +1101,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     }
   }
 
+
   for (let i = enemyBullets.length - 1; i >= 0; i--) {
     const eb = enemyBullets.at(i);
     eb.mesh.position.addScaledVector(eb.vel, delta);
@@ -1105,7 +1109,7 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
 
     let hitPlayer = false;
     if (!isPlayerDying && !isGameOver && eb.mesh.position.distanceTo(playerContainer.position) < 1.15) {
-      damagePlayerArmor(scene, camera, playerContainer, 15);
+      damagePlayerArmor(scene, camera, playerContainer, 9);
       hitPlayer = true;
     }
 
@@ -1114,9 +1118,21 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
       enemyBullets.splice(i, 1);
     }
   }
+  const playerReversing = (typeof isReverseGerwalk !== 'undefined' && isReverseGerwalk);
+  const playerBoosting = (typeof isAccelerating !== 'undefined' && isAccelerating);
 
   for (let i = enemyMissiles.length - 1; i >= 0; i--) {
     const em = enemyMissiles.at(i);
+    const currentDist = em.mesh.position.distanceTo(playerContainer.position);
+
+    // Detectar rebase (overshoot): si se acercó (< 4.5u) y el jugador maniobró haciendo que se aleje, pierde el rastro
+    if (currentDist < em.minDistToPlayer) {
+      em.minDistToPlayer = currentDist;
+    } else if (em.minDistToPlayer < 4.5 && currentDist > em.minDistToPlayer + 0.35) {
+      em.overshot = true;
+      em.isLockedOn = false;
+      em.homingTimer = 0;
+    }
 
     if (em.decoyTarget && em.decoyTarget.life > 0) {
       em.isLockedOn = false;
@@ -1129,18 +1145,24 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
         enemyMissiles.splice(i, 1);
         continue;
       }
-    } else if (em.homingTimer > 0 && !isPlayerDying && !isGameOver) {
+    } else if (!em.overshot && em.homingTimer > 0 && !isPlayerDying && !isGameOver) {
       em.homingTimer -= delta;
       em.isLockedOn = true;
+
+      // Retroceso rápido (Tecla R) o Turbo rompen el cálculo de trayectoria en proximidad estilo Macross VOXP
+      let turnRate = 2.15;
+      if (playerReversing && currentDist < 18.0) turnRate = 0.40;
+      else if (playerBoosting && currentDist < 14.0) turnRate = 0.85;
+
       tmpLookMat.lookAt(em.mesh.position, playerContainer.position, new THREE.Vector3(0, 1, 0));
       tmpTargetQuat.setFromRotationMatrix(tmpLookMat);
-      em.mesh.quaternion.slerp(tmpTargetQuat, 3.6 * delta);
+      em.mesh.quaternion.slerp(tmpTargetQuat, turnRate * delta);
     } else {
       em.isLockedOn = false;
     }
 
     tmpForward.set(0, 0, -1).applyQuaternion(em.mesh.quaternion);
-    em.speed = Math.min(54, em.speed + 10 * delta);
+    em.speed = Math.min(46, em.speed + 8 * delta);
     em.mesh.position.addScaledVector(tmpForward, em.speed * delta);
 
     tmpTailPos.copy(em.mesh.position).addScaledVector(tmpForward, -0.24);
@@ -1148,9 +1170,11 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     spawnUniformSmokeSegment(em.lastTailPos, tmpTailPos, distFromPlayer);
     em.lastTailPos.copy(tmpTailPos);
 
+    // Espoleta de proximidad: se reduce si haces retroceso rápido (Tecla R) o si ya rebasó
+    const fuseRadius = playerReversing ? 0.80 : 1.15;
     let hitPlayer = false;
-    if (!isPlayerDying && !isGameOver && distFromPlayer < 1.35) {
-      damagePlayerArmor(scene, camera, playerContainer, 25);
+    if (!em.overshot && !isPlayerDying && !isGameOver && distFromPlayer < fuseRadius) {
+      damagePlayerArmor(scene, camera, playerContainer, 16);
       spawnExplosion(scene, camera, em.mesh.position, 0.75);
       hitPlayer = true;
     }
@@ -1269,31 +1293,36 @@ function clearAllProjectiles(scene) {
   for (let i = bullets.length - 1; i >= 0; i--) { scene.remove(bullets.at(i).mesh); }
   bullets.length = 0;
 
-  for (let i = enemyBullets.length - 1; i >= 0; i--) { scene.remove(enemyBullets.at
-(i).mesh); }
-enemyBullets.length = 0;
-for (let i = enemyMissiles.length - 1; i >= 0; i--) { scene.remove(enemyMissiles.at(i).mesh); }
-enemyMissiles.length = 0;
-for (let i = missiles.length - 1; i >= 0; i--) { scene.remove(missiles.at(i).mesh); }
-missiles.length = 0;
-for (let i = explosions.length - 1; i >= 0; i--) {
-scene.remove(explosions.at(i).mesh);
-explosions.at(i).mat.dispose();
+  for (let i = enemyBullets.length - 1; i >= 0; i--) { scene.remove(enemyBullets.at(i).mesh); }
+  enemyBullets.length = 0;
+
+  for (let i = enemyMissiles.length - 1; i >= 0; i--) { scene.remove(enemyMissiles.at(i).mesh); }
+  enemyMissiles.length = 0;
+
+  for (let i = missiles.length - 1; i >= 0; i--) { scene.remove(missiles.at(i).mesh); }
+  missiles.length = 0;
+
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    scene.remove(explosions.at(i).mesh);
+    explosions.at(i).mat.dispose();
+  }
+  explosions.length = 0;
+
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    scene.remove(sparks.at(i).mesh);
+    sparks.at(i).mat.dispose();
+  }
+  sparks.length = 0;
+
+  for (let i = chaffFlares.length - 1; i >= 0; i--) {
+    scene.remove(chaffFlares.at(i).mesh);
+    chaffFlares.at(i).mat.dispose();
+  }
+  chaffFlares.length = 0;
+  chaffCooldown = 0;
+  lockedEnemies.length = 0;
 }
-explosions.length = 0;
-for (let i = sparks.length - 1; i >= 0; i--) {
-scene.remove(sparks.at(i).mesh);
-sparks.at(i).mat.dispose();
-}
-sparks.length = 0;
-for (let i = chaffFlares.length - 1; i >= 0; i--) {
-scene.remove(chaffFlares.at(i).mesh);
-chaffFlares.at(i).mat.dispose();
-}
-chaffFlares.length = 0;
-chaffCooldown = 0;
-lockedEnemies.length = 0;
-}
+
 function onEnvironmentMapChanged(mapId) {
   if (typeof clearAllProjectiles === 'function' && typeof scene !== 'undefined') {
     clearAllProjectiles(scene);
@@ -1311,37 +1340,37 @@ function onEnvironmentMapChanged(mapId) {
     }
   } catch (e) {}
 
-for (let i = 0; i < enemies.length; i++) {
-const e = enemies.at(i);
-e.hp = 3;
-e.respawnTimer = 0;
-e.mesh.visible = true;
-e.lockProgress = 0;
-if (mapId === 'MAPA_3') {
-if (e.isAerial) {
-const angle = (i / 3) * Math.PI * 2;
-e.mesh.position.set(Math.cos(angle) * 70, 52 + i * 14, Math.sin(angle) * 140);
-} else {
-const sp = getInteriorStreetSpawn();
-e.mesh.position.set(sp.wx, sp.wy, sp.wz);
-e.walkState = 'WALK';
-e.stateTimer = 3.0 + Math.random() * 2.5;
-chooseNextInteriorWaypoint(e);
-}
-} else if (mapId === 'MAPA_1') {
-if (e.isAerial) {
-const angle = (i / 3) * Math.PI * 2;
-const radius = 55 + i * 16;
-e.mesh.position.set(Math.cos(angle) * radius, 26 + i * 7, -40 + Math.sin(angle) * radius);
-} else {
-const pt = getValidCityStreetPoint();
-e.cityLx = pt.lx;
-e.cityLz = pt.lz;
-e.mesh.position.set(pt.wx, pt.wy, pt.wz);
-e.walkState = 'WALK';
-e.stateTimer = 3.0 + Math.random() * 2.5;
-chooseNextCityWaypoint(e);
-}
-}
-}
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies.at(i);
+    e.hp = 3;
+    e.respawnTimer = 0;
+    e.mesh.visible = true;
+    e.lockProgress = 0;
+    if (mapId === 'MAPA_3') {
+      if (e.isAerial) {
+        const angle = (i / 3) * Math.PI * 2;
+        e.mesh.position.set(Math.cos(angle) * 70, 52 + i * 14, Math.sin(angle) * 140);
+      } else {
+        const sp = getInteriorStreetSpawn();
+        e.mesh.position.set(sp.wx, sp.wy, sp.wz);
+        e.walkState = 'WALK';
+        e.stateTimer = 3.0 + Math.random() * 2.5;
+        chooseNextInteriorWaypoint(e);
+      }
+    } else if (mapId === 'MAPA_1') {
+      if (e.isAerial) {
+        const angle = (i / 3) * Math.PI * 2;
+        const radius = 55 + i * 16;
+        e.mesh.position.set(Math.cos(angle) * radius, 26 + i * 7, -40 + Math.sin(angle) * radius);
+      } else {
+        const pt = getValidCityStreetPoint();
+        e.cityLx = pt.lx;
+        e.cityLz = pt.lz;
+        e.mesh.position.set(pt.wx, pt.wy, pt.wz);
+        e.walkState = 'WALK';
+        e.stateTimer = 3.0 + Math.random() * 2.5;
+        chooseNextCityWaypoint(e);
+      }
+    }
+  }
 }
