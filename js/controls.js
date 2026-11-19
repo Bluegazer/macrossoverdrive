@@ -3,7 +3,7 @@
     moveForward: 'KeyW', moveBack: 'KeyS', moveLeft: 'KeyA', moveRight: 'KeyD',
     turnLeft: 'ArrowLeft', turnRight: 'ArrowRight', verticalUp: 'ArrowUp', verticalDown: 'ArrowDown',
     fighter: 'KeyF', gerwalk: 'KeyG', battroid: 'KeyB',
-    gunpod: 'ShiftLeft', melee: 'KeyE', missiles: 'Space', chaff: 'KeyC',
+    gunpod: 'ShiftLeft', melee: 'KeyE', missiles: 'Space', missileType: 'Tab', chaff: 'KeyC',
     turbo: 'KeyT', reverse: 'KeyR', tracking: 'KeyN', brake: 'KeyX',
     pause: 'KeyP', music: 'KeyM', advanceTime: 'KeyH',
     startMission: 'Enter', returnMenu: 'Escape', restartAfterDefeat: 'KeyY', menuAfterDefeat: 'KeyN'
@@ -84,7 +84,7 @@
     KeyW: 'W', KeyS: 'S', KeyA: 'A', KeyD: 'D', KeyF: 'F', KeyG: 'G', KeyB: 'B', KeyE: 'E',
     KeyT: 'T', KeyR: 'R', KeyN: 'N', KeyX: 'X', KeyP: 'P', KeyM: 'M', KeyH: 'H', KeyY: 'Y',
     ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', ShiftLeft: 'SHIFT IZQ.', ShiftRight: 'SHIFT DER.',
-    Space: 'ESPACIO', Escape: 'ESC', Enter: 'ENTER', NumpadEnter: 'NUM ENTER', NumpadAdd: 'NUM +',
+    Space: 'ESPACIO', Tab: 'TAB', Escape: 'ESC', Enter: 'ENTER', NumpadEnter: 'NUM ENTER', NumpadAdd: 'NUM +',
     NumpadSubtract: 'NUM −', NumpadMultiply: 'NUM ×', NumpadDivide: 'NUM ÷', NumpadDecimal: 'NUM .', NumLock: 'NUM LOCK',
     ControlLeft: 'CTRL IZQ.', ControlRight: 'CTRL DER.', AltLeft: 'ALT IZQ.', AltRight: 'ALT GR', MetaLeft: 'WIN'
   };
@@ -359,7 +359,7 @@
       `<b>FIGHTER:</b> ${k('moveForward')}/${k('moveBack')} THROTTLE | ${k('moveLeft')}/${k('moveRight')} YAW | FLECHAS ROLL/PITCH<br>` +
       `<b>MODOS:</b> ${k('fighter')} FIGHTER | ${k('gerwalk')} GERWALK | ${k('battroid')} BATTROID<br>` +
       `<b>SISTEMAS:</b> ${k('turbo')} TURBO | ${k('reverse')} REVERSA | ${k('brake')} STOP | ${k('pause')} PAUSA | ${k('music')} MÚSICA | ${k('advanceTime')} +2 H<br>` +
-      `<b>COMBATE:</b> ${k('gunpod')} GUNPOD | ${k('missiles')} MISILES | ${k('tracking')} RASTREO (B) | ${k('melee')} GOLPE<br>` +
+      `<b>COMBATE:</b> ${k('gunpod')} GUNPOD | ${k('missiles')} MISILES | ${k('missileType')} TIPO MSL | ${k('tracking')} RASTREO (B) | ${k('melee')} GOLPE<br>` +
       `<b>MENÚ:</b> ${k('startMission')} INICIAR | ${k('returnMenu')} SALIR | ${k('restartAfterDefeat')}/${k('menuAfterDefeat')} TRAS DERROTA`;
     document.querySelectorAll('[data-binding-label]').forEach(el => { el.textContent = keyLabel(bindings[el.dataset.bindingLabel]); });
   }

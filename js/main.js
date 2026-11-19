@@ -341,7 +341,7 @@ window.addEventListener('keydown', (e) => {
   }
 
   const actions = window.gameControls.getActionsForCode(code);
-  if (code === 'Space' || actions.includes('missiles')) e.preventDefault();
+  if (code === 'Space' || code === 'Tab' || actions.includes('missiles') || actions.includes('missileType')) e.preventDefault();
   if (!actions.length) return;
   if (actions.includes('advanceTime')) {
     manualHourOffset = (manualHourOffset + 2) % 24;
@@ -393,6 +393,7 @@ window.addEventListener('keydown', (e) => {
   if (actions.includes('gerwalk')) transformTo('GERWALK');
   if (actions.includes('battroid')) transformTo('BATTROID');
   if (actions.includes('melee')) triggerGunpodMelee();
+  if (actions.includes('missileType') && typeof cycleMissileType === 'function') cycleMissileType();
   if (actions.includes('chaff') && typeof deployChaff === 'function') deployChaff(scene, playerContainer);
   if (actions.includes('turbo')) startAcceleration();
   if (actions.includes('brake')) triggerFullStop();
