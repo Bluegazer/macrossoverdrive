@@ -776,21 +776,23 @@ function damageEnemy(scene, camera, enemy, dmg) {
     score += 100;
   }
 }
+
 function getInteriorStreetSpawn() {
-  const lanesX = new Array(-19.5, -11.0, 11.0, 19.5);
+  const lanesX = new Array(-0.85, -0.45, 0.45, 0.85);
   const wx = lanesX.at(Math.floor(Math.random() * lanesX.length));
   const wz = (Math.random() - 0.5) * 760;
   return { wx: wx, wy: 0.0, wz: wz };
 }
 
 function chooseNextInteriorWaypoint(enemy) {
-  const lanesX = new Array(-19.5, -11.0, 11.0, 19.5);
+  const lanesX = new Array(-0.85, -0.45, 0.45, 0.85);
   const nextX = lanesX.at(Math.floor(Math.random() * lanesX.length));
   const stepZ = (Math.random() < 0.5 ? 1 : -1) * (55 + Math.random() * 85);
   const nextZ = Math.max(-420, Math.min(420, enemy.mesh.position.z + stepZ));
   enemy.targetWorldX = nextX;
   enemy.targetWorldZ = nextZ;
 }
+
 
 function chooseNextCityWaypoint(enemy) {
   if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3') {
