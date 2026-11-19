@@ -563,12 +563,22 @@ function drawRestartOverlay(w, h) {
   hudCtx.shadowColor = 'rgba(34, 197, 94, 0.9)';
   hudCtx.shadowBlur = 8;
   hudCtx.font = 'bold 14px Conthrax, sans-serif';
+  const padType = window.gameControls?.getGamepadDiagramType?.();
+  const yesLabel = padType === 'xbox' ? '[A] SÍ' : padType === 'ps2' ? '[×] SÍ' : '[Y] YES';
+  const noLabel = padType === 'xbox' ? '[B] NO' : padType === 'ps2' ? '[○] NO' : '[N] NO';
+  hudCtx.shadowColor = '#38bdf8';
+  hudCtx.shadowBlur = 10;
+  hudCtx.strokeStyle = '#38bdf8';
+  hudCtx.lineWidth = 2;
+  hudCtx.strokeRect(cx + (declined ? 34 : -122), cy + 22, 88, 32);
+  hudCtx.shadowColor = 'rgba(34, 197, 94, 0.9)';
+  hudCtx.shadowBlur = 8;
   hudCtx.fillStyle = !declined ? '#22c55e' : '#64748b';
-  hudCtx.fillText('[Y] YES', cx - 78, cy + 38);
+  hudCtx.fillText(yesLabel, cx - 78, cy + 38);
 
   hudCtx.shadowColor = declined ? 'rgba(239, 68, 68, 0.95)' : 'rgba(148, 163, 184, 0.5)';
   hudCtx.fillStyle = declined ? '#ef4444' : '#94a3b8';
-  hudCtx.fillText('[N] NO', cx + 78, cy + 38);
+  hudCtx.fillText(noLabel, cx + 78, cy + 38);
 
   hudCtx.restore();
 }

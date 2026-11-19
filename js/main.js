@@ -6,12 +6,24 @@ const uiPanelEl = document.getElementById('ui');
 const keys = {};
 const keyboardHeldActions = new Set();
 let gamepadHeldActions = new Set();
+let suppressNextGamepadFrame = false;
 const continuousControlActions = ['moveForward', 'moveBack', 'moveLeft', 'moveRight', 'turnLeft', 'turnRight', 'verticalUp', 'verticalDown', 'gunpod', 'missiles', 'brake', 'slowdown'];
 let isGameStarted = false;
 let isPaused = false;
 let restartDeclined = false;
+let gamepadFocusedElement = null;
 let introOrbitAngle = 0.65;
 let manualHourOffset = 0;
+const timeOfDayStorageKey = 'macrossvoxp-time-of-day-v1';
+const validTimeOfDayModes = ['real', 'morning', 'midday', 'afternoon', 'night'];
+let timeOfDayMode = (() => {
+  try {
+    const saved = localStorage.getItem(timeOfDayStorageKey);
+    return validTimeOfDayModes.includes(saved) ? saved : 'real';
+  } catch (_) {
+    return 'real';
+  }
+})();
 
 const scene = new THREE.Scene();
 switchEnvironmentMap(scene, 'MAPA_1');
@@ -30,7 +42,7 @@ const dirLight = new THREE.DirectionalLight(0xfff1d6, 1.65);
 dirLight.position.set(180, 220, 120);
 scene.add(dirLight);
 if (typeof updateDayNightCycle === 'function') {
-  updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+  updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset, timeOfDayMode);
 }
 
 const playerContainer = new THREE.Group();
@@ -90,8 +102,33 @@ if (btnStartGame) {
 
 function togglePause() {
   if (!isGameStarted || isPlayerDying || isGameOver) return;
-  isPaused = !isPaused;
+  if (isPaused) return;
+  isPaused = true;
   clock.getDelta();
+  if (window.gameControls?.openPauseOptions) window.gameControls.openPauseOptions();
+}
+
+window.addEventListener('macross:resume-game', () => {
+  isPaused = false;
+  clock.getDelta();
+});
+
+document.getElementById('btnExitToTitle')?.addEventListener('click', () => {
+  if (window.gameControls?.closeOptions?.() === false) return;
+  returnToStartScreen();
+  btnStartGame?.focus();
+});
+
+const timeOfDaySelect = document.getElementById('timeOfDayMode');
+if (timeOfDaySelect) {
+  timeOfDaySelect.value = timeOfDayMode;
+  timeOfDaySelect.addEventListener('change', () => {
+    const selectedMode = timeOfDaySelect.value;
+    if (!validTimeOfDayModes.includes(selectedMode)) return;
+    timeOfDayMode = selectedMode;
+    try { localStorage.setItem(timeOfDayStorageKey, timeOfDayMode); } catch (_) {}
+    updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset, timeOfDayMode);
+  });
 }
 
 let selectedMapId = 'MAPA_1';
@@ -122,6 +159,117 @@ mapSelectButtons.forEach((btn) => {
   });
 });
 
+function visibleGamepadMenuItems() {
+  if (window.gameControls?.isOptionsOpen()) {
+    const candidates = [...document.querySelectorAll('#optionsScreen button, #optionsScreen input, #optionsScreen select')];
+    return candidates.filter(element => {
+      if (element.disabled || !element.getClientRects().length) return false;
+      return !element.closest('[hidden]');
+    });
+  }
+  if (!isGameStarted) {
+    return [...document.querySelectorAll('#startScreen button')].filter(element => element.getClientRects().length && !element.disabled);
+  }
+  return [];
+}
+
+function setGamepadMenuFocus(element) {
+  document.querySelectorAll('.gamepad-menu-focus').forEach(item => item.classList.remove('gamepad-menu-focus'));
+  gamepadFocusedElement = element || null;
+  if (!element) return;
+  element.classList.add('gamepad-menu-focus');
+  element.focus({ preventScroll: true });
+}
+
+document.addEventListener('macross:options-opened', event => {
+  if (event.detail?.pause) setGamepadMenuFocus(document.getElementById('btnContinueGame'));
+});
+
+function stepGamepadMenuFocus(direction) {
+  const items = visibleGamepadMenuItems();
+  if (!items.length) return;
+  let currentIndex = items.indexOf(gamepadFocusedElement);
+  if (currentIndex < 0) currentIndex = items.indexOf(document.activeElement);
+  const current = currentIndex >= 0 ? items[currentIndex] : document.activeElement;
+  if (current instanceof HTMLInputElement && current.type === 'range' && (direction === 'left' || direction === 'right')) {
+    const step = Number(current.step) || 1;
+    const sign = direction === 'right' ? 1 : -1;
+    current.value = String(Math.max(Number(current.min), Math.min(Number(current.max), Number(current.value) + sign * step * 5)));
+    current.dispatchEvent(new Event('input', { bubbles: true }));
+    setGamepadMenuFocus(current);
+    return;
+  }
+  if (current instanceof HTMLSelectElement && (direction === 'left' || direction === 'right')) {
+    const offset = direction === 'right' ? 1 : -1;
+    current.selectedIndex = (current.selectedIndex + offset + current.options.length) % current.options.length;
+    current.dispatchEvent(new Event('change', { bubbles: true }));
+    setGamepadMenuFocus(current);
+    return;
+  }
+  const offset = (direction === 'up' || direction === 'left') ? -1 : 1;
+  const nextIndex = currentIndex < 0
+    ? (offset > 0 ? 0 : items.length - 1)
+    : (currentIndex + offset + items.length) % items.length;
+  setGamepadMenuFocus(items[nextIndex]);
+}
+
+function acceptGamepadMenuSelection() {
+  const items = visibleGamepadMenuItems();
+  const target = items.includes(gamepadFocusedElement) ? gamepadFocusedElement : items[0];
+  if (!target) return;
+  setGamepadMenuFocus(target);
+  if (!(target instanceof HTMLInputElement && target.type === 'range')) target.click();
+  const focusedAfterClick = document.activeElement;
+  if (window.gameControls?.isOptionsOpen() && visibleGamepadMenuItems().includes(focusedAfterClick)) {
+    setGamepadMenuFocus(focusedAfterClick);
+  }
+}
+
+window.addEventListener('macross:gamepad-menu-input', event => {
+  const { direction, accept, back } = event.detail || {};
+  if (window.gameControls?.isOptionsOpen()) {
+    if (back) {
+      suppressNextGamepadFrame = true;
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
+      return;
+    }
+    if (window.gameControls.isListening()) return;
+    if (direction) stepGamepadMenuFocus(direction);
+    if (accept) {
+      suppressNextGamepadFrame = true;
+      acceptGamepadMenuSelection();
+    }
+    return;
+  }
+
+  if (typeof isGameOver !== 'undefined' && isGameOver) {
+    if (direction === 'left' || direction === 'up') restartDeclined = false;
+    if (direction === 'right' || direction === 'down') restartDeclined = true;
+    if (back) restartDeclined = true;
+    if (accept || back) suppressNextGamepadFrame = true;
+    if (accept) {
+      if (restartDeclined) returnToStartScreen();
+      else window.location.reload();
+    }
+    return;
+  }
+
+  if (isPaused) {
+    if (back || accept) {
+      suppressNextGamepadFrame = true;
+      togglePause();
+    }
+    return;
+  }
+  if (!isGameStarted) {
+    if (direction) stepGamepadMenuFocus(direction);
+    if (accept) {
+      suppressNextGamepadFrame = true;
+      acceptGamepadMenuSelection();
+    }
+  }
+});
+
 const btnFighter = document.getElementById('btnFighter');
 if (btnFighter) btnFighter.addEventListener('click', () => { if (isGameStarted && !isPaused && !isPlayerDying && !isGameOver) transformTo('FIGHTER'); });
 const btnGerwalk = document.getElementById('btnGerwalk');
@@ -141,6 +289,8 @@ if (btnSweep) {
 }
 
 const sliderSFX = document.getElementById('sliderSFX');
+const initialAudioSettings = typeof getAudioSettings === 'function' ? getAudioSettings() : { sfx: 50, bgm: 50 };
+if (sliderSFX) sliderSFX.value = String(initialAudioSettings.sfx);
 if (sliderSFX) {
   sliderSFX.addEventListener('input', (e) => {
     if (typeof setSFXVolume === 'function') setSFXVolume(Number(e.target.value));
@@ -149,6 +299,7 @@ if (sliderSFX) {
 }
 
 const sliderBGM = document.getElementById('sliderBGM');
+if (sliderBGM) sliderBGM.value = String(initialAudioSettings.bgm);
 if (sliderBGM) {
   sliderBGM.addEventListener('input', (e) => {
     const volume = Number(e.target.value);
@@ -195,7 +346,7 @@ window.addEventListener('keydown', (e) => {
   if (actions.includes('advanceTime')) {
     manualHourOffset = (manualHourOffset + 2) % 24;
     if (typeof updateDayNightCycle === 'function') {
-      updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+      updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset, timeOfDayMode);
     }
     return;
   }
@@ -242,6 +393,7 @@ window.addEventListener('keydown', (e) => {
   if (actions.includes('gerwalk')) transformTo('GERWALK');
   if (actions.includes('battroid')) transformTo('BATTROID');
   if (actions.includes('melee')) triggerGunpodMelee();
+  if (actions.includes('chaff') && typeof deployChaff === 'function') deployChaff(scene, playerContainer);
   if (actions.includes('turbo')) startAcceleration();
   if (actions.includes('brake')) triggerFullStop();
   if (actions.includes('reverse')) startReverseGerwalk();
@@ -271,7 +423,7 @@ window.addEventListener('keyup', (e) => {
   for (const action of continuousControlActions) {
     if (actions.includes(action)) {
       keyboardHeldActions.delete(action);
-      keys[window.gameControls.getStateKey(action)] = gamepadHeldActions.has(action) || (action === 'moveBack' && gamepadHeldActions.has('slowdown'));
+      keys[window.gameControls.getStateKey(action)] = false;
     }
   }
   if (window.gameControls.isOptionsOpen()) return;
@@ -301,7 +453,7 @@ function handleGamepadActionPress(action) {
   if (action === 'music') { if (typeof toggleMusic === 'function') toggleMusic(); return; }
   if (action === 'advanceTime') {
     manualHourOffset = (manualHourOffset + 2) % 24;
-    if (typeof updateDayNightCycle === 'function') updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+    if (typeof updateDayNightCycle === 'function') updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset, timeOfDayMode);
     return;
   }
   if (isPaused || (typeof isPlayerDying !== 'undefined' && isPlayerDying)) return;
@@ -318,11 +470,20 @@ function handleGamepadActionPress(action) {
   if (action === 'melee') triggerGunpodMelee();
   if (action === 'tracking' && typeof cycleBattroidTracking === 'function') cycleBattroidTracking();
   if (action === 'missileType' && typeof cycleMissileType === 'function') cycleMissileType();
+  if (action === 'chaff' && typeof deployChaff === 'function') deployChaff(scene, playerContainer);
   if (action.startsWith('camera') && typeof setGamepadCameraView === 'function') setGamepadCameraView(action);
 }
 window.addEventListener('macross:gamepad-frame', event => {
   const next = new Set(event.detail.pressedActions || []);
-  for (const action of continuousControlActions) {
+  if (suppressNextGamepadFrame) {
+    suppressNextGamepadFrame = false;
+    for (const action of ['gunpod', 'missiles', 'brake']) {
+      keys[window.gameControls.getStateKey(action)] = keyboardHeldActions.has(action);
+    }
+    gamepadHeldActions = next;
+    return;
+  }
+  for (const action of ['gunpod', 'missiles', 'brake']) {
     const keyCode = window.gameControls.getStateKey(action);
     keys[keyCode] = next.has(action) || keyboardHeldActions.has(action);
   }
@@ -330,6 +491,14 @@ window.addEventListener('macross:gamepad-frame', event => {
   keys.GamepadMoveBack = next.has('moveBack');
   keys.GamepadTurnLeft = next.has('turnLeft');
   keys.GamepadTurnRight = next.has('turnRight');
+  keys.GamepadGerwalkTurnLeft = next.has('moveLeft');
+  keys.GamepadGerwalkTurnRight = next.has('moveRight');
+  keys.GamepadRollLeft = next.has('turnLeft');
+  keys.GamepadRollRight = next.has('turnRight');
+  keys.GamepadPitchUp = next.has('verticalUp');
+  keys.GamepadPitchDown = next.has('verticalDown');
+  keys.GamepadGerwalkUp = next.has('gerwalkUp');
+  keys.GamepadGerwalkDown = next.has('gerwalkDown');
   keys.GamepadLB = next.has('strafeLeft');
   keys.GamepadRB = next.has('strafeRight');
   keys.GamepadDescend = next.has('descend');
@@ -348,9 +517,11 @@ window.addEventListener('macross:gamepad-frame', event => {
     else if (currentMode === 'FIGHTER') startAcceleration();
   }
   if (!next.has('turbo') && gamepadHeldActions.has('turbo')) stopAcceleration();
+  if (next.has('reverse') && !gamepadHeldActions.has('reverse') && isGameStarted && !isPaused && !isGameOver && !isPlayerDying) startReverseGerwalk();
+  if (!next.has('reverse') && gamepadHeldActions.has('reverse')) stopReverseGerwalk();
   for (const action of next) {
     if (!gamepadHeldActions.has(action)) {
-      const isHeldAction = ['turbo', 'slowdown', 'strafeLeft', 'strafeRight', 'descend', 'targetLock'].includes(action) || continuousControlActions.includes(action);
+      const isHeldAction = ['turbo', 'reverse', 'slowdown', 'strafeLeft', 'strafeRight', 'descend', 'targetLock', 'gerwalkUp', 'gerwalkDown'].includes(action) || continuousControlActions.includes(action);
       const isTransformAction = action === 'transformPrevious' || action === 'transformNext';
       if (!isHeldAction && !(justTransformCombo && isTransformAction)) handleGamepadActionPress(action);
     }
@@ -368,7 +539,7 @@ function animate() {
   const delta = (isPaused || !isGameStarted || window.gameControls.isOptionsOpen()) ? 0 : Math.min(rawDelta, 0.05);
 
   if (typeof updateDayNightCycle === 'function') {
-    updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset);
+    updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset, timeOfDayMode);
   }
 
   if (!isGameStarted) {

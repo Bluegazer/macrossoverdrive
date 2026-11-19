@@ -30,7 +30,7 @@
       <div id="selectedMapTitle" class="selected-map-title">01 // ISLA SOUTH ATARIA</div>
       </div>
 
-      <div class="start-hint">PRESIONA [ENTER] O HAZ CLIC PARA DESPEGAR</div>
+      <div class="start-hint">ENTER / A: ACEPTAR · CRUCETA O STICK: MOVER · B: VOLVER</div>
     </div>
   </div>
 
@@ -48,12 +48,13 @@
       <nav class="options-category-tabs" role="tablist" aria-label="Categoría de opciones">
         <button class="options-category-tab active" type="button" role="tab" aria-selected="true" aria-controls="controlsOptions" data-options-category="controlsOptions">CONTROLES</button>
         <button class="options-category-tab" type="button" role="tab" aria-selected="false" aria-controls="audioOptions" data-options-category="audioOptions">SONIDO Y MÚSICA</button>
+        <button class="options-category-tab" type="button" role="tab" aria-selected="false" aria-controls="gameOptions" data-options-category="gameOptions">JUEGO</button>
       </nav>
 
       <div class="options-category-panel active" id="controlsOptions">
       <nav class="options-tabs" role="tablist" aria-label="Dispositivo de control">
         <button class="options-tab active" id="keyboardTab" type="button" role="tab" aria-selected="true" aria-controls="keyboardPane" data-options-tab="keyboardPane">TECLADO COMPLETO</button>
-        <button class="options-tab" id="gamepadTab" type="button" role="tab" aria-selected="false" aria-controls="gamepadPane" data-options-tab="gamepadPane">MANDO XBOX 360</button>
+        <button class="options-tab" id="gamepadTab" type="button" role="tab" aria-selected="false" aria-controls="gamepadPane" data-options-tab="gamepadPane" hidden>MANDO</button>
       </nav>
 
       <div class="options-pane active" id="keyboardPane" role="tabpanel" aria-labelledby="keyboardTab">
@@ -124,6 +125,7 @@
               <div class="binding-row" data-action="pause"><span>Pausa</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
               <div class="binding-row" data-action="music"><span>Música</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
               <div class="binding-row" data-action="advanceTime"><span>Adelantar reloj</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
+              <div class="binding-row" data-action="chaff"><span>Chaff / Flares (contramedidas)</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
             </section>
             <section class="binding-group"><h4 class="group-menu">MENÚ Y MISIÓN</h4>
               <div class="binding-row" data-action="startMission"><span>Iniciar misión</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
@@ -138,50 +140,58 @@
 
       <div class="options-pane" id="gamepadPane" role="tabpanel" aria-labelledby="gamepadTab" hidden>
         <section class="gamepad-section" aria-labelledby="gamepadTitle">
-          <h3 class="options-section-title" id="gamepadTitle">MANDO XBOX 360 // ASIGNACIONES CONFIGURABLES</h3>
-          <p class="options-help">Selecciona CAMBIAR y presiona el botón o mueve el eje. Las asignaciones distinguen menú, partida y modos; solo se marcan conflictos simultáneos. En Gerwalk, LB+RB ascienden; en Fighter, LB/RB refuerzan los giros.</p>
+          <h3 class="options-section-title" id="gamepadTitle">MANDO // ASIGNACIONES CONFIGURABLES</h3>
+          <p class="options-help">Selecciona CAMBIAR y presiona el botón o mueve el eje. El diagrama resalta los controles según sus asignaciones actuales.</p>
           <div class="gamepad-layout">
             <figure class="gamepad-figure">
-              <img src="./textures/xbox360-controller-wired-es.svg" alt="Esquema de mando Xbox 360 en español, sin botón de sincronización." />
-              <figcaption>Diagrama base: Alphathon · <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">CC BY-SA 3.0</a></figcaption>
+              <object id="gamepadDiagramXbox" class="gamepad-diagram" data="./textures/xbox360-controller-map.svg" type="image/svg+xml" aria-label="Diagrama Xbox 360"></object>
+              <object id="gamepadDiagramPs2" class="gamepad-diagram" data="./textures/ps2-controller-map.svg" type="image/svg+xml" aria-label="Diagrama PlayStation 2" hidden></object>
+              <figcaption>El color muestra la función asignada a cada control.</figcaption>
               <p id="gamepadStatus" class="gamepad-status" role="status" aria-live="polite">Mando desconectado · conecta el control para probarlo.</p>
             </figure>
             <div class="pad-binding-groups">
+              <div class="pad-binding-column">
               <section class="binding-group"><h4 class="group-flight">VUELO</h4>
-                <div class="gamepad-binding-row" data-pad-action="moveForward"><span>Avanzar / empuje</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="moveBack"><span>Retroceder / reducir empuje</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="moveLeft"><span>Lateral / guiñada izq.</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="moveRight"><span>Lateral / guiñada der.</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="turnLeft"><span>Rotación / giro izq.</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="turnRight"><span>Rotación / giro der.</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="verticalUp"><span>Subir / cabeceo</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="verticalDown"><span>Bajar / cabeceo</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="turbo"><span>Impulso / propulsores</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="slowdown"><span>Desacelerar / retroceder</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="strafeLeft"><span>Desplazamiento lateral izq.</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="strafeRight"><span>Desplazamiento lateral der.</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="descend"><span>Descenso (L3 · Battroid/Gerwalk)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="moveForward"><span>Avanzar / empuje (cruceta ↑)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="moveBack"><span>Retroceder / reducir empuje (cruceta ↓)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="moveLeft"><span>Girar izquierda (stick derecho · Gerwalk)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="moveRight"><span>Girar derecha (stick derecho · Gerwalk)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="turnLeft"><span>Alabeo izquierda (stick izquierdo)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="turnRight"><span>Alabeo derecha (stick izquierdo)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="verticalDown"><span>Bajar nariz (stick izq. ↑)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="verticalUp"><span>Subir nariz (stick izq. ↓)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="gerwalkUp"><span>Subir en Gerwalk (stick der. ↑)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="gerwalkDown"><span>Bajar en Gerwalk (stick der. ↓)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="turbo"><span>Turbo · mantener (RT)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="reverse"><span>Reversa Gerwalk · mantener (LT)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="slowdown"><span>Desacelerar adicional</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="strafeLeft"><span>Lateral / guiñada izquierda (LB)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="strafeRight"><span>Lateral / guiñada derecha (RB)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="descend"><span>Descenso adicional (L3, libre por defecto)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
               </section>
               <section class="binding-group"><h4 class="group-transform">TRANSFORMACIÓN</h4>
-                <div class="gamepad-binding-row" data-pad-action="transformPrevious"><span>Transformación anterior (LT)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="transformNext"><span>Transformación siguiente (RT)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="transformPrevious"><span>Transformación anterior (cruceta ←)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="transformNext"><span>Transformación siguiente (cruceta →)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
               </section>
+              </div>
+              <div class="pad-binding-column">
               <section class="binding-group"><h4 class="group-attack">ATAQUE</h4>
                 <div class="gamepad-binding-row" data-pad-action="gunpod"><span>Disparo Gunpod</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
                 <div class="gamepad-binding-row" data-pad-action="missiles"><span>Lanzar micro-misiles</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                
                 <div class="gamepad-binding-row" data-pad-action="targetLock"><span>Fijar objetivos al mantener (Battroid)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="missileType"><span>Cambiar tipo de misil</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="melee"><span>Golpe cuerpo a cuerpo</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="chaff"><span>Chaff / flares (R3)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="missileType"><span>Cambiar tipo de misil (Select / Back)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
               </section>
               <section class="binding-group"><h4 class="group-systems">SISTEMAS</h4>
                 <div class="gamepad-binding-row" data-pad-action="brake"><span>Frenado total</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
                 <div class="gamepad-binding-row" data-pad-action="pause"><span>Pausa</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
               </section>
               <section class="binding-group"><h4 class="group-systems">CÁMARA</h4>
-                <div class="gamepad-binding-row" data-pad-action="cameraMissiles"><span>Vista de misiles entrantes (cruceta arriba)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="cameraEnemy"><span>Vista de enemigo cercano (cruceta abajo)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="cameraLeft"><span>Cámara a la izquierda (cruceta)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
-                <div class="gamepad-binding-row" data-pad-action="cameraRight"><span>Cámara a la derecha (cruceta)</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="cameraMissiles"><span>Vista de misiles entrantes</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="cameraEnemy"><span>Vista de enemigo cercano</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="cameraLeft"><span>Cámara a la izquierda</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
+                <div class="gamepad-binding-row" data-pad-action="cameraRight"><span>Cámara a la derecha</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
               </section>
               <section class="binding-group"><h4 class="group-menu">MENÚ Y MISIÓN</h4>
                 <div class="gamepad-binding-row" data-pad-action="startMission"><span>Iniciar misión</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
@@ -189,6 +199,7 @@
                 <div class="gamepad-binding-row" data-pad-action="restartAfterDefeat"><span>Reiniciar tras derrota</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
                 <div class="gamepad-binding-row" data-pad-action="menuAfterDefeat"><span>Menú tras derrota</span><kbd class="pad-binding-value"></kbd><button class="pad-rebind-button" type="button">CAMBIAR</button></div>
               </section>
+              </div>
             </div>
           </div>
         </section>
@@ -204,8 +215,8 @@
         <h3 class="options-section-title">SONIDO Y MÚSICA</h3>
         <p class="options-help">Ajusta el volumen y prueba las pistas antes de iniciar la misión.</p>
         <div class="audio-panel">
-          <label class="audio-slider-box"><span>EFECTOS</span><input type="range" id="sliderSFX" min="0" max="100" value="80"></label>
-          <label class="audio-slider-box"><span>MÚSICA</span><input type="range" id="sliderBGM" min="0" max="100" value="65"></label>
+          <label class="audio-slider-box"><span>EFECTOS</span><input type="range" id="sliderSFX" min="0" max="100" value="50"></label>
+          <label class="audio-slider-box"><span>MÚSICA</span><input type="range" id="sliderBGM" min="0" max="100" value="50"></label>
         </div>
         <div class="sound-tester">
           <label for="soundTestTrack">REPRODUCTOR DE PRUEBA</label>
@@ -218,11 +229,31 @@
         <p id="audioStatus" class="gamepad-status" role="status" aria-live="polite">Reproductor de prueba · inicia la reproducción cuando quieras.</p>
       </section>
 
+      <section class="options-category-panel game-options" id="gameOptions" role="tabpanel" hidden>
+        <h3 class="options-section-title">HORA DEL DÍA · MAPA 1</h3>
+        <p class="options-help">Elige si South Ataria sigue la hora local de tu PC o si prefieres fijar el momento. Esta opción solo afecta al Mapa 1.</p>
+        <label class="time-of-day-setting" for="timeOfDayMode">
+          <span>SISTEMA HORARIO</span>
+          <select id="timeOfDayMode">
+            <option value="real">Hora real del PC</option>
+            <option value="morning">Mañana</option>
+            <option value="midday">Mediodía</option>
+            <option value="afternoon">Tarde</option>
+            <option value="night">Noche</option>
+          </select>
+        </label>
+        <p class="time-of-day-note">La selección se guarda automáticamente para la próxima partida.</p>
+      </section>
+
       <p id="bindingStatus" class="binding-status" role="status" aria-live="polite"></p>
 
       <footer class="options-footer options-global-footer">
-        <span>Los cambios de controles se aplican al instante.</span>
-        <button id="btnBackOptions" class="options-secondary" type="button">VOLVER AL MENÚ</button>
+        <span>Controles: cambios al instante · Mando: cruceta o stick mueve, A acepta y B vuelve.</span>
+        <div class="footer-actions">
+          <button id="btnContinueGame" class="options-secondary" type="button" hidden>CONTINUAR JUGANDO</button>
+          <button id="btnExitToTitle" class="options-secondary" type="button" hidden>SALIR AL MENÚ PRINCIPAL</button>
+          <button id="btnBackOptions" class="options-secondary" type="button">VOLVER AL MENÚ</button>
+        </div>
       </footer>
     </section>
   </div>

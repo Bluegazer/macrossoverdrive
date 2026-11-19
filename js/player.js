@@ -461,14 +461,14 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     visualTiltGroup.position.y = THREE.MathUtils.lerp(visualTiltGroup.position.y, 0, 8.0 * delta);
     const tightTurn = (keys['GamepadLB'] || keys['GamepadRB']) ? 1.75 : 1;
     const yawRate = 1.6 * delta * tightTurn, rollRate = 2.4 * delta * tightTurn, pitchRate = 1.7 * delta * tightTurn;
-    if (keys['KeyA'] || keys['GamepadTurnLeft']) playerContainer.rotateY(yawRate);
-    if (keys['KeyD'] || keys['GamepadTurnRight']) playerContainer.rotateY(-yawRate);
-    if (keys['ArrowLeft'] && !keys['GamepadTurnLeft']) playerContainer.rotateZ(rollRate);
-    if (keys['ArrowRight'] && !keys['GamepadTurnRight']) playerContainer.rotateZ(-rollRate);
-    if (keys['ArrowDown'] || keys['GamepadMoveBack'] || keys['GamepadSlowdown']) playerContainer.rotateX(pitchRate);
-    if (keys['ArrowUp'] || keys['GamepadMoveForward']) playerContainer.rotateX(-pitchRate);
-    if (keys['KeyW'] && !keys['GamepadMoveForward']) throttle = Math.min(1.0, throttle + 0.55 * delta);
-    if ((keys['KeyS'] && !keys['GamepadMoveBack']) || keys['GamepadSlowdown']) throttle = Math.max(0.0, throttle - 0.55 * delta);
+    if (keys['KeyA']) playerContainer.rotateY(yawRate);
+    if (keys['KeyD']) playerContainer.rotateY(-yawRate);
+    if (keys['ArrowLeft'] || keys['GamepadRollLeft']) playerContainer.rotateZ(rollRate);
+    if (keys['ArrowRight'] || keys['GamepadRollRight']) playerContainer.rotateZ(-rollRate);
+    if (keys['ArrowUp'] || keys['GamepadPitchDown']) playerContainer.rotateX(-pitchRate);
+    if (keys['ArrowDown'] || keys['GamepadPitchUp']) playerContainer.rotateX(pitchRate);
+    if (keys['KeyW'] || keys['GamepadMoveForward']) throttle = Math.min(1.0, throttle + 0.55 * delta);
+    if (keys['KeyS'] || keys['GamepadMoveBack'] || keys['GamepadSlowdown']) throttle = Math.max(0.0, throttle - 0.55 * delta);
     const cruiseSpeed = throttle === 0 ? 0 : (5 + throttle * 17);
     const targetSpeed = isAccelerating ? 38 : cruiseSpeed;
     velocity.lerp(forward.clone().multiplyScalar(targetSpeed), 3.0 * delta);
@@ -480,24 +480,24 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     const levelQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, euler.y, 0, 'YXZ'));
     playerContainer.quaternion.slerp(levelQuat, 7.0 * delta);
         const yawRate = 2.3 * delta;
-    if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
-    if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
+    if (keys['ArrowLeft'] || keys['GamepadGerwalkTurnLeft']) playerContainer.rotateY(yawRate);
+    if (keys['ArrowRight'] || keys['GamepadGerwalkTurnRight']) playerContainer.rotateY(-yawRate);
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
     let tiltPitch = 0, tiltRoll = 0;
     if (isReverseGerwalk) { moveDir.sub(flatForward); tiltPitch = 0.22; }
     else {
-      if (keys['KeyW'] || keys['GamepadThrust']) { moveDir.add(flatForward); tiltPitch = -0.14; }
-      if (keys['KeyS'] || keys['GamepadSlowdown']) { moveDir.sub(flatForward); tiltPitch = 0.16; }
+      if (keys['KeyW'] || keys['GamepadThrust'] || keys['GamepadMoveForward']) { moveDir.add(flatForward); tiltPitch = -0.14; }
+      if (keys['KeyS'] || keys['GamepadSlowdown'] || keys['GamepadMoveBack']) { moveDir.sub(flatForward); tiltPitch = 0.16; }
     }
     if (keys['GamepadLB'] && keys['GamepadRB']) moveDir.y += 0.85;
     else {
       if (keys['KeyA'] || keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.18; }
       if (keys['KeyD'] || keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.18; }
     }
-    if (keys['ArrowUp']) moveDir.y += 0.85;
-    if (keys['ArrowDown'] || keys['GamepadDescend']) moveDir.y -= 0.85;
+    if (keys['ArrowUp'] || keys['GamepadGerwalkUp']) moveDir.y += 0.85;
+    if (keys['ArrowDown'] || keys['GamepadGerwalkDown'] || keys['GamepadDescend']) moveDir.y -= 0.85;
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, tiltPitch, 8.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, tiltRoll, 8.0 * delta);
     visualTiltGroup.position.y = Math.sin(performance.now() * 0.003) * 0.035;
@@ -512,14 +512,14 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     playerContainer.quaternion.slerp(levelQuat, 9.0 * delta);
     visualTiltGroup.position.y = THREE.MathUtils.lerp(visualTiltGroup.position.y, 0, 8.0 * delta);
     const yawRate = 2.8 * delta;
-    if (keys['ArrowLeft']) playerContainer.rotateY(yawRate);
-    if (keys['ArrowRight']) playerContainer.rotateY(-yawRate);
+    if (keys['ArrowLeft'] || keys['GamepadTurnLeft']) playerContainer.rotateY(yawRate);
+    if (keys['ArrowRight'] || keys['GamepadTurnRight']) playerContainer.rotateY(-yawRate);
     const flatForward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
     const flatRight = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
     const moveDir = new THREE.Vector3(0, 0, 0);
     let tiltPitch = 0, tiltRoll = 0;
-    if (keys['KeyW']) { moveDir.add(flatForward); tiltPitch = -0.15; }
-    if (keys['KeyS']) { moveDir.sub(flatForward); tiltPitch = 0.14; }
+    if (keys['KeyW'] || keys['GamepadMoveForward']) { moveDir.add(flatForward); tiltPitch = -0.15; }
+    if (keys['KeyS'] || keys['GamepadMoveBack']) { moveDir.sub(flatForward); tiltPitch = 0.14; }
     if (keys['KeyA'] || keys['GamepadLB']) { moveDir.sub(flatRight); tiltRoll = 0.16; }
     if (keys['KeyD'] || keys['GamepadRB']) { moveDir.add(flatRight); tiltRoll = -0.16; }
     const activeBattroidTrackMode = keys['GamepadTargetLock'] ? 'ENEMY' : battroidTrackMode;

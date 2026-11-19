@@ -2,11 +2,25 @@ const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 const soundBuffers = {};
 
+const AUDIO_SETTINGS_KEY = 'macrossvoxp-audio-settings-v1';
+function readAudioSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY) || 'null');
+    return {
+      sfx: Number.isFinite(Number(saved?.sfx)) ? Math.max(0, Math.min(100, Number(saved.sfx))) : 50,
+      bgm: Number.isFinite(Number(saved?.bgm)) ? Math.max(0, Math.min(100, Number(saved.bgm))) : 50
+    };
+  } catch (_) {
+    return { sfx: 50, bgm: 50 };
+  }
+}
+const storedAudioSettings = readAudioSettings();
+
 let sfxMasterGain = null;
-let sfxVolumeLevel = 0.80;
+let sfxVolumeLevel = storedAudioSettings.sfx / 100;
 
 let bgmMasterGain = null;
-let bgmVolumeLevel = 0.65;
+let bgmVolumeLevel = storedAudioSettings.bgm / 100;
 let bgmEnabled = true;
 let bgmSource = null;
 
@@ -45,6 +59,7 @@ function setSFXVolume(percent) {
   if (audioCtx && sfxMasterGain) {
     sfxMasterGain.gain.setTargetAtTime(sfxVolumeLevel, audioCtx.currentTime, 0.04);
   }
+  saveAudioSettings();
 }
 
 function setBGMVolume(percent) {
@@ -53,6 +68,20 @@ function setBGMVolume(percent) {
     bgmMasterGain.gain.setTargetAtTime(bgmVolumeLevel, audioCtx.currentTime, 0.04);
   }
   if (titleAudio) updateTitleMusicVolume();
+  saveAudioSettings();
+}
+
+function saveAudioSettings() {
+  try {
+    localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify({
+      sfx: Math.round(sfxVolumeLevel * 100),
+      bgm: Math.round(bgmVolumeLevel * 100)
+    }));
+  } catch (_) {}
+}
+
+function getAudioSettings() {
+  return { sfx: Math.round(sfxVolumeLevel * 100), bgm: Math.round(bgmVolumeLevel * 100) };
 }
 
 function updateTitleMusicVolume() {

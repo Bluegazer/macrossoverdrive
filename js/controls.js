@@ -3,28 +3,29 @@
     moveForward: 'KeyW', moveBack: 'KeyS', moveLeft: 'KeyA', moveRight: 'KeyD',
     turnLeft: 'ArrowLeft', turnRight: 'ArrowRight', verticalUp: 'ArrowUp', verticalDown: 'ArrowDown',
     fighter: 'KeyF', gerwalk: 'KeyG', battroid: 'KeyB',
-    gunpod: 'ShiftLeft', melee: 'KeyE', missiles: 'Space',
+    gunpod: 'ShiftLeft', melee: 'KeyE', missiles: 'Space', chaff: 'KeyC',
     turbo: 'KeyT', reverse: 'KeyR', tracking: 'KeyN', brake: 'KeyX',
     pause: 'KeyP', music: 'KeyM', advanceTime: 'KeyH',
     startMission: 'Enter', returnMenu: 'Escape', restartAfterDefeat: 'KeyY', menuAfterDefeat: 'KeyN'
   };
   const gamepadDefaults = {
-    moveForward: 'axis1-', moveBack: 'axis1+', moveLeft: 'axis0-', moveRight: 'axis0+',
-    turnLeft: 'axis2-', turnRight: 'axis2+', verticalUp: 'axis3-', verticalDown: 'axis3+',
-    transformPrevious: 'button6', transformNext: 'button7',
-    gunpod: 'button2', missiles: 'button1', targetLock: 'button1',
-    missileType: 'button8', turbo: 'button0', slowdown: 'button3', brake: 'none',
-    strafeLeft: 'button4', strafeRight: 'button5', descend: 'button10',
-    cameraMissiles: 'button12', cameraEnemy: 'button13', cameraLeft: 'button14', cameraRight: 'button15',
+    moveForward: 'button12', moveBack: 'button13', moveLeft: 'axis2-', moveRight: 'axis2+',
+    turnLeft: 'axis0-', turnRight: 'axis0+', verticalUp: 'axis1+', verticalDown: 'axis1-',
+    gerwalkUp: 'axis3-', gerwalkDown: 'axis3+',
+    transformPrevious: 'button14', transformNext: 'button15',
+    gunpod: 'button2', missiles: 'button1', targetLock: 'button0', melee: 'button3', chaff: 'button11',
+    missileType: 'button8', turbo: 'button7', reverse: 'button6', slowdown: 'none', brake: 'none',
+    strafeLeft: 'button4', strafeRight: 'button5', descend: 'none',
+    cameraMissiles: 'none', cameraEnemy: 'none', cameraLeft: 'none', cameraRight: 'none',
     pause: 'button9',
-    startMission: 'button9', returnMenu: 'none', restartAfterDefeat: 'button9', menuAfterDefeat: 'button8'
+    startMission: 'button9', returnMenu: 'none', restartAfterDefeat: 'button0', menuAfterDefeat: 'button1'
   };
   const categories = {
     moveForward: 'flight', moveBack: 'flight', moveLeft: 'flight', moveRight: 'flight',
-    turnLeft: 'flight', turnRight: 'flight', verticalUp: 'flight', verticalDown: 'flight', turbo: 'flight', reverse: 'flight',
+    turnLeft: 'flight', turnRight: 'flight', verticalUp: 'flight', verticalDown: 'flight', gerwalkUp: 'flight', gerwalkDown: 'flight', turbo: 'flight', reverse: 'flight',
     fighter: 'transform', gerwalk: 'transform', battroid: 'transform', transformPrevious: 'transform', transformNext: 'transform',
     gunpod: 'attack', melee: 'attack', missiles: 'attack', tracking: 'attack', targetLock: 'attack', missileType: 'attack',
-    brake: 'systems', pause: 'systems', music: 'systems', advanceTime: 'systems', cameraMissiles: 'systems', cameraEnemy: 'systems', cameraLeft: 'systems', cameraRight: 'systems',
+    brake: 'systems', pause: 'systems', music: 'systems', advanceTime: 'systems', chaff: 'systems', cameraMissiles: 'systems', cameraEnemy: 'systems', cameraLeft: 'systems', cameraRight: 'systems',
     strafeLeft: 'flight', strafeRight: 'flight', descend: 'flight', slowdown: 'flight',
     startMission: 'menu', returnMenu: 'menu', restartAfterDefeat: 'menu', menuAfterDefeat: 'menu'
   };
@@ -34,9 +35,51 @@
     gunpod: 'ShiftLeft', missiles: 'Space', brake: 'KeyX', slowdown: 'GamepadSlowdown'
   };
   const storageKey = 'macrossvoxp-keyboard-controls-v1';
-  const gamepadStorageKey = 'macrossvoxp-gamepad-controls-v3';
+  const gamepadStorageKey = 'macrossvoxp-gamepad-controls-v4';
   const actionNames = Object.keys(defaults);
   const gamepadActionNames = Object.keys(gamepadDefaults);
+  const gamepadDiagramObjects = {
+    xbox: document.getElementById('gamepadDiagramXbox'),
+    ps2: document.getElementById('gamepadDiagramPs2')
+  };
+  const gamepadDiagramPaths = {
+    xbox: {
+      'axis1-': ['path129', 'path128'], 'axis1+': ['path117', 'path116'],
+      'axis0-': ['path121', 'path120'], 'axis0+': ['path123', 'path122'],
+      'axis3-': ['path131', 'path130'], 'axis3+': ['path115', 'path114'],
+      'axis2-': ['path125', 'path124'], 'axis2+': ['path127', 'path126'],
+      button0: ['path133', 'path132'], button1: ['path139', 'path138'],
+      button2: ['path137', 'path136'], button3: ['path153', 'path152'],
+      button4: ['path113', 'path112'], button5: ['path111', 'path110'],
+      button6: ['path109', 'path108'], button7: ['path107', 'path106'],
+      button8: ['path141', 'path140'], button9: ['path143', 'path142'],
+      button10: ['path145', 'path144'],
+      button11: ['path119', 'path118'],
+      button12: ['path151', 'path150'], button13: ['path135', 'path134'],
+      button14: ['path147', 'path146'], button15: ['path149', 'path148']
+    },
+    ps2: {
+      'axis1-': ['path46', 'path45'], 'axis1+': ['path30', 'path29'],
+      'axis0-': ['path38', 'path37'], 'axis0+': ['path40', 'path39'],
+      'axis3-': ['path48', 'path47'], 'axis3+': ['path32', 'path31'],
+      'axis2-': ['path42', 'path41'], 'axis2+': ['path44', 'path43'],
+      button0: ['path50', 'path49'], button1: ['path56', 'path55'],
+      button2: ['path54', 'path53'], button3: ['path69', 'path68'],
+      button4: ['path26', 'path25'], button5: ['path28', 'path27'],
+      button6: ['path22', 'path21'], button7: ['path24', 'path23'],
+      button8: ['path64', 'path63'], button9: ['path62', 'path61'],
+      button10: ['path34', 'path33'], button11: ['path36', 'path35'],
+      button12: ['path66', 'path65'], button13: ['path52', 'path51'],
+      button14: ['path58', 'path57'], button15: ['path60', 'path59']
+    }
+  };
+  const gamepadDiagramColors = {
+    flight: '#38bdf8', transform: '#f59e0b', attack: '#f87171',
+    systems: '#22c55e', menu: '#94a3b8', neutral: '#163d56'
+  };
+  let activeGamepadDiagram = 'xbox';
+  let lastDetectedGamepadDiagram = null;
+  let gamepadMissingSince = null;
   const labelMap = {
     KeyW: 'W', KeyS: 'S', KeyA: 'A', KeyD: 'D', KeyF: 'F', KeyG: 'G', KeyB: 'B', KeyE: 'E',
     KeyT: 'T', KeyR: 'R', KeyN: 'N', KeyX: 'X', KeyP: 'P', KeyM: 'M', KeyH: 'H', KeyY: 'Y',
@@ -59,6 +102,10 @@
     tracking: ['BATTROID'],
     targetLock: ['BATTROID'],
     reverse: ['GERWALK'],
+    moveLeft: ['GERWALK'], moveRight: ['GERWALK'],
+    turnLeft: ['FIGHTER', 'BATTROID'], turnRight: ['FIGHTER', 'BATTROID'],
+    gerwalkUp: ['GERWALK'],
+    gerwalkDown: ['GERWALK'],
     strafeLeft: ['GERWALK', 'BATTROID'],
     strafeRight: ['GERWALK', 'BATTROID'],
     descend: ['GERWALK', 'BATTROID'],
@@ -79,21 +126,22 @@
     descend: 'GERWALK · BATTROID', slowdown: 'FIGHTER · GERWALK',
     transformPrevious: 'SECUENCIA DE MODOS', transformNext: 'SECUENCIA DE MODOS',
     gunpod: 'DURANTE LA PARTIDA · TODOS LOS MODOS', missiles: 'DURANTE LA PARTIDA · TODOS LOS MODOS',
-    missileType: 'DURANTE LA PARTIDA', brake: 'DURANTE LA PARTIDA',
+    missileType: 'DURANTE LA PARTIDA · SELECT / BACK', chaff: 'DURANTE LA PARTIDA · R3', brake: 'DURANTE LA PARTIDA',
     startMission: 'MENÚ INICIAL', returnMenu: 'DURANTE LA PARTIDA',
     restartAfterDefeat: 'TRAS DERROTA', menuAfterDefeat: 'TRAS DERROTA',
     pause: 'DURANTE LA PARTIDA', music: 'DURANTE LA PARTIDA', advanceTime: 'DURANTE LA PARTIDA'
   };
   const gamepadScopeLabels = {
-    moveForward: 'FIGHTER: CABECEO · OTROS: AVANZAR', moveBack: 'FIGHTER: CABECEO · OTROS: RETROCEDER',
-    moveLeft: 'TODOS LOS MODOS: GIRO HORIZONTAL', moveRight: 'TODOS LOS MODOS: GIRO HORIZONTAL',
-    turnLeft: 'TODOS LOS MODOS: GIRO HORIZONTAL', turnRight: 'TODOS LOS MODOS: GIRO HORIZONTAL',
-    verticalUp: 'FIGHTER: CABECEO · OTROS: ASCENSO', verticalDown: 'FIGHTER: CABECEO · OTROS: DESCENSO',
-    turbo: 'FIGHTER: TURBO · GERWALK/BATTROID: PROPULSORES',
-    slowdown: 'FIGHTER: DESACELERA · GERWALK: RETROCEDE',
+    moveForward: 'CRUCETA ↑ · EMPUJE / AVANCE', moveBack: 'CRUCETA ↓ · REDUCIR / RETROCEDER',
+    moveLeft: 'GERWALK: GIRO IZQUIERDO', moveRight: 'GERWALK: GIRO DERECHO',
+    turnLeft: 'FIGHTER: ALABEO · BATTROID: GIRO IZQ.', turnRight: 'FIGHTER: ALABEO · BATTROID: GIRO DER.',
+    verticalUp: 'STICK IZQ. ↓ · SUBIR NARIZ', verticalDown: 'STICK IZQ. ↑ · BAJAR NARIZ',
+    gerwalkUp: 'STICK DER. ↑ · SUBIR EN GERWALK', gerwalkDown: 'STICK DER. ↓ · BAJAR EN GERWALK',
+    turbo: 'RT · MANTENER TURBO', reverse: 'LT · MANTENER REVERSA GERWALK',
+    slowdown: 'SIN ASIGNAR',
     strafeLeft: 'FIGHTER: GIRO CERRADO · OTROS: LATERAL',
     strafeRight: 'FIGHTER: GIRO CERRADO · OTROS: LATERAL',
-    descend: 'SOLO GERWALK / BATTROID'
+    descend: 'SIN ASIGNAR', chaff: 'R3 · CHAFF / FLARES'
   };
   const continuousActions = ['moveForward', 'moveBack', 'moveLeft', 'moveRight', 'turnLeft', 'turnRight', 'verticalUp', 'verticalDown', 'gunpod', 'missiles', 'brake'];
 
@@ -105,13 +153,19 @@
   const tabs = [...document.querySelectorAll('[data-options-tab]')];
   const categoryTabs = [...document.querySelectorAll('[data-options-category]')];
   let optionsOpen = false;
+  let pauseOptionsOpen = false;
   let listeningAction = null;
   let listeningPadAction = null;
   let optionsTrigger = startOptionsButton;
   let previousPadSnapshot = { buttons: [], axes: [] };
   let previousPadActions = new Set();
+  let previousMenuAccept = false;
+  let previousMenuBack = false;
+  let lastMenuDirection = null;
+  let lastMenuDirectionAt = 0;
   let bindings = readMap(storageKey, defaults);
   let gamepadBindings = readMap(gamepadStorageKey, gamepadDefaults);
+  if (gamepadBindings.missileType === 'none') gamepadBindings.missileType = 'button8';
 
   function readMap(key, fallback) {
     try {
@@ -262,6 +316,40 @@
     return gamepadActionNames.filter(action => gamepadBindings[action] === input && input !== 'none');
   }
 
+  function renderGamepadDiagram() {
+    const controller = gamepadDiagramObjects[activeGamepadDiagram];
+    const svgDocument = controller?.contentDocument;
+    if (!svgDocument) return;
+    const base = svgDocument.getElementById('path1');
+    if (base) base.style.fill = gamepadDiagramColors.flight;
+    // These are the uncolored, combined control traces left beneath the pieces
+    // separated in the supplied SVG. The separate pieces below are the only
+    // elements whose colors follow the player's bindings.
+    const combinedXboxTrace = svgDocument.getElementById('path105');
+    if (combinedXboxTrace) combinedXboxTrace.style.display = 'none';
+    const traceSpeck = svgDocument.getElementById(activeGamepadDiagram === 'xbox' ? 'path105-6' : 'path67');
+    if (traceSpeck) traceSpeck.style.display = 'none';
+
+    svgDocument.querySelectorAll('path').forEach(zone => {
+      if (zone === base || zone === combinedXboxTrace || zone === traceSpeck) return;
+      zone.style.fill = gamepadDiagramColors.neutral;
+      zone.style.fillOpacity = '0.4';
+    });
+
+    const pathsByInput = gamepadDiagramPaths[activeGamepadDiagram];
+    Object.entries(pathsByInput).forEach(([input, ids]) => {
+      const actions = actionsForPadInput(input);
+      const action = actions[0];
+      const color = action ? gamepadDiagramColors[categories[action]] : gamepadDiagramColors.neutral;
+      ids.forEach(id => {
+        const zone = svgDocument.getElementById(id);
+        if (!zone) return;
+        zone.style.fill = color;
+        zone.style.fillOpacity = action ? '0.88' : '0.4';
+      });
+    });
+  }
+
   function renderHelp() {
     const help = document.getElementById('controlsHelp');
     if (!help) return;
@@ -307,6 +395,7 @@
       row.querySelector('.pad-rebind-button').textContent = action === listeningPadAction ? 'PRESIONA' : 'CAMBIAR';
     });
     renderKeyboard();
+    renderGamepadDiagram();
     renderHelp();
     updateConflictUI();
   }
@@ -396,6 +485,46 @@
     renderBindings();
   }
 
+  function diagramTypeForGamepad(pad) {
+    const id = String(pad?.id || '').toLowerCase();
+    return /(xbox|xinput|microsoft|045e)/.test(id) ? 'xbox' : 'ps2';
+  }
+
+  function syncGamepadDiagram(pad) {
+    let nextType;
+    if (pad?.connected) {
+      gamepadMissingSince = null;
+      nextType = diagramTypeForGamepad(pad);
+    } else {
+      // Browsers can report a new connection event just before getGamepads()
+      // refreshes its snapshot. Keep the current diagram briefly during that gap.
+      if (lastDetectedGamepadDiagram === null) return;
+      if (gamepadMissingSince === null) gamepadMissingSince = performance.now();
+      if (performance.now() - gamepadMissingSince < 900) return;
+      gamepadMissingSince = null;
+      nextType = null;
+    }
+    if (nextType === lastDetectedGamepadDiagram) return;
+    lastDetectedGamepadDiagram = nextType;
+
+    const gamepadTab = tabs.find(tab => tab.dataset.optionsTab === 'gamepadPane');
+    if (gamepadTab) gamepadTab.hidden = !nextType;
+    if (!nextType) {
+      const activeTab = document.querySelector('[data-options-tab].active');
+      if (activeTab?.dataset.optionsTab === 'gamepadPane') {
+        const keyboardTab = tabs.find(tab => tab.dataset.optionsTab === 'keyboardPane');
+        if (keyboardTab) openTab(keyboardTab);
+      }
+      return;
+    }
+
+    activeGamepadDiagram = nextType;
+    Object.entries(gamepadDiagramObjects).forEach(([name, controller]) => {
+      if (controller) controller.hidden = name !== nextType;
+    });
+    renderGamepadDiagram();
+  }
+
   function openCategory(tab) {
     categoryTabs.forEach(button => {
       const active = button === tab;
@@ -416,25 +545,47 @@
     renderBindings();
   }
 
-  function openOptions(event) {
-    optionsTrigger = event.currentTarget;
+  function showOptions(trigger, fromPause = false) {
+    optionsTrigger = trigger || null;
+    pauseOptionsOpen = fromPause;
     optionsOpen = true;
     listeningAction = null;
     listeningPadAction = null;
     optionsScreen.classList.remove('hidden');
-    setStatus('Los cambios se aplican al instante. Guarda cuando termines.');
+    setStatus(fromPause
+      ? 'Partida en pausa · los cambios se aplican al instante.'
+      : 'Los controles se aplican al instante; los volúmenes se guardan automáticamente.');
+    document.getElementById('btnContinueGame').hidden = !fromPause;
+    document.getElementById('btnExitToTitle').hidden = !fromPause;
+    document.getElementById('btnBackOptions').hidden = fromPause;
     renderBindings();
     window.dispatchEvent(new CustomEvent('macross:clear-inputs'));
-    document.getElementById('btnCloseOptions').focus();
+    if (fromPause) {
+      document.getElementById('btnCloseOptions').setAttribute('aria-label', 'Continuar jugando');
+      document.dispatchEvent(new CustomEvent('macross:options-opened', { detail: { pause: true } }));
+    } else {
+      document.getElementById('btnCloseOptions').setAttribute('aria-label', 'Volver al menú');
+      document.getElementById('btnCloseOptions').focus();
+    }
+  }
+
+  function openOptions(event) {
+    showOptions(event.currentTarget, false);
+  }
+
+  function openPauseOptions() {
+    showOptions(null, true);
   }
 
   function closeOptions() {
     updateConflictUI();
     if (hasAnyConflict()) {
       revealConflictTab();
-      return;
+      return false;
     }
+    const wasPauseMenu = pauseOptionsOpen;
     optionsOpen = false;
+    pauseOptionsOpen = false;
     listeningAction = null;
     listeningPadAction = null;
     optionsScreen.classList.add('hidden');
@@ -442,14 +593,27 @@
     if (tester) tester.pause();
     setStatus('');
     window.dispatchEvent(new CustomEvent('macross:clear-inputs'));
+    if (wasPauseMenu) {
+      window.dispatchEvent(new CustomEvent('macross:resume-game'));
+      document.activeElement?.blur();
+    }
     if (optionsTrigger?.isConnected && !optionsTrigger.closest('.hidden')) optionsTrigger.focus();
-    else startOptionsButton.focus();
+    else if (!wasPauseMenu && startOptionsButton) startOptionsButton.focus();
+    return true;
   }
 
   optionsButtons.forEach(button => button.addEventListener('click', openOptions));
   closeButtons.forEach(button => button.addEventListener('click', closeOptions));
+  document.getElementById('btnContinueGame')?.addEventListener('click', closeOptions);
   tabs.forEach(tab => tab.addEventListener('click', () => openTab(tab)));
   categoryTabs.forEach(tab => tab.addEventListener('click', () => openCategory(tab)));
+  Object.values(gamepadDiagramObjects).filter(Boolean).forEach(controller => controller.addEventListener('load', renderGamepadDiagram));
+  window.addEventListener('gamepadconnected', event => syncGamepadDiagram(event.gamepad));
+  window.addEventListener('gamepaddisconnected', () => syncGamepadDiagram(getConnectedGamepad()));
+  window.addEventListener('focus', () => syncGamepadDiagram(getConnectedGamepad()));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) syncGamepadDiagram(getConnectedGamepad());
+  });
   document.getElementById('btnSaveControls').addEventListener('click', persistAll);
   document.getElementById('btnResetControls').addEventListener('click', () => {
     bindings = { ...defaults };
@@ -507,6 +671,22 @@
     };
   }
 
+  function readMenuDirection(pad) {
+    if (!pad) return null;
+    const dpad = [
+      ['up', 12], ['down', 13], ['left', 14], ['right', 15]
+    ];
+    for (const [direction, index] of dpad) {
+      const button = pad.buttons[index];
+      if (button && (button.pressed || button.value > 0.55)) return direction;
+    }
+    const x = pad.axes[0] || 0;
+    const y = pad.axes[1] || 0;
+    if (Math.max(Math.abs(x), Math.abs(y)) < 0.58) return null;
+    if (Math.abs(x) > Math.abs(y)) return x < 0 ? 'left' : 'right';
+    return y < 0 ? 'up' : 'down';
+  }
+
   function detectNewPadInput(pad) {
     if (!pad) return null;
     const current = snapshotPad(pad);
@@ -541,6 +721,30 @@
 
   function pollGamepad() {
     const pad = getConnectedGamepad();
+    syncGamepadDiagram(pad);
+    const direction = readMenuDirection(pad);
+    const now = performance.now();
+    let menuDirection = null;
+    if (direction) {
+      if (direction !== lastMenuDirection || now - lastMenuDirectionAt >= 260) {
+        menuDirection = direction;
+        lastMenuDirectionAt = now;
+      }
+      lastMenuDirection = direction;
+    } else {
+      lastMenuDirection = null;
+    }
+    const acceptDown = Boolean(pad?.buttons[0] && (pad.buttons[0].pressed || pad.buttons[0].value > 0.55));
+    const backDown = Boolean(pad?.buttons[1] && (pad.buttons[1].pressed || pad.buttons[1].value > 0.55));
+    const menuAccept = acceptDown && !previousMenuAccept;
+    const menuBack = backDown && !previousMenuBack;
+    previousMenuAccept = acceptDown;
+    previousMenuBack = backDown;
+    if (menuDirection || menuAccept || menuBack) {
+      window.dispatchEvent(new CustomEvent('macross:gamepad-menu-input', {
+        detail: { direction: menuDirection, accept: menuAccept, back: menuBack }
+      }));
+    }
     const status = document.getElementById('gamepadStatus');
     if (status) {
       const nextStatus = pad ? `Mando conectado · ${pad.id.replace(/\s+/g, ' ').slice(0, 48)}` : 'Mando desconectado · conecta el control para probarlo.';
@@ -569,10 +773,13 @@
     getStateKey: action => stateKeys[action],
     getActionsForGamepadInput: actionsForPadInput,
     getGamepadBinding: action => gamepadBindings[action],
+    getGamepadDiagramType: () => lastDetectedGamepadDiagram,
     keyLabel,
     gamepadLabel: padLabel,
     isOptionsOpen: () => optionsOpen,
-    isListening: () => Boolean(listeningAction || listeningPadAction)
+    isListening: () => Boolean(listeningAction || listeningPadAction),
+    openPauseOptions,
+    closeOptions
   };
 
   renderBindings();

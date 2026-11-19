@@ -255,11 +255,15 @@ function paintSkyGradient(c0, c1, c2, c3) {
   skyTex.needsUpdate = true;
 }
 
-function updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset) {
+const DAYPART_HOURS = Object.freeze({ morning: 9, midday: 12, afternoon: 17, night: 22 });
+
+function updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset, timeOfDayMode = 'real') {
   if (typeof activeMapId !== 'undefined' && activeMapId !== 'MAPA_1') return;
 
   const now = new Date();
-  let decHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  let decHour = Object.prototype.hasOwnProperty.call(DAYPART_HOURS, timeOfDayMode)
+    ? DAYPART_HOURS[timeOfDayMode]
+    : now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
   if (typeof manualHourOffset === 'number' && manualHourOffset !== 0) {
     decHour = (decHour + manualHourOffset) % 24;
   }
