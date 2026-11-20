@@ -583,13 +583,63 @@ function drawRestartOverlay(w, h) {
   hudCtx.restore();
 }
 
+const saturnSunImg = new Image();
+saturnSunImg.src = './textures/sun.webp';
+
+function drawSaturnSunLensFlare(w, h, camera) {
+  if (typeof activeMapId === 'undefined' || activeMapId !== 'MAPA_2') return;
+  if (typeof SUN_DIR_VEC === 'undefined' || !SUN_DIR_VEC) return;
+
+  const sunWorldPos = camera.position.clone().addScaledVector(SUN_DIR_VEC, 2000);
+  const projVec = sunWorldPos.clone().project(camera);
+  if (projVec.z > 1) return;
+
+  if (typeof SATURN_CENTER !== 'undefined') {
+    const toSaturn = SATURN_CENTER.clone().sub(camera.position);
+    const proj = toSaturn.dot(SUN_DIR_VEC);
+    const perpDist = proj > 0 ? Math.hypot(toSaturn.x - SUN_DIR_VEC.x * proj, toSaturn.y - SUN_DIR_VEC.y * proj, toSaturn.z - SUN_DIR_VEC.z * proj) : 999;
+    if (proj > 0 && perpDist < 365) return;
+  }
+
+  const sx = (projVec.x * 0.5 + 0.5) * w, sy = (-(projVec.y * 0.5) + 0.5) * h;
+  const cx = w * 0.5, cy = h * 0.5;
+  const distNorm = Math.hypot(sx - cx, sy - cy) / Math.hypot(cx, cy);
+  if (distNorm > 1.25) return;
+
+  const intensity = Math.pow(Math.max(0, 1.0 - distNorm / 1.25), 1.3) * 1.5;
+
+  hudCtx.save();
+  hudCtx.globalCompositeOperation = 'lighter';
+
+  if (saturnSunImg.complete && saturnSunImg.naturalWidth > 0) {
+    const sunDrawSize = 185;
+    hudCtx.drawImage(saturnSunImg, sx - sunDrawSize * 0.5, sy - sunDrawSize * 0.5, sunDrawSize, sunDrawSize);
+  }
+
+  const ghosts = new Array({ t: 1.35, r: 26, col: '147, 197, 253' }, { t: 1.65, r: 44, col: '253, 224, 71' }, { t: 1.95, r: 18, col: '186, 230, 253' });
+  for (let i = 0; i < ghosts.length; i++) {
+    const g = ghosts.at(i);
+    const gx = sx + (cx - sx) * g.t, gy = sy + (cy - sy) * g.t;
+    const gGrad = hudCtx.createRadialGradient(gx, gy, g.r * 0.2, gx, gy, g.r);
+    gGrad.addColorStop(0.0, 'rgba(' + g.col + ', ' + Math.min(0.32, 0.16 * intensity) + ')');
+    gGrad.addColorStop(0.8, 'rgba(' + g.col + ', ' + Math.min(0.42, 0.24 * intensity) + ')');
+    gGrad.addColorStop(1.0, 'rgba(' + g.col + ', 0)');
+    hudCtx.fillStyle = gGrad;
+    hudCtx.beginPath();
+    hudCtx.arc(gx, gy, g.r, 0, Math.PI * 2);
+    hudCtx.fill();
+  }
+  hudCtx.restore();
+}
+
 function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   const w = hudCanvas.width;
   const h = hudCanvas.height;
   const cx = w / 2;
   const cy = h / 2;
 
-  hudCtx.clearRect(0, 0, w, h);
+    hudCtx.clearRect(0, 0, w, h);
+    drawSaturnSunLensFlare(w, h, camera);
 
   if (typeof armorDamageFlash !== 'undefined' && armorDamageFlash > 0) {
     hudCtx.save();
@@ -676,37 +726,70 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   drawEnemyMissileMarkers(w, h, camera, playerContainer);
   drawBattroidTrackReticle(w, h, camera);
 
-  const rollAngle = new THREE.Euler().setFromQuaternion(playerContainer.quaternion, 'YXZ').z;
-  hudCtx.save();
-  hudCtx.translate(cx, cy);
 
-  hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
-  hudCtx.shadowBlur = 5;
-  hudCtx.strokeStyle = '#38bdf8';
-  hudCtx.lineWidth = 2.2;
+  const forwardVec = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
+  const aimProj = playerContainer.position.clone().addScaledVector(forwardVec, 18).project(camera);
+  const hudX = (aimProj.z <= 1) ? (aimProj.x * 0.5 + 0.5) * w : cx;
+  const hudY = (aimProj.z <= 1) ? (-(aimProj.y * 0.5) + 0.5) * h : (cy - 48);
+
+  const shipProj = playerContainer.position.clone().project(camera);
+  const shipSy = (shipProj.z <= 1) ? (-(shipProj.y * 0.5) + 0.5) * h : (cy + 55);
+
+  const attEuler = new THREE.Euler().setFromQuaternion(playerContainer.quaternion, 'YXZ');
+  const rollAngle = attEuler.z;
+  const pitchOffset = THREE.MathUtils.clamp(attEuler.x * 135, -85, 85);
+
+  hudCtx.save();
+  // Recorte superior: impide que cualquier línea baje por encima de la silueta del Valkyrie
   hudCtx.beginPath();
-  hudCtx.arc(0, 0, 88, -Math.PI * 0.35, Math.PI * 0.35);
-  hudCtx.stroke();
+  hudCtx.rect(0, 0, w, Math.max(80, shipSy - 24));
+  hudCtx.clip();
+
+  hudCtx.translate(hudX, hudY);
   hudCtx.beginPath();
-  hudCtx.arc(0, 0, 88, Math.PI * 0.65, Math.PI * 1.35);
-  hudCtx.stroke();
+  hudCtx.arc(0, 0, 88, 0, Math.PI * 2);
+  hudCtx.clip();
 
   hudCtx.save();
   hudCtx.rotate(-rollAngle);
+  hudCtx.translate(0, pitchOffset);
   hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
   hudCtx.shadowBlur = 5;
+
+  // 1. HORIZONTE (0°): Verde con pestañas hacia abajo (Tierra)
   hudCtx.strokeStyle = '#22c55e';
-  hudCtx.lineWidth = 2.0;
+  hudCtx.lineWidth = 2.2;
   hudCtx.beginPath();
-  hudCtx.moveTo(-64, 0); hudCtx.lineTo(-24, 0);
-  hudCtx.moveTo(24, 0); hudCtx.lineTo(64, 0);
-  hudCtx.moveTo(-42, -26); hudCtx.lineTo(-20, -26);
-  hudCtx.moveTo(20, -26); hudCtx.lineTo(42, -26);
-  hudCtx.moveTo(-42, 26); hudCtx.lineTo(-20, 26);
-  hudCtx.moveTo(20, 26); hudCtx.lineTo(42, 26);
+  hudCtx.moveTo(-68, 0); hudCtx.lineTo(-22, 0); hudCtx.lineTo(-22, 6);
+  hudCtx.moveTo(68, 0);  hudCtx.lineTo(22, 0);  hudCtx.lineTo(22, 6);
   hudCtx.stroke();
+
+  // 2. CIELO (+15° y +30°): Cian sólido con pestañas hacia abajo
+  hudCtx.strokeStyle = '#38bdf8';
+  hudCtx.lineWidth = 1.8;
+  hudCtx.beginPath();
+  hudCtx.moveTo(-44, -32); hudCtx.lineTo(-18, -32); hudCtx.lineTo(-18, -27);
+  hudCtx.moveTo(44, -32);  hudCtx.lineTo(18, -32);  hudCtx.lineTo(18, -27);
+  hudCtx.moveTo(-32, -64); hudCtx.lineTo(-14, -64); hudCtx.lineTo(-14, -59);
+  hudCtx.moveTo(32, -64);  hudCtx.lineTo(14, -64);  hudCtx.lineTo(14, -59);
+  hudCtx.stroke();
+
+  // 3. TIERRA (-15° y -30°): Ámbar discontinuo con pestañas hacia arriba
+  hudCtx.strokeStyle = '#f59e0b';
+  hudCtx.setLineDash(new Array(5, 4));
+  hudCtx.beginPath();
+  hudCtx.moveTo(-44, 32); hudCtx.lineTo(-18, 32); hudCtx.lineTo(-18, 27);
+  hudCtx.moveTo(44, 32);  hudCtx.lineTo(18, 32);  hudCtx.lineTo(18, 27);
+  hudCtx.moveTo(-32, 64); hudCtx.lineTo(-14, 64); hudCtx.lineTo(-14, 59);
+  hudCtx.moveTo(32, 64);  hudCtx.lineTo(14, 64);  hudCtx.lineTo(14, 59);
+  hudCtx.stroke();
+  hudCtx.setLineDash(new Array());
+  hudCtx.restore();
   hudCtx.restore();
 
+  // Retícula central proyectada delante de la proa del Valkyrie
+  hudCtx.save();
+  hudCtx.translate(hudX, hudY);
   hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
   hudCtx.shadowBlur = 5;
   hudCtx.strokeStyle = '#4ade80';
@@ -717,10 +800,10 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.moveTo(-18, 0); hudCtx.lineTo(-6, 0);
   hudCtx.moveTo(6, 0); hudCtx.lineTo(18, 0);
   hudCtx.stroke();
-
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillRect(-2, -2, 4, 4);
   hudCtx.restore();
+
 
   drawWeaponStatusPanel(w);
   drawPropulsionPanel(h);

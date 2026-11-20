@@ -7,9 +7,9 @@ const saturnRingAsteroids = new Array();
 
 const saturnDummy = new THREE.Object3D();
 const SATURN_CENTER = new THREE.Vector3(-80, 55, -1350);
+const SUN_DIR_VEC = new THREE.Vector3(480, 160, 180).normalize();
 const RING_TILT_X = 0.14;
 const RING_TILT_Z = 0.18;
-const RING_REF_DIST = 1470;
 
 function computeRingWorldPos(radius, angle, yOffset) {
   const lx = Math.cos(angle) * radius;
@@ -28,8 +28,6 @@ function computeRingWorldPos(radius, angle, yOffset) {
     z: SATURN_CENTER.z + fz
   };
 }
-
-
 function createSpaceStarfield(targetGroup) {
   const starCount = 2600;
   const positions = new Float32Array(starCount * 3);
@@ -93,7 +91,6 @@ function buildProceduralSaturnRings(targetGroup) {
   const dummy = new THREE.Object3D();
   const color = new THREE.Color();
 
-  // Cinturón de asteroides navegable desde r = 850u (justo fuera del anillo texturizado de 825u) hasta 1680u
   const bands = new Array(
     { rMin: 850,  rMax: 1120, weight: 0.28, palette: new Array(0x64748b, 0x7c8ea6, 0x94a3b8) },
     { rMin: 1130, rMax: 1450, weight: 0.47, palette: new Array(0xcbd5e1, 0x93c5fd, 0xd6cfc2) },
@@ -181,6 +178,7 @@ function buildSaturnRingDustLayer(targetGroup) {
   saturnDustPoints.frustumCulled = false;
   targetGroup.add(saturnDustPoints);
 }
+
 function loadSaturnPlanetModel(targetGroup) {
   saturnPlanetGroup = new THREE.Group();
   saturnPlanetGroup.position.copy(SATURN_CENTER);
@@ -198,7 +196,6 @@ function loadSaturnPlanetModel(targetGroup) {
   });
   saturnPlanetGroup.add(new THREE.Mesh(sphereGeo, sphereMat));
 
-  // Disco de 1650u (radio exterior 825u) coplanar con el cinturón de asteroides (r >= 850u)
   const ringsTex = texLoader.load('./textures/saturn_rings.webp');
   ringsTex.anisotropy = 4;
 
@@ -206,14 +203,8 @@ function loadSaturnPlanetModel(targetGroup) {
   discGeo.rotateX(-Math.PI / 2);
 
   const discMat = new THREE.MeshStandardMaterial({
-    map: ringsTex,
-    alphaTest: 0.15,
-    transparent: false,
-    depthWrite: true,
-    roughness: 0.85,
-    metalness: 0.05,
-    side: THREE.DoubleSide,
-    fog: false
+    map: ringsTex, alphaTest: 0.15, transparent: false, depthWrite: true,
+    roughness: 0.85, metalness: 0.05, side: THREE.DoubleSide, fog: false
   });
   saturnRingDiscMesh = new THREE.Mesh(discGeo, discMat);
   saturnPlanetGroup.add(saturnRingDiscMesh);
@@ -223,10 +214,14 @@ function buildSaturnOrbitEnvironment(scene, targetGroup) {
   scene.fog = new THREE.FogExp2(0x020612, 0.00028);
 
   if (typeof dirLight !== 'undefined' && dirLight) {
-    dirLight.position.set(480, 160, 180);
+    dirLight.position.copy(SUN_DIR_VEC).multiplyScalar(600);
     dirLight.color.setHex(0xfff7ed);
-    dirLight.intensity = 1.45;
+    dirLight.intensity = 1.65;
   }
+  const sunPointLight = new THREE.PointLight(0xfffbeb, 1.4, 2400);
+  sunPointLight.position.copy(SUN_DIR_VEC).multiplyScalar(950);
+  targetGroup.add(sunPointLight);
+
   if (typeof ambientLight !== 'undefined' && ambientLight) {
     ambientLight.color.setHex(0x1e293b);
     ambientLight.intensity = 0.24;
@@ -250,13 +245,9 @@ function updateSaturnEnvironment(delta) {
 
   if (saturnDustPoints && typeof camera !== 'undefined' && camera) {
     const posAttr = saturnDustPoints.geometry.attributes.position;
-    const cx = camera.position.x;
-    const cy = camera.position.y;
-    const cz = camera.position.z;
+    const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
     for (let i = 0; i < posAttr.count; i++) {
-      let px = posAttr.getX(i);
-      let py = posAttr.getY(i);
-      let pz = posAttr.getZ(i);
+      let px = posAttr.getX(i), py = posAttr.getY(i), pz = posAttr.getZ(i);
       if (px - cx > 180) px -= 360; else if (px - cx < -180) px += 360;
       if (py - cy > 120) py -= 240; else if (py - cy < -120) py += 240;
       if (pz - cz > 180) pz -= 360; else if (pz - cz < -180) pz += 360;
