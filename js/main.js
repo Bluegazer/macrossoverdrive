@@ -128,6 +128,8 @@ function returnToStartScreen() {
   isPaused = false;
   restartDeclined = false;
   for (const k in keys) keys[k] = false;
+  if (typeof destroyMpConnection === 'function') destroyMpConnection();
+
 
   if (typeof silenceAllCombatAudio === 'function') {
     silenceAllCombatAudio();
@@ -631,6 +633,8 @@ function animate() {
     updateEnemies(delta, playerContainer);
     updateWeapons(delta, scene, camera, playerContainer, velocity, keys);
     updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, keys, hudEl);
+	if (typeof updateMultiplayer === 'function') updateMultiplayer(delta, playerContainer);
+
   }
 
   const isFullStop = Boolean(keys['KeyX']);

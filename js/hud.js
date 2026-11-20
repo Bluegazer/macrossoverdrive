@@ -514,6 +514,57 @@ function drawSaturnSunLensFlare(w, h, camera, playerContainer) {
   }
   hudCtx.restore();
 }
+
+function drawMultiplayerRivalHUD(w, h, camera, playerContainer, delta) {
+  if (typeof mpState === 'undefined' || !mpState.active || !mpState.rivalMesh) return;
+
+  const proj = mpState.rivalMesh.position.clone().project(camera);
+  if (proj.z <= 1) {
+    const sx = (proj.x * 0.5 + 0.5) * w;
+    const sy = (-(proj.y * 0.5) + 0.5) * h;
+    const distM = Math.round(mpState.rivalMesh.position.distanceTo(playerContainer.position) * 10);
+    drawDYRLEnemyHexagon(sx, sy, 20, distM, Math.max(0, Math.round(mpState.rivalMesh.position.y * 2.4)));
+
+    if (Math.hypot(sx - w * 0.5, sy - h * 0.5) < 215) {
+      mpState.lockProgress = Math.min(1.0, (mpState.lockProgress || 0) + delta * 2.2);
+    } else {
+      mpState.lockProgress = Math.max(0, (mpState.lockProgress || 0) - delta * 2.5);
+    }
+    const isLocked = mpState.lockProgress >= 1.0;
+    drawSeekerBrackets(sx, sy, (1.0 - mpState.lockProgress) * 18, isLocked, mpState.rivalName, 1);
+
+    const hpRatio = Math.max(0, Math.min(1, mpState.rivalArmor / (mpState.rivalMaxArmor || 140)));
+    const hpColor = hpRatio > 0.5 ? '#22c55e' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
+    const barW = 86, barH = 6;
+
+    hudCtx.save();
+    hudCtx.font = 'bold 10px Conthrax, sans-serif';
+    hudCtx.textAlign = 'center';
+    hudCtx.fillStyle = '#facc15';
+    hudCtx.fillText('[' + mpState.rivalCountry + '] ' + mpState.rivalName + ' (' + Math.max(0, Math.round(mpState.rivalArmor)) + ')', sx, sy - 42);
+    hudCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    hudCtx.fillRect(sx - barW * 0.5, sy - 36, barW, barH);
+    hudCtx.fillStyle = hpColor;
+    hudCtx.fillRect(sx - barW * 0.5 + 1, sy - 35, (barW - 2) * hpRatio, barH - 2);
+    hudCtx.restore();
+  }
+
+  if (mpState.matchEnded) {
+    hudCtx.save();
+    hudCtx.fillStyle = 'rgba(2, 6, 23, 0.72)';
+    hudCtx.fillRect(0, h * 0.5 - 55, w, 110);
+    hudCtx.textAlign = 'center';
+    hudCtx.font = 'bold 28px Conthrax, sans-serif';
+    hudCtx.fillStyle = mpState.victory ? '#22c55e' : '#ef4444';
+    hudCtx.fillText(mpState.victory ? 'VICTORIA // RIVAL DERRIBADO' : 'DERROTA // VF-1A DESTRUIDO', w * 0.5, h * 0.5 - 6);
+    hudCtx.font = 'bold 11px Conthrax, sans-serif';
+    hudCtx.fillStyle = '#38bdf8';
+    hudCtx.fillText('PRESIONA [ESC] PARA VOLVER AL MENÚ PRINCIPAL', w * 0.5, h * 0.5 + 26);
+    hudCtx.restore();
+  }
+}
+
+
 function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   const w = hudCanvas.width, h = hudCanvas.height, cx = w / 2, cy = h / 2;
   hudCtx.clearRect(0, 0, w, h);
@@ -572,6 +623,7 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
 
   drawEnemyMissileMarkers(w, h, camera, playerContainer);
   drawBattroidTrackReticle(w, h, camera);
+  drawMultiplayerRivalHUD(w, h, camera, playerContainer, delta);
 
   const forwardVec = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
   const aimProj = playerContainer.position.clone().addScaledVector(forwardVec, 18).project(camera);
@@ -648,6 +700,6 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   drawWeaponStatusPanel(w);
   drawPropulsionPanel(h);
 
-  if (typeof isGameOver !== 'undefined' && isGameOver) drawRestartOverlay(w, h);
+  if (typeof isGameOver !== 'undefined' && isGameOver && !(typeof mpState !== 'undefined' && mpState.active)) drawRestartOverlay(w, h);
   else if (isPaused) drawPauseOverlay(w, h);
 }

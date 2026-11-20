@@ -511,7 +511,10 @@ function fireGunpod(scene, playerContainer, velocity) {
   boltGroup.quaternion.copy(playerContainer.quaternion);
   scene.add(boltGroup);
 
-  bullets.push({ mesh: boltGroup, vel: forward.multiplyScalar(125).add(velocity), life: 1.5 });
+  const shotVel = forward.multiplyScalar(125).add(velocity);
+  bullets.push({ mesh: boltGroup, vel: shotVel, life: 1.5 });
+  if (typeof notifyMpGunpodShot === 'function') notifyMpGunpodShot(boltGroup.position, shotVel);
+
 
   muzzleGroup.visible = true;
   muzzleGroup.rotation.z = Math.random() * Math.PI;
@@ -606,6 +609,10 @@ function planNextZigTarget(missileObj) {
 function fireMicroMissiles(scene, playerContainer) {
   const profile = missileProfiles.at(missileProfileIndex);
   const activeTargets = lockedEnemies.filter((e) => e && e.respawnTimer <= 0);
+  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh && (mpState.lockProgress || 0) >= 1.0) {
+    activeTargets.push({ mesh: mpState.rivalMesh, respawnTimer: 0, isRival: true });
+  }
+  if (typeof notifyMpMissileSalvo === 'function') notifyMpMissileSalvo(playerContainer.position, profile.id);
   const offsets = new Array(
     new THREE.Vector3(-0.65, -0.04, -0.15),
     new THREE.Vector3(0.65, -0.04, -0.15),
@@ -1225,6 +1232,14 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
       }
     }
 
+    if (!hit && typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
+      if (m.mesh.position.distanceTo(mpState.rivalMesh.position) < 2.1) {
+        spawnExplosion(scene, camera, m.mesh.position, 0.75);
+        spawnImpactSparks(scene, camera, m.mesh.position);
+        hit = true;
+      }
+    }
+
     m.life -= delta;
     if (hit || m.life <= 0) {
       scene.remove(m.mesh);
@@ -1346,6 +1361,12 @@ function onEnvironmentMapChanged(mapId) {
     e.respawnTimer = 0;
     e.mesh.visible = true;
     e.lockProgress = 0;
+	    if (typeof mpState !== 'undefined' && mpState.active) {
+      e.respawnTimer = 999999;
+      e.mesh.visible = false;
+      continue;
+    }
+
     if (mapId === 'MAPA_3') {
       if (e.isAerial) {
         const angle = (i / 3) * Math.PI * 2;
