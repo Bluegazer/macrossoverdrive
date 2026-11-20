@@ -876,27 +876,24 @@ function buildSDF1DockZone(complexGroup, toonGradient) {
 function loadSDF1Model() {
   if (!sdf1AnchorGroup || typeof THREE.GLTFLoader !== 'function') return;
 
-  const loader = new THREE.GLTFLoader();
+  const loader = (typeof sharedLoadingManager !== 'undefined' && sharedLoadingManager)
+    ? new THREE.GLTFLoader(sharedLoadingManager)
+    : new THREE.GLTFLoader();
+
   loader.load('./models/sdf1.glb', (gltf) => {
     const model = gltf.scene;
     model.visible = false;
 
     const rawBox = new THREE.Box3().setFromObject(model);
     const rawSize = rawBox.getSize(new THREE.Vector3());
-
-    if (rawSize.x > rawSize.z * 1.25) {
-      model.rotation.y = -Math.PI / 2;
-    } else {
-      model.rotation.y = Math.PI;
-    }
+    model.rotation.y = (rawSize.x > rawSize.z * 1.25) ? (-Math.PI / 2) : Math.PI;
     model.updateMatrixWorld(true);
 
     const orientedBox = new THREE.Box3().setFromObject(model);
     const orientedSize = orientedBox.getSize(new THREE.Vector3());
     const maxHoriz = Math.max(orientedSize.x, orientedSize.z);
     if (maxHoriz > 0) {
-      const targetLength = 175;
-      const scaleFactor = targetLength / maxHoriz;
+      const scaleFactor = 175 / maxHoriz;
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
       model.updateMatrixWorld(true);
     }
@@ -910,8 +907,9 @@ function loadSDF1Model() {
     model.position.y -= finalBox.min.y;
     model.updateMatrixWorld(true);
 
-    const cols = 12;
-    const rows = 26;
+    // Grilla optimizada 8x18 para iGPU y CPU (menos cajas por fotograma sin perder precisión en el casco)
+    const cols = 8;
+    const rows = 18;
     const minX = -finalSize.x * 0.5;
     const minZ = -finalSize.z * 0.5;
     const cellW = finalSize.x / cols;
@@ -929,10 +927,10 @@ function loadSDF1Model() {
           const mats = Array.isArray(child.material) ? child.material : new Array(child.material);
           mats.forEach((m) => { m.side = THREE.DoubleSide; });
         }
-
         const posAttr = child.geometry && child.geometry.attributes && child.geometry.attributes.position;
         if (posAttr) {
-          for (let i = 0; i < posAttr.count; i += 4) {
+          const step = Math.max(4, Math.floor(posAttr.count / 5000));
+          for (let i = 0; i < posAttr.count; i += step) {
             vTmp.fromBufferAttribute(posAttr, i).applyMatrix4(child.matrixWorld);
             const c = Math.min(cols - 1, Math.max(0, Math.floor((vTmp.x - minX) / cellW)));
             const r = Math.min(rows - 1, Math.max(0, Math.floor((vTmp.z - minZ) / cellD)));
@@ -946,6 +944,7 @@ function loadSDF1Model() {
 
     sdf1AnchorGroup.add(model);
 
+    const newColliders = new Array();
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const idx = r * cols + c;
@@ -960,10 +959,15 @@ function loadSDF1Model() {
         const localCellZ = SDF1_LOCAL_DOCK.z + minZ + (r + 0.5) * cellD;
         const wp = localToWorldXZ(localCellX, localCellZ);
 
-        registerBoxCollider(
-          wp.x, COMPLEX_CONFIG.groundY + midY, wp.z,
-          cellW * 0.96, h, cellD * 0.96, COMPLEX_CONFIG.rotY
-        );
+        registerBoxCollider(wp.x, COMPLEX_CONFIG.groundY + midY, wp.z, cellW * 0.96, h, cellD * 0.96, COMPLEX_CONFIG.rotY);
+        newColliders.push(structureColliders[structureColliders.length - 1]);
+      }
+    }
+
+    // Guardar también los colisionadores del SDF-1 en el caché de MAPA_1 si ya fue creado
+    if (typeof mapCache !== 'undefined' && mapCache.MAPA_1 && mapCache.MAPA_1.colliders) {
+      for (let k = 0; k < newColliders.length; k++) {
+        mapCache.MAPA_1.colliders.push(newColliders[k]);
       }
     }
 
@@ -975,6 +979,7 @@ function loadSDF1Model() {
     } catch (e) {}
   });
 }
+
 
 function buildStreetLights(complexGroup, toonGradient) {
   streetPointLights.length = 0;
@@ -1306,59 +1311,89 @@ scene.add(terrainMesh);
 buildAirbaseAndCity(scene, toonGradient);
 buildSkyClouds(scene, toonGradient);
 }
+
 let activeMapId = 'MAPA_1';
 let environmentGroup = null;
-function clearCurrentEnvironment() {
-structureColliders.length = 0;
-nightEmissiveMaterials.length = 0;
-streetPointLights.length = 0;
-cloudData.length = 0;
-lastSkyKey = '';
-sdf1AnchorGroup = null;
-cloudInstMesh = null;
-towerRadarMesh = null;
-towerCabMat = null;
-oceanMeshMat = null;
-if (environmentGroup) {
-while (environmentGroup.children.length > 0) {
-const child = environmentGroup.children[0];
-environmentGroup.remove(child);
-}
-}
-}
+const mapCache = {};
+
 function switchEnvironmentMap(scene, mapId) {
-if (!scene) return;
-if (!environmentGroup) {
-environmentGroup = new THREE.Group();
-environmentGroup.name = 'EnvironmentMasterGroup';
-scene.add(environmentGroup);
+  if (!scene) return;
+  if (!environmentGroup) {
+    environmentGroup = new THREE.Group();
+    environmentGroup.name = 'EnvironmentMasterGroup';
+    scene.add(environmentGroup);
+  }
+
+  const targetId = mapId || 'MAPA_1';
+  activeMapId = targetId;
+
+  // Ocultar todos los mapas previamente construidos sin destruir sus geometrías ni texturas
+  for (const key in mapCache) {
+    if (mapCache[key] && mapCache[key].group) {
+      mapCache[key].group.visible = (key === targetId);
+    }
+  }
+
+  structureColliders.length = 0;
+
+  // Si el mapa ya está en caché, restaurarlo en 0 ms
+  if (mapCache[targetId]) {
+    const cached = mapCache[targetId];
+    scene.background = cached.background;
+    scene.fog = cached.fog;
+    for (let i = 0; i < cached.colliders.length; i++) {
+      structureColliders.push(cached.colliders[i]);
+    }
+    if (targetId === 'MAPA_2' && typeof dirLight !== 'undefined' && dirLight && typeof SUN_DIR_VEC !== 'undefined') {
+      dirLight.position.copy(SUN_DIR_VEC).multiplyScalar(600);
+      dirLight.color.setHex(0xfff7ed);
+      dirLight.intensity = 1.65;
+    }
+    if (typeof onEnvironmentMapChanged === 'function') {
+      onEnvironmentMapChanged(activeMapId);
+    }
+    return;
+  }
+
+  // Construir el mapa por primera vez y almacenarlo en caché
+  const mapGroup = new THREE.Group();
+  mapGroup.name = 'MapGroup_' + targetId;
+  environmentGroup.add(mapGroup);
+
+  const envTarget = {
+    add: (obj) => mapGroup.add(obj),
+    remove: (obj) => mapGroup.remove(obj),
+    set background(val) { scene.background = val; },
+    get background() { return scene.background; },
+    set fog(val) { scene.fog = val; },
+    get fog() { return scene.fog; }
+  };
+
+  if (targetId === 'MAPA_1') {
+    buildSouthAtariaEnvironment(envTarget);
+  } else if (targetId === 'MAPA_2') {
+    if (typeof buildSaturnOrbitEnvironment === 'function') {
+      buildSaturnOrbitEnvironment(scene, mapGroup);
+    } else {
+      buildSouthAtariaEnvironment(envTarget);
+    }
+  } else if (targetId === 'MAPA_3') {
+    if (typeof buildMacrossInteriorEnvironment === 'function') {
+      buildMacrossInteriorEnvironment(scene, mapGroup);
+    } else {
+      buildSouthAtariaEnvironment(envTarget);
+    }
+  }
+
+  mapCache[targetId] = {
+    group: mapGroup,
+    background: scene.background,
+    fog: scene.fog,
+    colliders: structureColliders.slice()
+  };
+
+  if (typeof onEnvironmentMapChanged === 'function') {
+    onEnvironmentMapChanged(activeMapId);
+  }
 }
-activeMapId = mapId || 'MAPA_1';
-clearCurrentEnvironment();
-const envTarget = {
-add: (obj) => environmentGroup.add(obj),
-remove: (obj) => environmentGroup.remove(obj),
-set background(val) { scene.background = val; },
-get background() { return scene.background; },
-set fog(val) { scene.fog = val; },
-get fog() { return scene.fog; }
-};
-if (activeMapId === 'MAPA_1') {
-buildSouthAtariaEnvironment(envTarget);
-} else if (activeMapId === 'MAPA_2') {
-if (typeof buildSaturnOrbitEnvironment === 'function') {
-buildSaturnOrbitEnvironment(scene, environmentGroup);
-} else {
-buildSouthAtariaEnvironment(envTarget);
-}
-} else if (activeMapId === 'MAPA_3') {
-if (typeof buildMacrossInteriorEnvironment === 'function') {
-buildMacrossInteriorEnvironment(scene, environmentGroup);
-} else {
-buildSouthAtariaEnvironment(envTarget);
-}
-}
-if (typeof onEnvironmentMapChanged === 'function') {
-onEnvironmentMapChanged(activeMapId);
-}
-}
+

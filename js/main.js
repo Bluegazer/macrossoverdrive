@@ -25,14 +25,44 @@ let timeOfDayMode = (() => {
   }
 })();
 
-const scene = new THREE.Scene();
-switchEnvironmentMap(scene, 'MAPA_1');
+const preloadBoxEl = document.getElementById('assetPreloadBox');
+const preloadTextEl = document.getElementById('assetPreloadText');
+const preloadBarEl = document.getElementById('assetPreloadBar');
+const btnStartInitEl = document.getElementById('btnStartGame');
+if (btnStartInitEl) btnStartInitEl.style.opacity = '0.45';
 
+const sharedLoadingManager = new THREE.LoadingManager();
+THREE.DefaultLoadingManager = sharedLoadingManager;
+
+sharedLoadingManager.onProgress = (url, loaded, total) => {
+  const pct = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 100;
+  if (preloadTextEl) preloadTextEl.textContent = 'PRECARGANDO MODELOS 3D... ' + pct + '%';
+  if (preloadBarEl) preloadBarEl.style.width = pct + '%';
+};
+
+sharedLoadingManager.onLoad = () => {
+  if (preloadTextEl) preloadTextEl.textContent = 'COMPILANDO SHADERS GPU...';
+  if (preloadBarEl) preloadBarEl.style.width = '100%';
+  requestAnimationFrame(() => {
+    try { renderer.compile(scene, camera); } catch (e) {}
+    if (preloadBoxEl) preloadBoxEl.style.display = 'none';
+    if (btnStartInitEl) {
+      btnStartInitEl.disabled = false;
+      btnStartInitEl.textContent = 'INICIAR MISIÓN';
+      btnStartInitEl.style.opacity = '1';
+      btnStartInitEl.focus({ preventScroll: true });
+    }
+  });
+};
+
+const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.25, 5000);
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
 document.body.appendChild(renderer.domElement);
+
+switchEnvironmentMap(scene, 'MAPA_1');
 
 const ambientLight = new THREE.AmbientLight(0x7c93ad, 0.56);
 scene.add(ambientLight);
@@ -54,6 +84,7 @@ playerContainer.add(visualTiltGroup);
 
 initWeaponsAndEnemies(scene, playerContainer);
 loadPlayerModel(visualTiltGroup);
+
 
 function startMission() {
   if (isGameStarted) return;
