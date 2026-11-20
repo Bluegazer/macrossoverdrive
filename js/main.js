@@ -55,11 +55,36 @@ sharedLoadingManager.onLoad = () => {
   });
 };
 
+function detectHardwareProfile() {
+  let gpuName = '';
+  try {
+    const probeCanvas = document.createElement('canvas');
+    const gl = probeCanvas.getContext('webgl2') || probeCanvas.getContext('webgl');
+    if (gl) {
+      const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+      gpuName = dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER));
+      const loseExt = gl.getExtension('WEBGL_lose_context');
+      if (loseExt) loseExt.loseContext();
+    }
+  } catch (e) {}
+
+  const g = gpuName.toLowerCase();
+  const mem = navigator.deviceMemory || 8;
+  const cores = navigator.hardwareConcurrency || 4;
+  const isDedicated = /(nvidia|geforce|rtx|gtx|radeon rx|arc a\d)/i.test(g);
+  const isWeakIgpu = /(uhd|hd graphics|radeon\(tm\) r[357]|mali|adreno|swiftshader|llvmpipe)/i.test(g) || mem <= 4 || (cores <= 4 && !/vega|iris/i.test(g));
+
+  if (isDedicated) return { tier: 'HIGH', antialias: true, maxDpr: 1.75 };
+  if (isWeakIgpu) return { tier: 'LOW', antialias: false, maxDpr: 1.0 };
+  return { tier: 'MEDIUM', antialias: true, maxDpr: 1.25 };
+}
+
+const hwProfile = detectHardwareProfile();
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.25, 5000);
-const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({ antialias: hwProfile.antialias, powerPreference: 'high-performance' });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, hwProfile.maxDpr));
 document.body.appendChild(renderer.domElement);
 
 switchEnvironmentMap(scene, 'MAPA_1');
