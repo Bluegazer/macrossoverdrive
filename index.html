@@ -286,7 +286,13 @@
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0;">
         <div style="background: rgba(15,23,42,0.75); border: 1px solid rgba(56,189,248,0.4); padding: 12px;">
           <div style="font-size: 11px; color: #38bdf8; margin-bottom: 8px;">1. CREAR SALA (HOST)</div>
+          <select id="mpMapSelect" style="width: 100%; background: #020617; border: 1px solid #38bdf8; color: #e2e8f0; padding: 6px; margin-bottom: 8px; font-family: inherit; font-size: 11px;">
+            <option value="MAPA_1">01 // ISLA SOUTH ATARIA</option>
+            <option value="MAPA_2">02 // ÓRBITA DE SATURNO</option>
+            <option value="MAPA_3">03 // MACROSS CITY INTERIOR</option>
+          </select>
           <button id="btnCreateRoom" class="options-save" type="button" style="width: 100%; margin-bottom: 8px;">GENERAR CÓDIGO DE SALA</button>
+
           <div style="display: flex; gap: 6px;">
             <input id="mpRoomCodeOut" type="text" readonly placeholder="AR-XXXX" style="flex: 1; min-width: 0; width: 100%; background: #020617; border: 1px solid #475569; color: #facc15; text-align: center; font-weight: bold; letter-spacing: 2px; padding: 6px;" />
            <button id="btnCopyRoomCode" class="options-secondary" type="button" style="flex-shrink: 0;">COPIAR</button>
