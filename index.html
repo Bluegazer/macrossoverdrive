@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="./css/style.css" />
   <script src="./three.min.js"></script>
   <script src="./GLTFLoader.js"></script>
+  <script src="./js/peerjs.min.js"></script>
   <link rel="preload" href="./models/sdf1.glb" as="fetch" crossorigin>
   <link rel="preload" href="./models/vf1a.glb" as="fetch" crossorigin>
   <link rel="preload" href="./models/regult.glb" as="fetch" crossorigin>
@@ -22,6 +23,7 @@
       <div class="start-subtitle">VF-1 VALKYRIE // ARCADE - SIM</div>
       <button id="btnStartGame" class="start-btn" disabled>CARGANDO SISTEMAS...</button>
       <button id="btnOptions" class="start-options-btn" type="button">OPCIONES</button>
+	  <button id="btnMultiplayer" class="start-options-btn" type="button">COMBATE 1 VS 1</button>
       <div class="map-selector-box">
         <div class="map-selector-label">TEATRO DE OPERACIONES</div>
         <div class="map-btn-group">
@@ -263,6 +265,48 @@
     </section>
   </div>
 
+
+  <div id="multiplayerScreen" class="hidden" role="dialog" aria-modal="true" aria-labelledby="mpTitle">
+    <section class="options-panel" style="max-width: 680px;">
+      <header class="options-header">
+        <div>
+          <div class="options-tag">U.N. SPACY // ENLACE P2P WEBRTC</div>
+          <h2 id="mpTitle">COMBATE 1 VS 1</h2>
+          <div class="options-subtitle">DUELO DIRECTO POR CÓDIGO DE SALA · SIN IA</div>
+        </div>
+        <button id="btnCloseMp" class="options-close" type="button" aria-label="Volver al menú">×</button>
+      </header>
+
+      <div style="margin: 12px 0; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <label for="mpPilotName" style="font-size: 11px; color: #38bdf8; letter-spacing: 1px;">NOMBRE DE PILOTO:</label>
+        <input id="mpPilotName" type="text" maxlength="16" placeholder="ROY FOCKER" style="background: rgba(15,23,42,0.9); border: 1px solid #38bdf8; color: #fff; padding: 6px 10px; font-family: inherit; font-size: 12px; text-transform: uppercase;" />
+        <span id="mpCountryBadge" style="font-size: 11px; color: #22c55e; border: 1px solid rgba(34,197,94,0.5); padding: 4px 8px;">REGIÓN: DETECTANDO...</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0;">
+        <div style="background: rgba(15,23,42,0.75); border: 1px solid rgba(56,189,248,0.4); padding: 12px;">
+          <div style="font-size: 11px; color: #38bdf8; margin-bottom: 8px;">1. CREAR SALA (HOST)</div>
+          <button id="btnCreateRoom" class="options-save" type="button" style="width: 100%; margin-bottom: 8px;">GENERAR CÓDIGO DE SALA</button>
+          <div style="display: flex; gap: 6px;">
+            <input id="mpRoomCodeOut" type="text" readonly placeholder="AR-XXXX" style="flex: 1; background: #020617; border: 1px solid #475569; color: #facc15; text-align: center; font-weight: bold; letter-spacing: 2px; padding: 6px;" />
+            <button id="btnCopyRoomCode" class="options-secondary" type="button">COPIAR</button>
+          </div>
+        </div>
+
+        <div style="background: rgba(15,23,42,0.75); border: 1px solid rgba(56,189,248,0.4); padding: 12px;">
+          <div style="font-size: 11px; color: #38bdf8; margin-bottom: 8px;">2. UNIRSE A SALA (INVITADO)</div>
+          <input id="mpRoomCodeIn" type="text" maxlength="10" placeholder="PEGA CÓDIGO (EJ: AR-4829)" style="width: 100%; box-sizing: border-box; background: #020617; border: 1px solid #38bdf8; color: #fff; text-align: center; font-weight: bold; letter-spacing: 2px; padding: 6px; margin-bottom: 8px; text-transform: uppercase;" />
+          <button id="btnJoinRoom" class="options-save" type="button" style="width: 100%;">CONECTAR AL RIVAL</button>
+        </div>
+      </div>
+
+      <p id="mpStatusText" class="binding-status" role="status" aria-live="polite">Ingresa tu nombre y crea una sala o pega el código de tu rival.</p>
+      <footer class="options-footer options-global-footer">
+        <span>El mapa elegido en el menú principal será usado por el creador de la sala.</span>
+        <button id="btnBackMp" class="options-secondary" type="button">VOLVER AL MENÚ</button>
+      </footer>
+    </section>
+  </div>
   <canvas id="hudCanvas"></canvas>
 
   <div id="ui" class="hidden">
@@ -278,6 +322,7 @@
   <script src="./js/env_saturn.js"></script>
   <script src="./js/env_macross_interior.js"></script>
   <script src="./js/controls.js"></script>
+  <script src="./js/multiplayer.js"></script>
   <script src="./js/main.js"></script>
 </body>
 </html>
