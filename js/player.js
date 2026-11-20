@@ -29,10 +29,15 @@ function cycleBattroidTracking() {
   else battroidTrackMode = 'NONE';
   battroidTrackedTarget = null;
 }
+
 function getClosestBattroidTarget(playerPos, trackMode = battroidTrackMode) {
   let closest = null;
   let minDist = 99999;
   if (trackMode === 'ENEMY' && typeof enemies !== 'undefined') {
+  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
+  const dRival = playerPos.distanceTo(mpState.rivalMesh.position);
+  if (dRival < minDist) { minDist = dRival; closest = { mesh: mpState.rivalMesh }; }
+}  
     for (let i = 0; i < enemies.length; i++) {
       if (enemies.at(i).respawnTimer > 0) continue;
       const d = playerPos.distanceTo(enemies.at(i).mesh.position);

@@ -39,6 +39,7 @@ function detectLocalCountryCode() {
 }
 function initMultiplayerUI() {
   const mpScreen = document.getElementById('multiplayerScreen');
+  const startSc = document.getElementById('startScreen');
   const btnOpen = document.getElementById('btnMultiplayer');
   const btnClose = document.getElementById('btnCloseMp');
   const btnBack = document.getElementById('btnBackMp');
@@ -68,10 +69,25 @@ function initMultiplayerUI() {
     if (savedName && nameInput) nameInput.value = savedName;
   } catch (e) {}
 
-  if (btnOpen && mpScreen) {
-    btnOpen.addEventListener('click', () => mpScreen.classList.remove('hidden'));
+    const mpMapSelect = document.getElementById('mpMapSelect');
+  if (mpMapSelect) {
+    mpMapSelect.addEventListener('change', () => {
+      if (typeof selectedMapId !== 'undefined') selectedMapId = mpMapSelect.value;
+    });
   }
-  const closeMp = () => { if (mpScreen) mpScreen.classList.add('hidden'); };
+
+  if (btnOpen && mpScreen) {
+    btnOpen.addEventListener('click', () => {
+      if (mpMapSelect && typeof selectedMapId !== 'undefined') mpMapSelect.value = selectedMapId;
+      if (startSc) startSc.classList.add('hidden');
+      mpScreen.classList.remove('hidden');
+    });
+  }
+
+  const closeMp = () => {
+    if (mpScreen) mpScreen.classList.add('hidden');
+    if (startSc && !mpState.active) startSc.classList.remove('hidden');
+  };
   if (btnClose) btnClose.addEventListener('click', closeMp);
   if (btnBack) btnBack.addEventListener('click', closeMp);
 
@@ -126,9 +142,12 @@ function createMultiplayerRoom(nameInput, codeOut) {
   mpState.peer = peer;
   mpState.isHost = true;
 
-  peer.on('open', () => {
-    setMpStatus('Sala ' + roomCode + ' activa. Esperando rival de ' + mpState.country + '...');
+    peer.on('open', () => {
+    const mapSel = document.getElementById('mpMapSelect');
+    const mapLabel = (mapSel && mapSel.selectedOptions && mapSel.selectedOptions[0]) ? mapSel.selectedOptions[0].textContent : 'MAPA 1';
+    setMpStatus('Sala ' + roomCode + ' (' + mapLabel + ') lista. Esperando rival de ' + mpState.country + '...');
   });
+
 
   peer.on('connection', (conn) => {
     if (mpState.conn && mpState.conn.open) {
@@ -238,9 +257,16 @@ function handleMpPacket(pkt, conn) {
 
   if (pkt.type === 'FIRE_GUN' && mpState.active) {
     spawnRivalGunBolt(pkt);
-	}
- if (pkt.type === 'FIRE_MSL' && mpState.active) {
+  }
+
+  if (pkt.type === 'FIRE_MSL' && mpState.active) {
     spawnRivalMissileSalvo(pkt);
+  }
+
+  if (pkt.type === 'RIVAL_HIT' && mpState.active) {
+    if (typeof damagePlayerArmor === 'function' && typeof playerContainer !== 'undefined') {
+      damagePlayerArmor(scene, camera, playerContainer, pkt.dmg || 9);
+    }
   }
 }
 
@@ -257,7 +283,6 @@ function launchMultiplayerMatch(mapId) {
     switchEnvironmentMap(scene, mapId);
   }
 
-  // Ocultar IA en modo 1 vs 1
   if (typeof enemies !== 'undefined') {
     for (let i = 0; i < enemies.length; i++) {
       enemies[i].respawnTimer = 999999;
@@ -366,11 +391,9 @@ function spawnRivalMissileSalvo(pkt) {
   }
 }
 
-
 function updateMultiplayer(delta, playerContainer) {
   if (!mpState.active) return;
 
-  // 1. Interpolar posición y pose del Valkyrie rival
   if (mpState.rivalMesh) {
     mpState.rivalMesh.position.lerp(mpState.targetPos, Math.min(1.0, 16.0 * delta));
     mpState.rivalMesh.quaternion.slerp(mpState.targetQuat, Math.min(1.0, 16.0 * delta));
@@ -384,18 +407,32 @@ function updateMultiplayer(delta, playerContainer) {
     }
   }
 
-  // 2. Comprobar impactos de nuestras balas contra el Valkyrie rival
+  // 2. Detección continua por segmento de nuestras balas contra el Valkyrie rival (cero tunneling)
   if (mpState.rivalMesh && typeof bullets !== 'undefined') {
+    const segStart = new THREE.Vector3();
+    const segVec = new THREE.Vector3();
+    const closest = new THREE.Vector3();
+    const rivalCenter = mpState.rivalMesh.position;
+
     for (let i = bullets.length - 1; i >= 0; i--) {
-      if (bullets[i].mesh.position.distanceTo(mpState.rivalMesh.position) < 1.65) {
-        if (typeof spawnImpactSparks === 'function') spawnImpactSparks(scene, camera, bullets[i].mesh.position);
-        scene.remove(bullets[i].mesh);
+      const b = bullets[i];
+      segVec.copy(b.vel).multiplyScalar(delta);
+      segStart.copy(b.mesh.position).sub(segVec);
+      const lenSq = segVec.lengthSq();
+      const t = lenSq > 0 ? Math.max(0, Math.min(1, rivalCenter.clone().sub(segStart).dot(segVec) / lenSq)) : 0;
+      closest.copy(segStart).addScaledVector(segVec, t);
+
+      if (closest.distanceTo(rivalCenter) < 2.2) {
+        if (typeof spawnImpactSparks === 'function') spawnImpactSparks(scene, camera, closest);
+        mpState.rivalArmor = Math.max(0, mpState.rivalArmor - 9);
+        if (mpState.conn && mpState.conn.open) mpState.conn.send({ type: 'RIVAL_HIT', dmg: 9 });
+        scene.remove(b.mesh);
         bullets.splice(i, 1);
       }
     }
   }
 
-  // 3. Enviar nuestro estado a 30 Hz
+
   mpState.sendTimer += delta;
   if (mpState.sendTimer >= 0.033 && mpState.conn && mpState.conn.open && playerContainer) {
     mpState.sendTimer = 0;

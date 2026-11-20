@@ -1233,12 +1233,16 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     }
 
     if (!hit && typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
-      if (m.mesh.position.distanceTo(mpState.rivalMesh.position) < 2.1) {
+      if (m.mesh.position.distanceTo(mpState.rivalMesh.position) < 2.2) {
+        const mslDmg = (m.damage || 3) * 8;
         spawnExplosion(scene, camera, m.mesh.position, 0.75);
         spawnImpactSparks(scene, camera, m.mesh.position);
+        mpState.rivalArmor = Math.max(0, mpState.rivalArmor - mslDmg);
+        if (mpState.conn && mpState.conn.open) mpState.conn.send({ type: 'RIVAL_HIT', dmg: mslDmg });
         hit = true;
       }
     }
+
 
     m.life -= delta;
     if (hit || m.life <= 0) {
