@@ -2,6 +2,7 @@ const velocity = new THREE.Vector3(0, 0, 0);
 let throttle = 0.35;
 let turboHeat = 0.0;
 let isOverheated = false;
+let collisionDamageCooldown = 0.0;
 const thrusterFlames = new Array();
 
 let mixer = null, action = null, clipDuration = 0;
@@ -359,6 +360,7 @@ function resetPlayerMission(playerContainer, visualTiltGroup) {
   throttle = 0.35;
   turboHeat = 0.0;
   isOverheated = false;
+  collisionDamageCooldown = 0.0;
   isAccelerating = false;
   isReverseGerwalk = false;
   isAttacking = false;
@@ -589,12 +591,23 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     if (velocity.y < 0) velocity.y = 0;
   }
 
+  if (collisionDamageCooldown > 0) collisionDamageCooldown = Math.max(0, collisionDamageCooldown - delta);
+
   if (typeof resolveStructureCollisions === 'function') {
+    const preImpactSpeed = velocity.length();
     const collided = resolveStructureCollisions(playerContainer.position, velocity);
-    if (collided && velocity.length() > 14 && typeof spawnImpactSparks === 'function') {
-      spawnImpactSparks(scene, camera, playerContainer.position);
+    if (collided && preImpactSpeed > 11.0) {
+      if (typeof spawnImpactSparks === 'function') {
+        spawnImpactSparks(scene, camera, playerContainer.position);
+      }
+      if (collisionDamageCooldown <= 0 && typeof damagePlayerArmor === 'function') {
+        const impactDmg = preImpactSpeed > 26.0 ? 32 : Math.round(10 + (preImpactSpeed - 11.0) * 1.1);
+        damagePlayerArmor(scene, camera, playerContainer, impactDmg);
+        collisionDamageCooldown = 0.45;
+      }
     }
   }
+
 
   const camOffset = new THREE.Vector3(0, 0.45, 1.85).applyQuaternion(playerContainer.quaternion);
   camOffset.add(new THREE.Vector3(gamepadCameraSide * 1.15, 0, 0).applyQuaternion(playerContainer.quaternion));
