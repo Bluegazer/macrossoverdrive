@@ -36,7 +36,6 @@ function drawDYRLEnemyHexagon(sx, sy, radius, distNum, subNum) {
   hudCtx.lineTo(p5.x, p5.y);
   hudCtx.closePath();
   hudCtx.stroke();
-
   hudCtx.beginPath();
   hudCtx.moveTo(-r * 1.85, p4.y);
   hudCtx.lineTo(-r * 1.25, p4.y);
@@ -72,15 +71,12 @@ function drawSeekerBrackets(sx, sy, spreadOffset, isLocked, enemyId, lockIndex) 
 
   hudCtx.save();
   hudCtx.translate(sx, sy);
-
   hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
   hudCtx.shadowBlur = 6;
-
   hudCtx.strokeStyle = color;
   hudCtx.lineWidth = isLocked ? 3.2 : 2.6;
   hudCtx.lineCap = 'round';
   hudCtx.lineJoin = 'round';
-
   hudCtx.beginPath();
   hudCtx.moveTo(-innerX + tip45, -halfH - tip45);
   hudCtx.lineTo(-innerX, -halfH);
@@ -101,6 +97,7 @@ function drawSeekerBrackets(sx, sy, spreadOffset, isLocked, enemyId, lockIndex) 
   hudCtx.fillText(statusLabel, -innerX, -halfH - tip45 - 6);
   hudCtx.restore();
 }
+
 function drawEnemyMissileMarkers(w, h, camera, playerContainer) {
   if (typeof enemyMissiles === 'undefined' || enemyMissiles.length === 0) return;
 
@@ -108,7 +105,7 @@ function drawEnemyMissileMarkers(w, h, camera, playerContainer) {
   const blink = (Math.floor(performance.now() / 110) % 2 === 0);
 
   for (let i = 0; i < enemyMissiles.length; i++) {
-    const em = enemyMissiles[i];
+    const em = enemyMissiles.at(i);
     projVec.copy(em.mesh.position).project(camera);
     if (projVec.z > 1) continue;
 
@@ -120,13 +117,10 @@ function drawEnemyMissileMarkers(w, h, camera, playerContainer) {
     const isDangerClose = dist < 26;
     const circleColor = isDangerClose ? (blink ? '#ef4444' : '#fca5a5') : '#ffffff';
     const radius = isDangerClose ? 13 : 10;
-
     hudCtx.save();
     hudCtx.translate(sx, sy);
-
     hudCtx.shadowColor = isDangerClose ? 'rgba(239, 68, 68, 0.95)' : 'rgba(0, 0, 0, 0.95)';
     hudCtx.shadowBlur = isDangerClose ? 8 : 5;
-
     hudCtx.strokeStyle = circleColor;
     hudCtx.lineWidth = isDangerClose ? 2.6 : 2.0;
     hudCtx.beginPath();
@@ -136,7 +130,6 @@ function drawEnemyMissileMarkers(w, h, camera, playerContainer) {
     hudCtx.font = 'bold 8.5px Conthrax, sans-serif';
     hudCtx.fillStyle = circleColor;
     hudCtx.fillText(isDangerClose ? 'WARN' : 'MSL', radius + 5, 3);
-
     hudCtx.restore();
   }
 }
@@ -161,10 +154,7 @@ function drawBattroidTrackReticle(w, h, camera) {
   hudCtx.lineWidth = 2.0;
 
   hudCtx.beginPath();
-  hudCtx.moveTo(0, -r);
-  hudCtx.lineTo(r, 0);
-  hudCtx.lineTo(0, r);
-  hudCtx.lineTo(-r, 0);
+  hudCtx.moveTo(0, -r); hudCtx.lineTo(r, 0); hudCtx.lineTo(0, r); hudCtx.lineTo(-r, 0);
   hudCtx.closePath();
   hudCtx.stroke();
 
@@ -174,26 +164,17 @@ function drawBattroidTrackReticle(w, h, camera) {
   hudCtx.restore();
 }
 function drawWeaponStatusPanel(w) {
-  const boxW = 295;
-  const boxH = 196;
-  const x = w - boxW - 15;
-  const y = 15;
-  const cut = 10;
-
+  const boxW = 295, boxH = 196, x = w - boxW - 15, y = 15, cut = 10;
   const hp = (typeof playerArmor !== 'undefined') ? playerArmor : 100;
   const maxHp = (typeof playerMaxArmor !== 'undefined') ? playerMaxArmor : 100;
   const dmgFlash = (typeof armorDamageFlash !== 'undefined') ? armorDamageFlash : 0;
   const armorRatio = Math.max(0, Math.min(1, hp / maxHp));
 
   hudCtx.save();
-
   hudCtx.beginPath();
-  hudCtx.moveTo(x + cut, y);
-  hudCtx.lineTo(x + boxW, y);
-  hudCtx.lineTo(x + boxW, y + boxH - cut);
-  hudCtx.lineTo(x + boxW - cut, y + boxH);
-  hudCtx.lineTo(x, y + boxH);
-  hudCtx.lineTo(x, y + cut);
+  hudCtx.moveTo(x + cut, y); hudCtx.lineTo(x + boxW, y);
+  hudCtx.lineTo(x + boxW, y + boxH - cut); hudCtx.lineTo(x + boxW - cut, y + boxH);
+  hudCtx.lineTo(x, y + boxH); hudCtx.lineTo(x, y + cut);
   hudCtx.closePath();
 
   hudCtx.fillStyle = dmgFlash > 0 ? 'rgba(127, 29, 29, 0.88)' : 'rgba(6, 12, 24, 0.84)';
@@ -211,26 +192,15 @@ function drawWeaponStatusPanel(w) {
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillText('ARMOR', x + 14, y + 22);
 
-  let armorColor = '#22c55e';
-  let armorTag = Math.round(armorRatio * 100) + '% // OK';
-  if (armorRatio <= 0.25) {
-    armorColor = '#ef4444';
-    armorTag = Math.round(armorRatio * 100) + '% // CRITICAL';
-  } else if (armorRatio <= 0.55) {
-    armorColor = '#f59e0b';
-    armorTag = Math.round(armorRatio * 100) + '% // DAMAGED';
-  }
+  let armorColor = '#22c55e', armorTag = Math.round(armorRatio * 100) + '% // OK';
+  if (armorRatio <= 0.25) { armorColor = '#ef4444'; armorTag = Math.round(armorRatio * 100) + '% // CRITICAL'; }
+  else if (armorRatio <= 0.55) { armorColor = '#f59e0b'; armorTag = Math.round(armorRatio * 100) + '% // DAMAGED'; }
 
   hudCtx.shadowColor = armorColor;
   hudCtx.shadowBlur = 6;
   hudCtx.fillStyle = armorColor;
   hudCtx.fillText(armorTag, x + 135, y + 22);
-
-  const barX = x + 14;
-  const barY = y + 29;
-  const barW = boxW - 28;
-  const barH = 11;
-
+  const barX = x + 14, barY = y + 29, barW = boxW - 28, barH = 11;
   hudCtx.shadowBlur = 0;
   hudCtx.fillStyle = 'rgba(15, 23, 42, 0.9)';
   hudCtx.fillRect(barX, barY, barW, barH);
@@ -245,17 +215,14 @@ function drawWeaponStatusPanel(w) {
 
   hudCtx.shadowBlur = 0;
   hudCtx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-  hudCtx.lineWidth = 1;
   hudCtx.beginPath();
-  hudCtx.moveTo(x + 12, y + 50);
-  hudCtx.lineTo(x + boxW - 12, y + 50);
+  hudCtx.moveTo(x + 12, y + 50); hudCtx.lineTo(x + boxW - 12, y + 50);
   hudCtx.stroke();
 
   const isFiringGun = (typeof muzzleFlashTimer !== 'undefined' && muzzleFlashTimer > 0);
   hudCtx.font = 'bold 10px Conthrax, sans-serif';
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillText('GUN: GU-11', x + 14, y + 72);
-
   hudCtx.shadowColor = isFiringGun ? 'rgba(250, 204, 21, 0.9)' : 'rgba(34, 197, 94, 0.8)';
   hudCtx.shadowBlur = 6;
   hudCtx.fillStyle = isFiringGun ? '#facc15' : '#22c55e';
@@ -263,102 +230,68 @@ function drawWeaponStatusPanel(w) {
 
   hudCtx.shadowBlur = 0;
   hudCtx.beginPath();
-  hudCtx.moveTo(x + 12, y + 86);
-  hudCtx.lineTo(x + boxW - 12, y + 86);
+  hudCtx.moveTo(x + 12, y + 86); hudCtx.lineTo(x + boxW - 12, y + 86);
   hudCtx.stroke();
-
   const lockCount = (typeof lockedEnemies !== 'undefined') ? lockedEnemies.length : 0;
   const hasLock = lockCount > 0;
-
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillText('MSL: ' + (typeof getCurrentMissileType === 'function' ? getCurrentMissileType() : 'AMM-1'), x + 14, y + 110);
-
   hudCtx.shadowColor = hasLock ? 'rgba(239, 68, 68, 0.9)' : 'rgba(56, 189, 248, 0.6)';
   hudCtx.shadowBlur = 6;
   hudCtx.fillStyle = hasLock ? '#ef4444' : '#94a3b8';
-  const mslLabel = hasLock ? ('LOCK [' + lockCount + '/4]') : 'STBY';
-  hudCtx.fillText(mslLabel, x + 135, y + 110);
+  hudCtx.fillText(hasLock ? ('LOCK [' + lockCount + '/4]') : 'STBY', x + 135, y + 110);
 
   for (let i = 0; i < 4; i++) {
-    const cellX = x + 232 + i * 12;
-    const cellY = y + 100;
-    const cellActive = i < lockCount;
-    hudCtx.fillStyle = cellActive ? '#ef4444' : 'rgba(51, 65, 85, 0.6)';
-    hudCtx.fillRect(cellX, cellY, 8, 12);
+    hudCtx.fillStyle = (i < lockCount) ? '#ef4444' : 'rgba(51, 65, 85, 0.6)';
+    hudCtx.fillRect(x + 232 + i * 12, y + 100, 8, 12);
   }
 
   hudCtx.shadowBlur = 0;
   hudCtx.beginPath();
-  hudCtx.moveTo(x + 12, y + 124);
-  hudCtx.lineTo(x + boxW - 12, y + 124);
+  hudCtx.moveTo(x + 12, y + 124); hudCtx.lineTo(x + boxW - 12, y + 124);
   hudCtx.stroke();
 
   const isBattroid = (typeof currentMode !== 'undefined' && currentMode === 'BATTROID');
   const tMode = (typeof battroidTrackMode !== 'undefined') ? battroidTrackMode : 'NONE';
-
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillText('TRACK [N]', x + 14, y + 148);
 
-  let trackLabel = 'N/A (B-ONLY)';
-  let trackColor = '#64748b';
+  let trackLabel = 'N/A (B-ONLY)', trackColor = '#64748b';
   if (isBattroid) {
-    if (tMode === 'ENEMY') {
-      trackLabel = 'ENEMY // AUTO';
-      trackColor = '#22c55e';
-    } else if (tMode === 'MISSILE') {
-      trackLabel = 'MISSILE // AUTO';
-      trackColor = '#facc15';
-    } else {
-      trackLabel = 'NONE // MANUAL';
-      trackColor = '#94a3b8';
-    }
+    if (tMode === 'ENEMY') { trackLabel = 'ENEMY // AUTO'; trackColor = '#22c55e'; }
+    else if (tMode === 'MISSILE') { trackLabel = 'MISSILE // AUTO'; trackColor = '#facc15'; }
+    else { trackLabel = 'NONE // MANUAL'; trackColor = '#94a3b8'; }
   }
-
   hudCtx.shadowColor = trackColor;
   hudCtx.shadowBlur = (isBattroid && tMode !== 'NONE') ? 6 : 0;
   hudCtx.fillStyle = trackColor;
   hudCtx.fillText(trackLabel, x + 135, y + 148);
   hudCtx.shadowBlur = 0;
   hudCtx.beginPath();
-  hudCtx.moveTo(x + 12, y + 160);
-  hudCtx.lineTo(x + boxW - 12, y + 160);
+  hudCtx.moveTo(x + 12, y + 160); hudCtx.lineTo(x + boxW - 12, y + 160);
   hudCtx.stroke();
 
   const isFighterMode = (typeof currentMode !== 'undefined' && currentMode === 'FIGHTER');
   const cCooldown = (typeof chaffCooldown !== 'undefined') ? chaffCooldown : 0;
   const cActive = (typeof chaffFlares !== 'undefined' && chaffFlares.length > 0);
-
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillText('CHAFF [C]', x + 14, y + 183);
 
-  let chaffLabel = 'N/A (F-ONLY)';
-  let chaffColor = '#64748b';
+  let chaffLabel = 'N/A (F-ONLY)', chaffColor = '#64748b';
   if (isFighterMode) {
-    if (cActive) {
-      chaffLabel = 'DEPLOYED // FLARE';
-      chaffColor = '#facc15';
-    } else if (cCooldown > 0) {
-      chaffLabel = 'RELOAD // ' + cCooldown.toFixed(1) + 'S';
-      chaffColor = '#f59e0b';
-    } else {
-      chaffLabel = 'READY // DECOY';
-      chaffColor = '#22c55e';
-    }
+    if (cActive) { chaffLabel = 'DEPLOYED // FLARE'; chaffColor = '#facc15'; }
+    else if (cCooldown > 0) { chaffLabel = 'RELOAD // ' + cCooldown.toFixed(1) + 'S'; chaffColor = '#f59e0b'; }
+    else { chaffLabel = 'READY // DECOY'; chaffColor = '#22c55e'; }
   }
-
   hudCtx.shadowColor = chaffColor;
   hudCtx.shadowBlur = (isFighterMode && (cActive || cCooldown <= 0)) ? 6 : 0;
   hudCtx.fillStyle = chaffColor;
   hudCtx.fillText(chaffLabel, x + 135, y + 183);
   hudCtx.restore();
 }
-function drawPropulsionPanel(h) {
-  const boxW = 305;
-  const boxH = 92;
-  const x = 15;
-  const y = h - boxH - 15;
-  const cut = 10;
 
+function drawPropulsionPanel(h) {
+  const boxW = 305, boxH = 92, x = 15, y = h - boxH - 15, cut = 10;
   const thr = (typeof throttle !== 'undefined') ? throttle : 0;
   const accel = (typeof isAccelerating !== 'undefined') ? isAccelerating : false;
   const heat = (typeof turboHeat !== 'undefined') ? turboHeat : 0;
@@ -366,19 +299,12 @@ function drawPropulsionPanel(h) {
   const spdKmh = (typeof velocity !== 'undefined') ? Math.round(velocity.length() * 45) : 0;
 
   hudCtx.save();
-
   hudCtx.beginPath();
-  hudCtx.moveTo(x, y);
-  hudCtx.lineTo(x + boxW - cut, y);
-  hudCtx.lineTo(x + boxW, y + cut);
-  hudCtx.lineTo(x + boxW, y + boxH);
-  hudCtx.lineTo(x + cut, y + boxH);
-  hudCtx.lineTo(x, y + boxH - cut);
+  hudCtx.moveTo(x, y); hudCtx.lineTo(x + boxW - cut, y); hudCtx.lineTo(x + boxW, y + cut);
+  hudCtx.lineTo(x + boxW, y + boxH); hudCtx.lineTo(x + cut, y + boxH); hudCtx.lineTo(x, y + boxH - cut);
   hudCtx.closePath();
-
   hudCtx.fillStyle = 'rgba(6, 12, 24, 0.84)';
   hudCtx.fill();
-
   const borderCol = overheat ? '#ef4444' : (heat > 0.75 ? '#f59e0b' : '#38bdf8');
   hudCtx.shadowColor = borderCol;
   hudCtx.shadowBlur = overheat ? 12 : 8;
@@ -390,16 +316,10 @@ function drawPropulsionPanel(h) {
   hudCtx.font = 'bold 9.5px Conthrax, sans-serif';
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillText('THROTTLE', x + 14, y + 22);
-
   hudCtx.fillStyle = accel ? '#ff7b29' : '#22c55e';
-  const thrText = accel ? ('MAX // ' + spdKmh + ' KM/H') : (Math.round(thr * 100) + '% // ' + spdKmh + ' KM/H');
-  hudCtx.fillText(thrText, x + 115, y + 22);
+  hudCtx.fillText(accel ? ('MAX // ' + spdKmh + ' KM/H') : (Math.round(thr * 100) + '% // ' + spdKmh + ' KM/H'), x + 115, y + 22);
 
-  const barX = x + 14;
-  const barW = boxW - 28;
-  const thrBarY = y + 29;
-  const barH = 11;
-
+  const barX = x + 14, barW = boxW - 28, thrBarY = y + 29, barH = 11;
   hudCtx.fillStyle = 'rgba(15, 23, 42, 0.9)';
   hudCtx.fillRect(barX, thrBarY, barW, barH);
   hudCtx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
@@ -417,181 +337,126 @@ function drawPropulsionPanel(h) {
   hudCtx.fillText('TURBINE HEAT', x + 14, y + 60);
 
   const blink = (Math.floor(performance.now() / 160) % 2 === 0);
-  let heatStatus = Math.round(heat * 100) + '% // NOMINAL';
-  let heatColor = '#38bdf8';
-
-  if (overheat) {
-    heatStatus = blink ? 'OVERHEAT // COOLING' : 'LOCKED // COOLING';
-    heatColor = '#ef4444';
-  } else if (heat > 0.75) {
-    heatStatus = Math.round(heat * 100) + '% // HEAT WARN';
-    heatColor = '#f59e0b';
-  } else if (heat > 0.35) {
-    heatStatus = Math.round(heat * 100) + '% // WARM';
-    heatColor = '#facc15';
-  }
+  let heatStatus = Math.round(heat * 100) + '% // NOMINAL', heatColor = '#38bdf8';
+  if (overheat) { heatStatus = blink ? 'OVERHEAT // COOLING' : 'LOCKED // COOLING'; heatColor = '#ef4444'; }
+  else if (heat > 0.75) { heatStatus = Math.round(heat * 100) + '% // HEAT WARN'; heatColor = '#f59e0b'; }
+  else if (heat > 0.35) { heatStatus = Math.round(heat * 100) + '% // WARM'; heatColor = '#facc15'; }
 
   hudCtx.shadowColor = heatColor;
   hudCtx.shadowBlur = overheat ? 10 : 5;
   hudCtx.fillStyle = heatColor;
   hudCtx.fillText(heatStatus, x + 128, y + 60);
-
   const heatBarY = y + 67;
   hudCtx.shadowBlur = 0;
   hudCtx.fillStyle = 'rgba(15, 23, 42, 0.9)';
   hudCtx.fillRect(barX, heatBarY, barW, barH);
   hudCtx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
   hudCtx.strokeRect(barX, heatBarY, barW, barH);
-
   hudCtx.shadowColor = heatColor;
   hudCtx.shadowBlur = 7;
   hudCtx.fillStyle = heatColor;
   hudCtx.fillRect(barX + 2, heatBarY + 2, (barW - 4) * Math.min(1, heat), barH - 4);
-
   hudCtx.restore();
 }
 
 function drawPauseOverlay(w, h) {
-  const cx = w / 2;
-  const cy = h / 2;
-  const boxW = 340;
-  const boxH = 115;
-  const x = cx - boxW / 2;
-  const y = cy - boxH / 2;
-  const cut = 14;
-
+  const cx = w / 2, cy = h / 2, boxW = 340, boxH = 115, x = cx - boxW / 2, y = cy - boxH / 2, cut = 14;
   hudCtx.save();
-
   hudCtx.fillStyle = 'rgba(2, 6, 23, 0.55)';
   hudCtx.fillRect(0, 0, w, h);
-
   hudCtx.beginPath();
-  hudCtx.moveTo(x + cut, y);
-  hudCtx.lineTo(x + boxW - cut, y);
-  hudCtx.lineTo(x + boxW, y + cut);
-  hudCtx.lineTo(x + boxW, y + boxH - cut);
-  hudCtx.lineTo(x + boxW - cut, y + boxH);
-  hudCtx.lineTo(x + cut, y + boxH);
-  hudCtx.lineTo(x, y + boxH - cut);
-  hudCtx.lineTo(x, y + cut);
+  hudCtx.moveTo(x + cut, y); hudCtx.lineTo(x + boxW - cut, y); hudCtx.lineTo(x + boxW, y + cut);
+  hudCtx.lineTo(x + boxW, y + boxH - cut); hudCtx.lineTo(x + boxW - cut, y + boxH);
+  hudCtx.lineTo(x + cut, y + boxH); hudCtx.lineTo(x, y + boxH - cut); hudCtx.lineTo(x, y + cut);
   hudCtx.closePath();
-
   hudCtx.fillStyle = 'rgba(6, 12, 24, 0.92)';
   hudCtx.fill();
-
   hudCtx.shadowColor = 'rgba(56, 189, 248, 0.9)';
   hudCtx.shadowBlur = 14;
   hudCtx.strokeStyle = '#38bdf8';
   hudCtx.lineWidth = 2.0;
   hudCtx.stroke();
-
-  hudCtx.shadowBlur = 6;
-  hudCtx.strokeStyle = '#22c55e';
-  hudCtx.lineWidth = 1.5;
-  hudCtx.beginPath();
-  hudCtx.moveTo(x + 24, cy - 22);
-  hudCtx.lineTo(x + boxW - 24, cy - 22);
-  hudCtx.moveTo(x + 24, cy + 26);
-  hudCtx.lineTo(x + boxW - 24, cy + 26);
-  hudCtx.stroke();
-
   hudCtx.textAlign = 'center';
   hudCtx.textBaseline = 'middle';
-  hudCtx.shadowColor = 'rgba(56, 189, 248, 0.95)';
-  hudCtx.shadowBlur = 12;
   hudCtx.font = 'bold 26px Conthrax, sans-serif';
   hudCtx.fillStyle = '#ffffff';
   hudCtx.fillText('PAUSA', cx, cy + 2);
-
-  hudCtx.shadowBlur = 4;
   hudCtx.font = 'bold 9.5px Conthrax, sans-serif';
   hudCtx.fillStyle = '#38bdf8';
   hudCtx.fillText('SYSTEM STANDBY // PRESIONA [P]', cx, cy + 40);
-
   hudCtx.restore();
 }
 function drawRestartOverlay(w, h) {
-  const cx = w / 2;
-  const cy = h / 2;
-  const boxW = 390;
-  const boxH = 145;
-  const x = cx - boxW / 2;
-  const y = cy - boxH / 2;
-  const cut = 14;
-
+  const cx = w / 2, cy = h / 2, boxW = 390, boxH = 145, x = cx - boxW / 2, y = cy - boxH / 2, cut = 14;
   const declined = (typeof restartDeclined !== 'undefined') ? restartDeclined : false;
-
   hudCtx.save();
-
   hudCtx.fillStyle = 'rgba(2, 6, 23, 0.65)';
   hudCtx.fillRect(0, 0, w, h);
-
   hudCtx.beginPath();
-  hudCtx.moveTo(x + cut, y);
-  hudCtx.lineTo(x + boxW - cut, y);
-  hudCtx.lineTo(x + boxW, y + cut);
-  hudCtx.lineTo(x + boxW, y + boxH - cut);
-  hudCtx.lineTo(x + boxW - cut, y + boxH);
-  hudCtx.lineTo(x + cut, y + boxH);
-  hudCtx.lineTo(x, y + boxH - cut);
-  hudCtx.lineTo(x, y + cut);
+  hudCtx.moveTo(x + cut, y); hudCtx.lineTo(x + boxW - cut, y); hudCtx.lineTo(x + boxW, y + cut);
+  hudCtx.lineTo(x + boxW, y + boxH - cut); hudCtx.lineTo(x + boxW - cut, y + boxH);
+  hudCtx.lineTo(x + cut, y + boxH); hudCtx.lineTo(x, y + boxH - cut); hudCtx.lineTo(x, y + cut);
   hudCtx.closePath();
-
   hudCtx.fillStyle = 'rgba(15, 6, 10, 0.92)';
   hudCtx.fill();
-
-  hudCtx.shadowColor = 'rgba(239, 68, 68, 0.95)';
-  hudCtx.shadowBlur = 15;
   hudCtx.strokeStyle = '#ef4444';
   hudCtx.lineWidth = 2.2;
   hudCtx.stroke();
-
   hudCtx.textAlign = 'center';
   hudCtx.textBaseline = 'middle';
-
-  hudCtx.shadowBlur = 6;
   hudCtx.font = 'bold 10px Conthrax, sans-serif';
   hudCtx.fillStyle = '#f87171';
   hudCtx.fillText('VF-1A DESTROYED // SYSTEM FAILURE', cx, cy - 42);
-
-  hudCtx.shadowColor = 'rgba(255, 255, 255, 0.9)';
-  hudCtx.shadowBlur = 12;
   hudCtx.font = 'bold 24px Conthrax, sans-serif';
   hudCtx.fillStyle = '#ffffff';
   hudCtx.fillText('RESTART?', cx, cy - 6);
-
-  hudCtx.shadowColor = 'rgba(34, 197, 94, 0.9)';
-  hudCtx.shadowBlur = 8;
   hudCtx.font = 'bold 14px Conthrax, sans-serif';
   const padType = window.gameControls?.getGamepadDiagramType?.();
   const yesLabel = padType === 'xbox' ? '[A] SÍ' : padType === 'ps2' ? '[×] SÍ' : '[Y] YES';
   const noLabel = padType === 'xbox' ? '[B] NO' : padType === 'ps2' ? '[○] NO' : '[N] NO';
-  hudCtx.shadowColor = '#38bdf8';
-  hudCtx.shadowBlur = 10;
   hudCtx.strokeStyle = '#38bdf8';
   hudCtx.lineWidth = 2;
   hudCtx.strokeRect(cx + (declined ? 34 : -122), cy + 22, 88, 32);
-  hudCtx.shadowColor = 'rgba(34, 197, 94, 0.9)';
-  hudCtx.shadowBlur = 8;
   hudCtx.fillStyle = !declined ? '#22c55e' : '#64748b';
   hudCtx.fillText(yesLabel, cx - 78, cy + 38);
-
-  hudCtx.shadowColor = declined ? 'rgba(239, 68, 68, 0.95)' : 'rgba(148, 163, 184, 0.5)';
   hudCtx.fillStyle = declined ? '#ef4444' : '#94a3b8';
   hudCtx.fillText(noLabel, cx + 78, cy + 38);
-
   hudCtx.restore();
 }
-
 const saturnSunImg = new Image();
 saturnSunImg.src = './textures/sun.webp';
 
-function drawSaturnSunLensFlare(w, h, camera) {
+const sunShaftsCanvas = document.createElement('canvas');
+sunShaftsCanvas.width = 512;
+sunShaftsCanvas.height = 512;
+(function initSunShaftsBuffer() {
+  const sCtx = sunShaftsCanvas.getContext('2d');
+  sCtx.save();
+  sCtx.filter = 'blur(8px)';
+  for (let i = 0; i < 32; i++) {
+    const ang = (i / 32) * Math.PI * 2 + Math.sin(i * 5.7) * 0.12;
+    const len = 140 + (i % 5) * 24;
+    const sp = 0.045 + (i % 3) * 0.02;
+    const g = sCtx.createRadialGradient(256, 256, 18, 256, 256, len);
+    g.addColorStop(0.0, 'rgba(255, 253, 240, 0.24)');
+    g.addColorStop(0.5, 'rgba(254, 240, 185, 0.10)');
+    g.addColorStop(1.0, 'rgba(253, 186, 116, 0.0)');
+    sCtx.fillStyle = g;
+    sCtx.beginPath();
+    sCtx.moveTo(256, 256);
+    sCtx.lineTo(256 + Math.cos(ang - sp) * len, 256 + Math.sin(ang - sp) * len);
+    sCtx.lineTo(256 + Math.cos(ang + sp) * len, 256 + Math.sin(ang + sp) * len);
+    sCtx.closePath();
+    sCtx.fill();
+  }
+  sCtx.restore();
+})();
+
+function drawSaturnSunLensFlare(w, h, camera, playerContainer) {
   if (typeof activeMapId === 'undefined' || activeMapId !== 'MAPA_2') return;
   if (typeof SUN_DIR_VEC === 'undefined' || !SUN_DIR_VEC) return;
 
-  const sunWorldPos = camera.position.clone().addScaledVector(SUN_DIR_VEC, 2000);
-  const projVec = sunWorldPos.clone().project(camera);
+  const projVec = camera.position.clone().addScaledVector(SUN_DIR_VEC, 2000).project(camera);
   if (projVec.z > 1) return;
 
   if (typeof SATURN_CENTER !== 'undefined') {
@@ -606,15 +471,33 @@ function drawSaturnSunLensFlare(w, h, camera) {
   const distNorm = Math.hypot(sx - cx, sy - cy) / Math.hypot(cx, cy);
   if (distNorm > 1.25) return;
 
-  const intensity = Math.pow(Math.max(0, 1.0 - distNorm / 1.25), 1.3) * 1.5;
+  let shipOcc = 1.0;
+  if (playerContainer) {
+    const sp = playerContainer.position.clone().project(camera);
+    if (sp.z <= 1) {
+      const shipDist = Math.hypot(sx - (sp.x * 0.5 + 0.5) * w, sy - (-(sp.y * 0.5) + 0.5) * h);
+      if (shipDist < 85) shipOcc = 0.40 + 0.60 * (shipDist / 85);
+    }
+  }
+  const intensity = Math.pow(Math.max(0, 1.0 - distNorm / 1.25), 1.3) * 1.45 * shipOcc;
 
   hudCtx.save();
   hudCtx.globalCompositeOperation = 'lighter';
 
   if (saturnSunImg.complete && saturnSunImg.naturalWidth > 0) {
-    const sunDrawSize = 185;
-    hudCtx.drawImage(saturnSunImg, sx - sunDrawSize * 0.5, sy - sunDrawSize * 0.5, sunDrawSize, sunDrawSize);
+    const sunBloomSize = 110 * Math.min(1.15, intensity);
+    hudCtx.globalAlpha = Math.min(0.85, 0.72 * Math.pow(shipOcc, 2.2));
+    hudCtx.drawImage(saturnSunImg, sx - sunBloomSize * 0.5, sy - sunBloomSize * 0.5, sunBloomSize, sunBloomSize);
   }
+
+  hudCtx.globalAlpha = Math.min(1.0, intensity);
+  const shaftSize = 440 * Math.min(1.2, intensity);
+  hudCtx.translate(sx, sy);
+  hudCtx.rotate(performance.now() * 0.00004);
+  hudCtx.drawImage(sunShaftsCanvas, -shaftSize * 0.5, -shaftSize * 0.5, shaftSize, shaftSize);
+  hudCtx.rotate(-performance.now() * 0.00004);
+  hudCtx.translate(-sx, -sy);
+  hudCtx.globalAlpha = 1.0;
 
   const ghosts = new Array({ t: 1.35, r: 26, col: '147, 197, 253' }, { t: 1.65, r: 44, col: '253, 224, 71' }, { t: 1.95, r: 18, col: '186, 230, 253' });
   for (let i = 0; i < ghosts.length; i++) {
@@ -631,15 +514,10 @@ function drawSaturnSunLensFlare(w, h, camera) {
   }
   hudCtx.restore();
 }
-
 function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
-  const w = hudCanvas.width;
-  const h = hudCanvas.height;
-  const cx = w / 2;
-  const cy = h / 2;
-
-    hudCtx.clearRect(0, 0, w, h);
-    drawSaturnSunLensFlare(w, h, camera);
+  const w = hudCanvas.width, h = hudCanvas.height, cx = w / 2, cy = h / 2;
+  hudCtx.clearRect(0, 0, w, h);
+  drawSaturnSunLensFlare(w, h, camera, playerContainer);
 
   if (typeof armorDamageFlash !== 'undefined' && armorDamageFlash > 0) {
     hudCtx.save();
@@ -654,78 +532,46 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   const projVec = new THREE.Vector3();
 
   for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
-    if (e.respawnTimer > 0) {
-      e.lockProgress = 0;
-      e.seekerX = cx;
-      e.seekerY = cy;
-      continue;
-    }
-
+    const e = enemies.at(i);
+    if (e.respawnTimer > 0) { e.lockProgress = 0; e.seekerX = cx; e.seekerY = cy; continue; }
     projVec.copy(e.mesh.position).project(camera);
-    if (projVec.z > 1) {
-      e.lockProgress = Math.max(0, (e.lockProgress || 0) - delta * 2.0);
-      continue;
-    }
+    if (projVec.z > 1) { e.lockProgress = Math.max(0, (e.lockProgress || 0) - delta * 2.0); continue; }
 
-    const sx = (projVec.x * 0.5 + 0.5) * w;
-    const sy = (-(projVec.y * 0.5) + 0.5) * h;
+    const sx = (projVec.x * 0.5 + 0.5) * w, sy = (-(projVec.y * 0.5) + 0.5) * h;
     const distCenter = Math.hypot(sx - cx, sy - cy);
     const worldDist = Math.round(e.mesh.position.distanceTo(playerContainer.position) * 10);
     const altDiff = Math.max(0, Math.round(e.mesh.position.y * 2.4));
-
     drawDYRLEnemyHexagon(sx, sy, 18, worldDist, altDiff);
 
-    if (distCenter < scanRadius) {
-      candidates.push({ enemy: e, sx: sx, sy: sy, distCenter: distCenter });
-    } else {
-      e.lockProgress = Math.max(0, (e.lockProgress || 0) - delta * 2.5);
-      e.seekerX = cx;
-      e.seekerY = cy;
-    }
+    if (distCenter < scanRadius) candidates.push({ enemy: e, sx: sx, sy: sy, distCenter: distCenter });
+    else { e.lockProgress = Math.max(0, (e.lockProgress || 0) - delta * 2.5); e.seekerX = cx; e.seekerY = cy; }
   }
 
   candidates.sort((a, b) => a.distCenter - b.distCenter);
   const activeBatch = candidates.slice(0, MAX_MULTI_LOCK);
-
   for (let i = MAX_MULTI_LOCK; i < candidates.length; i++) {
-    candidates[i].enemy.lockProgress = 0;
-    candidates[i].enemy.seekerX = cx;
-    candidates[i].enemy.seekerY = cy;
+    candidates.at(i).enemy.lockProgress = 0;
+    candidates.at(i).enemy.seekerX = cx;
+    candidates.at(i).enemy.seekerY = cy;
   }
 
   lockedEnemies.length = 0;
-
   for (let i = 0; i < activeBatch.length; i++) {
-    const item = activeBatch[i];
-    const e = item.enemy;
-
-    if (typeof e.seekerX !== 'number') {
-      e.seekerX = cx;
-      e.seekerY = cy;
-    }
-
+    const item = activeBatch.at(i), e = item.enemy;
+    if (typeof e.seekerX !== 'number') { e.seekerX = cx; e.seekerY = cy; }
     const lerpRate = Math.min(1.0, 12.0 * delta);
     e.seekerX += (item.sx - e.seekerX) * lerpRate;
     e.seekerY += (item.sy - e.seekerY) * lerpRate;
-
-    const alignDist = Math.hypot(item.sx - e.seekerX, item.sy - e.seekerY);
-    if (alignDist < 30) {
+    if (Math.hypot(item.sx - e.seekerX, item.sy - e.seekerY) < 30) {
       e.lockProgress = Math.min(1.0, (e.lockProgress || 0) + delta * 2.4);
     }
-
     const isFullLock = e.lockProgress >= 1.0;
-    if (isFullLock) {
-      lockedEnemies.push(e);
-    }
-
-    const spreadOffset = (1.0 - (e.lockProgress || 0)) * 18;
-    drawSeekerBrackets(e.seekerX, e.seekerY, spreadOffset, isFullLock, e.id, i + 1);
+    if (isFullLock) lockedEnemies.push(e);
+    drawSeekerBrackets(e.seekerX, e.seekerY, (1.0 - (e.lockProgress || 0)) * 18, isFullLock, e.id, i + 1);
   }
 
   drawEnemyMissileMarkers(w, h, camera, playerContainer);
   drawBattroidTrackReticle(w, h, camera);
-
 
   const forwardVec = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
   const aimProj = playerContainer.position.clone().addScaledVector(forwardVec, 18).project(camera);
@@ -740,7 +586,6 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   const pitchOffset = THREE.MathUtils.clamp(attEuler.x * 135, -85, 85);
 
   hudCtx.save();
-  // Recorte superior: impide que cualquier línea baje por encima de la silueta del Valkyrie
   hudCtx.beginPath();
   hudCtx.rect(0, 0, w, Math.max(80, shipSy - 24));
   hudCtx.clip();
@@ -756,7 +601,6 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
   hudCtx.shadowBlur = 5;
 
-  // 1. HORIZONTE (0°): Verde con pestañas hacia abajo (Tierra)
   hudCtx.strokeStyle = '#22c55e';
   hudCtx.lineWidth = 2.2;
   hudCtx.beginPath();
@@ -764,7 +608,6 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.moveTo(68, 0);  hudCtx.lineTo(22, 0);  hudCtx.lineTo(22, 6);
   hudCtx.stroke();
 
-  // 2. CIELO (+15° y +30°): Cian sólido con pestañas hacia abajo
   hudCtx.strokeStyle = '#38bdf8';
   hudCtx.lineWidth = 1.8;
   hudCtx.beginPath();
@@ -774,7 +617,6 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.moveTo(32, -64);  hudCtx.lineTo(14, -64);  hudCtx.lineTo(14, -59);
   hudCtx.stroke();
 
-  // 3. TIERRA (-15° y -30°): Ámbar discontinuo con pestañas hacia arriba
   hudCtx.strokeStyle = '#f59e0b';
   hudCtx.setLineDash(new Array(5, 4));
   hudCtx.beginPath();
@@ -787,7 +629,6 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.restore();
   hudCtx.restore();
 
-  // Retícula central proyectada delante de la proa del Valkyrie
   hudCtx.save();
   hudCtx.translate(hudX, hudY);
   hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
@@ -804,13 +645,9 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   hudCtx.fillRect(-2, -2, 4, 4);
   hudCtx.restore();
 
-
   drawWeaponStatusPanel(w);
   drawPropulsionPanel(h);
 
-  if (typeof isGameOver !== 'undefined' && isGameOver) {
-    drawRestartOverlay(w, h);
-  } else if (isPaused) {
-    drawPauseOverlay(w, h);
-  }
+  if (typeof isGameOver !== 'undefined' && isGameOver) drawRestartOverlay(w, h);
+  else if (isPaused) drawPauseOverlay(w, h);
 }

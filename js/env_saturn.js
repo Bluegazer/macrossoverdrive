@@ -3,6 +3,7 @@ let saturnRingDiscMesh = null;
 let saturnRingInstMesh = null;
 let saturnDustPoints = null;
 let saturnStarsPoints = null;
+let saturnSunMesh = null;
 const saturnRingAsteroids = new Array();
 
 const saturnDummy = new THREE.Object3D();
@@ -66,6 +67,28 @@ function createSpaceStarfield(targetGroup) {
 
   saturnStarsPoints = new THREE.Points(starGeo, starMat);
   targetGroup.add(saturnStarsPoints);
+}
+function buildSaturn3DSunCorona(targetGroup) {
+  const texLoader = new THREE.TextureLoader();
+  const sunTex = texLoader.load('./textures/sun.webp');
+  sunTex.anisotropy = 4;
+
+  const sunGeo = new THREE.PlaneGeometry(85, 85);
+  const sunMat = new THREE.MeshBasicMaterial({
+    map: sunTex,
+    alphaTest: 0.55,
+    transparent: false,
+    depthWrite: false,
+    depthTest: true,
+    fog: false,
+    toneMapped: false
+  });
+
+  saturnSunMesh = new THREE.Mesh(sunGeo, sunMat);
+  saturnSunMesh.frustumCulled = false;
+  saturnSunMesh.renderOrder = -20;
+  saturnSunMesh.position.copy(SUN_DIR_VEC).multiplyScalar(2000);
+  targetGroup.add(saturnSunMesh);
 }
 function buildProceduralSaturnRings(targetGroup) {
   saturnRingAsteroids.length = 0;
@@ -233,6 +256,7 @@ function buildSaturnOrbitEnvironment(scene, targetGroup) {
   }
 
   createSpaceStarfield(targetGroup);
+  buildSaturn3DSunCorona(targetGroup);
   loadSaturnPlanetModel(targetGroup);
   buildProceduralSaturnRings(targetGroup);
   buildSaturnRingDustLayer(targetGroup);
@@ -241,6 +265,11 @@ function buildSaturnOrbitEnvironment(scene, targetGroup) {
 function updateSaturnEnvironment(delta) {
   if (saturnPlanetGroup && saturnPlanetGroup.children.length > 0) {
     saturnPlanetGroup.children.at(0).rotation.y += 0.012 * delta;
+  }
+
+  if (saturnSunMesh && typeof camera !== 'undefined' && camera) {
+    saturnSunMesh.position.copy(camera.position).addScaledVector(SUN_DIR_VEC, 2000);
+    saturnSunMesh.quaternion.copy(camera.quaternion);
   }
 
   if (saturnDustPoints && typeof camera !== 'undefined' && camera) {
@@ -256,12 +285,13 @@ function updateSaturnEnvironment(delta) {
     posAttr.needsUpdate = true;
   }
 
+  const activeSaturnPos = saturnPlanetGroup ? saturnPlanetGroup.position : SATURN_CENTER;
   if (typeof playerContainer !== 'undefined' && playerContainer && typeof velocity !== 'undefined') {
-    const toPlayer = playerContainer.position.clone().sub(SATURN_CENTER);
+    const toPlayer = playerContainer.position.clone().sub(activeSaturnPos);
     const dist = toPlayer.length();
     if (dist < 385 && dist > 0.01) {
       toPlayer.normalize();
-      playerContainer.position.copy(SATURN_CENTER).addScaledVector(toPlayer, 385);
+      playerContainer.position.copy(activeSaturnPos).addScaledVector(toPlayer, 385);
       const vn = velocity.dot(toPlayer);
       if (vn < 0) velocity.addScaledVector(toPlayer, -vn * 1.25);
     }
