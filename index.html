@@ -10,6 +10,8 @@
   <link rel="preload" href="./models/vf1a.glb" as="fetch" crossorigin>
   <link rel="preload" href="./models/regult.glb" as="fetch" crossorigin>
   <link rel="preload" href="./textures/saturn.webp" as="image">
+  <link rel="preload" href="./textures/saturn_rings.webp" as="image">
+  <link rel="preload" href="./textures/sun.webp" as="image">
 </head>
 <body>
   <!-- Pantalla de Inicio -->
@@ -18,22 +20,28 @@
       <div class="start-tag">U.N. SPACY COMBAT PROGRAM</div>
       <h1 class="start-title">MACROSS OVERDRIVE</h1>
       <div class="start-subtitle">VF-1 VALKYRIE // ARCADE - SIM</div>
-      <button id="btnStartGame" class="start-btn">INICIAR MISIÓN</button>
+      <button id="btnStartGame" class="start-btn" disabled>CARGANDO SISTEMAS...</button>
       <button id="btnOptions" class="start-options-btn" type="button">OPCIONES</button>
-	  <div class="map-selector-box">
-      <div class="map-selector-label">TEATRO DE OPERACIONES</div>
-      <div class="map-btn-group">
-      <button type="button" class="map-select-btn active" data-map="MAPA_1">MAPA 1</button>
-      <button type="button" class="map-select-btn" data-map="MAPA_2">MAPA 2</button>
-      <button type="button" class="map-select-btn" data-map="MAPA_3">MAPA 3</button>
+      <div class="map-selector-box">
+        <div class="map-selector-label">TEATRO DE OPERACIONES</div>
+        <div class="map-btn-group">
+          <button type="button" class="map-select-btn active" data-map="MAPA_1">MAPA 1</button>
+          <button type="button" class="map-select-btn" data-map="MAPA_2">MAPA 2</button>
+          <button type="button" class="map-select-btn" data-map="MAPA_3">MAPA 3</button>
+        </div>
+        <div id="selectedMapTitle" class="selected-map-title">01 // ISLA SOUTH ATARIA</div>
       </div>
-      <div id="selectedMapTitle" class="selected-map-title">01 // ISLA SOUTH ATARIA</div>
+
+      <div id="assetPreloadBox" style="margin: 10px auto 4px; width: 290px; text-align: center;">
+        <div id="assetPreloadText" style="font-size: 10.5px; letter-spacing: 1.5px; color: #38bdf8; margin-bottom: 5px;">PRECARGANDO MODELOS 3D... 0%</div>
+        <div style="width: 100%; height: 6px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 3px; overflow: hidden;">
+          <div id="assetPreloadBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #38bdf8, #22c55e); transition: width 0.15s ease-out;"></div>
+        </div>
       </div>
 
       <div class="start-hint">ENTER / A: ACEPTAR · CRUCETA O STICK: MOVER · B: VOLVER</div>
     </div>
   </div>
-
   <div id="optionsScreen" class="hidden" role="dialog" aria-modal="true" aria-labelledby="optionsTitle">
     <section class="options-panel">
       <header class="options-header">
@@ -89,7 +97,6 @@
           </div>
         </div>
       </section>
-
       <section class="bindings-section" aria-labelledby="bindingsTitle">
         <h3 class="options-section-title" id="bindingsTitle">ASIGNACIONES POR CONTEXTO</h3>
         <p class="options-help">Pulsa CAMBIAR y luego la nueva tecla, o selecciónala en el esquema. Las acciones indican en qué modo o pantalla funcionan; solo se marcan conflictos que pueden ocurrir al mismo tiempo.</p>
@@ -118,7 +125,7 @@
               <div class="binding-row" data-action="gunpod"><span>Disparo Gunpod</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
               <div class="binding-row" data-action="melee"><span>Golpe cuerpo a cuerpo</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
               <div class="binding-row" data-action="missiles"><span>Lanzar micro-misiles</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
-			  <div class="binding-row" data-action="missileType"><span>CAMBIAR TIPO DE MISIL</span><strong class="binding-value">TAB</strong><button type="button" class="rebind-button">CAMBIAR</button></div>
+              <div class="binding-row" data-action="missileType"><span>CAMBIAR TIPO DE MISIL</span><strong class="binding-value">TAB</strong><button type="button" class="rebind-button">CAMBIAR</button></div>
               <div class="binding-row" data-action="tracking"><span>Auto-rastreo (Battroid)</span><kbd class="binding-value"></kbd><button class="rebind-button" type="button">CAMBIAR</button></div>
             </section>
             <section class="binding-group"><h4 class="group-systems">SISTEMAS</h4>
@@ -138,7 +145,6 @@
         </div>
       </section>
       </div>
-
       <div class="options-pane" id="gamepadPane" role="tabpanel" aria-labelledby="gamepadTab" hidden>
         <section class="gamepad-section" aria-labelledby="gamepadTitle">
           <h3 class="options-section-title" id="gamepadTitle">MANDO // ASIGNACIONES CONFIGURABLES</h3>
@@ -205,7 +211,6 @@
           </div>
         </section>
       </div>
-
       <footer class="options-footer">
         <button id="btnResetControls" class="options-secondary" type="button">RESTAURAR PREDETERMINADOS</button>
         <div class="footer-actions"><button id="btnSaveControls" class="options-save" type="button">GUARDAR CONFIGURACIÓN</button></div>
@@ -245,7 +250,6 @@
         </label>
         <p class="time-of-day-note">La selección se guarda automáticamente para la próxima partida.</p>
       </section>
-
       <p id="bindingStatus" class="binding-status" role="status" aria-live="polite"></p>
 
       <footer class="options-footer options-global-footer">
