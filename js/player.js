@@ -595,8 +595,16 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
 
   if (typeof resolveStructureCollisions === 'function') {
     const preImpactSpeed = velocity.length();
+    const preHorizSpeed = Math.hypot(velocity.x, velocity.z);
+    const preVy = velocity.y;
     const collided = resolveStructureCollisions(playerContainer.position, velocity);
-    if (collided && preImpactSpeed > 11.0) {
+
+    const isLandingMode = (currentMode === 'GERWALK' || currentMode === 'BATTROID');
+    const isHardCrash = isLandingMode
+      ? (preHorizSpeed > 13.5 || preVy < -22.0)
+      : (preImpactSpeed > 11.0);
+
+    if (collided && isHardCrash) {
       if (typeof spawnImpactSparks === 'function') {
         spawnImpactSparks(scene, camera, playerContainer.position);
       }
@@ -607,7 +615,6 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
       }
     }
   }
-
 
   const camOffset = new THREE.Vector3(0, 0.45, 1.85).applyQuaternion(playerContainer.quaternion);
   camOffset.add(new THREE.Vector3(gamepadCameraSide * 1.15, 0, 0).applyQuaternion(playerContainer.quaternion));
