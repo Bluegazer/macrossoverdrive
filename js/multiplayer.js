@@ -19,9 +19,12 @@ const mpState = {
   peer: null,
   conn: null,
   sendTimer: 0,
+  pingMs: 0,
+  pingTimer: 0,
   matchEnded: false,
   victory: false
 };
+
 
 function detectLocalCountryCode() {
   try {
@@ -93,14 +96,42 @@ function initMultiplayerUI() {
 
   if (btnCreate) btnCreate.addEventListener('click', () => createMultiplayerRoom(nameInput, codeOut));
   if (btnJoin) btnJoin.addEventListener('click', () => joinMultiplayerRoom(nameInput, codeIn));
-  if (btnCopy && codeOut) {
+  
+    if (btnCopy && codeOut) {
     btnCopy.addEventListener('click', () => {
       if (!codeOut.value) return;
       navigator.clipboard?.writeText(codeOut.value).catch(() => {});
       setMpStatus('Código ' + codeOut.value + ' copiado. Pásalo a tu rival de ' + mpState.country + '.');
     });
   }
+
+  const btnCopyLink = document.getElementById('btnCopyRoomLink');
+  if (btnCopyLink && codeOut) {
+    btnCopyLink.addEventListener('click', () => {
+      if (!codeOut.value) return;
+      const inviteUrl = window.location.origin + window.location.pathname + '?room=' + codeOut.value;
+      navigator.clipboard?.writeText(inviteUrl).catch(() => {});
+      setMpStatus('Link de invitación copiado. Compártelo con tu rival de ' + mpState.country + '.');
+    });
+  }
+
+  const urlRoom = new URLSearchParams(window.location.search).get('room');
+  if (urlRoom && /^[A-Za-z]{2}-\d{4}$/.test(urlRoom.trim())) {
+    if (startSc) startSc.classList.add('hidden');
+    if (mpScreen) mpScreen.classList.remove('hidden');
+    if (codeIn) codeIn.value = urlRoom.trim().toUpperCase();
+    setMpStatus('Enlace detectado (' + codeIn.value + '). Esperando carga de sistemas...');
+    const waitReady = setInterval(() => {
+      const startBtn = document.getElementById('btnStartGame');
+      if (!startBtn || !startBtn.disabled) {
+        clearInterval(waitReady);
+        joinMultiplayerRoom(nameInput, codeIn);
+      }
+    }, 300);
+  }
 }
+
+
 function setMpStatus(msg, isError) {
   const el = document.getElementById('mpStatusText');
   if (!el) return;
@@ -160,10 +191,14 @@ function createMultiplayerRoom(nameInput, codeOut) {
 
   peer.on('error', (err) => setMpStatus('Error de red: ' + (err.type || err.message), true));
 }
+
 function joinMultiplayerRoom(nameInput, codeIn) {
   if (typeof Peer !== 'function') { setMpStatus('Error: librería PeerJS no cargada.', true); return; }
-  const code = (codeIn && codeIn.value ? codeIn.value : '').trim().toUpperCase();
-  if (!/^[A-Z]{2}-\d{4}$/.test(code)) {
+  const rawInput = (codeIn && codeIn.value ? codeIn.value : '').trim().toUpperCase();
+  const match = rawInput.match(/([A-Z]{2}-\d{4})/);
+  const code = match ? match[1] : '';
+  if (!code) {
+  
     setMpStatus('Formato inválido. Usa el código de 4 dígitos (Ej: AR-4829).', true);
     return;
   }
@@ -268,7 +303,18 @@ function handleMpPacket(pkt, conn) {
       damagePlayerArmor(scene, camera, playerContainer, pkt.dmg || 9);
     }
   }
+
+  if (pkt.type === 'PING' && conn && conn.open) {
+    conn.send({ type: 'PONG', t: pkt.t });
+    return;
+  }
+
+  if (pkt.type === 'PONG' && typeof pkt.t === 'number') {
+    mpState.pingMs = Math.max(1, Math.round(performance.now() - pkt.t));
+    return;
+  }
 }
+
 
 function launchMultiplayerMatch(mapId) {
   mpState.active = true;
@@ -432,6 +478,11 @@ function updateMultiplayer(delta, playerContainer) {
     }
   }
 
+  mpState.pingTimer += delta;
+  if (mpState.pingTimer >= 1.0 && mpState.conn && mpState.conn.open) {
+    mpState.pingTimer = 0;
+    mpState.conn.send({ type: 'PING', t: performance.now() });
+  }
 
   mpState.sendTimer += delta;
   if (mpState.sendTimer >= 0.033 && mpState.conn && mpState.conn.open && playerContainer) {

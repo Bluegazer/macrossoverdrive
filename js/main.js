@@ -697,11 +697,19 @@ function animate() {
   fpsTime += rawDelta;
   if (fpsTime >= 0.4) {
     const currentFps = Math.round(fpsFrames / fpsTime);
-    fpsEl.textContent = 'FPS: ' + currentFps;
-    fpsEl.style.color = currentFps >= 50 ? '#4ade80' : (currentFps >= 30 ? '#facc15' : '#f87171');
+    const fpsColor = currentFps >= 50 ? '#4ade80' : (currentFps >= 30 ? '#facc15' : '#f87171');
+    if (typeof mpState !== 'undefined' && mpState.active) {
+      const ms = mpState.pingMs || 0;
+      const pingColor = ms <= 65 ? '#4ade80' : (ms <= 130 ? '#facc15' : '#f87171');
+      fpsEl.innerHTML = '<span style="color:' + pingColor + '">PING: ' + (ms > 0 ? ms + ' ms' : '--') + '</span> <span style="color:#64748b">|</span> <span style="color:' + fpsColor + '">FPS: ' + currentFps + '</span>';
+    } else {
+      fpsEl.textContent = 'FPS: ' + currentFps;
+      fpsEl.style.color = fpsColor;
+    }
     fpsFrames = 0;
     fpsTime = 0;
   }
+
 
   if (!isPaused) {
     if (typeof updateEnvironment === 'function') updateEnvironment(delta);

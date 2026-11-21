@@ -163,8 +163,74 @@ function drawBattroidTrackReticle(w, h, camera) {
   hudCtx.fillText('AUTO // ' + battroidTrackMode, -r, r + 13);
   hudCtx.restore();
 }
+
+function drawMissilePodIcon(x, y, w, h, mType, hasLock) {
+  const accent = hasLock ? '#ef4444' : '#38bdf8';
+  const fillCol = hasLock ? '#fca5a5' : '#bae6fd';
+  const cut = 6;
+
+  hudCtx.save();
+  hudCtx.beginPath();
+  hudCtx.moveTo(x + cut, y); hudCtx.lineTo(x + w, y);
+  hudCtx.lineTo(x + w, y + h - cut); hudCtx.lineTo(x + w - cut, y + h);
+  hudCtx.lineTo(x, y + h); hudCtx.lineTo(x, y + cut);
+  hudCtx.closePath();
+  hudCtx.fillStyle = hasLock ? 'rgba(69, 10, 10, 0.78)' : 'rgba(8, 24, 48, 0.85)';
+  hudCtx.fill();
+  hudCtx.strokeStyle = accent;
+  hudCtx.lineWidth = 1.4;
+  hudCtx.stroke();
+
+  const cx = x + w * 0.5;
+  const cy = y + h * 0.5;
+
+  const drawWarhead = (wx, wy, r, doubleRing) => {
+    hudCtx.beginPath();
+    hudCtx.arc(wx, wy, r, 0, Math.PI * 2);
+    if (doubleRing) {
+      hudCtx.strokeStyle = fillCol;
+      hudCtx.lineWidth = 1.3;
+      hudCtx.stroke();
+      hudCtx.beginPath();
+      hudCtx.arc(wx, wy, r * 0.62, 0, Math.PI * 2);
+      hudCtx.stroke();
+    } else {
+      hudCtx.fillStyle = fillCol;
+      hudCtx.fill();
+    }
+    hudCtx.strokeStyle = '#060c18';
+    hudCtx.lineWidth = 1.6;
+    hudCtx.beginPath();
+    hudCtx.moveTo(wx - r * 0.55, wy);
+    hudCtx.lineTo(wx + r * 0.55, wy);
+    hudCtx.stroke();
+  };
+
+  if (mType === 'PESADO') {
+    drawWarhead(cx - 11, cy - 6, 7.2, true);
+    drawWarhead(cx + 11, cy - 6, 7.2, true);
+    drawWarhead(cx, cy + 8, 7.2, true);
+  } else if (mType === 'ESPECIAL') {
+    hudCtx.strokeStyle = accent;
+    hudCtx.lineWidth = 1.2;
+    hudCtx.strokeRect(cx - 20, cy - 11, 40, 22);
+    drawWarhead(cx - 10, cy, 6.8, true);
+    drawWarhead(cx + 10, cy, 6.8, true);
+  } else {
+    hudCtx.strokeStyle = fillCol;
+    hudCtx.lineWidth = 1.4;
+    hudCtx.strokeRect(cx - 18, cy - 13, 36, 26);
+    drawWarhead(cx - 10, cy - 6.5, 4.3, false);
+    drawWarhead(cx + 10, cy - 6.5, 4.3, false);
+    drawWarhead(cx, cy, 4.3, false);
+    drawWarhead(cx - 10, cy + 6.5, 4.3, false);
+    drawWarhead(cx + 10, cy + 6.5, 4.3, false);
+  }
+  hudCtx.restore();
+}
+
 function drawWeaponStatusPanel(w) {
-  const boxW = 295, boxH = 196, x = w - boxW - 15, y = 15, cut = 10;
+  const boxW = 295, boxH = 250, x = w - boxW - 15, y = 15, cut = 10;
   const hp = (typeof playerArmor !== 'undefined') ? playerArmor : 100;
   const maxHp = (typeof playerMaxArmor !== 'undefined') ? playerMaxArmor : 100;
   const dmgFlash = (typeof armorDamageFlash !== 'undefined') ? armorDamageFlash : 0;
@@ -241,20 +307,30 @@ function drawWeaponStatusPanel(w) {
   hudCtx.fillStyle = hasLock ? '#ef4444' : '#94a3b8';
   hudCtx.fillText(hasLock ? ('LOCK [' + lockCount + '/4]') : 'STBY', x + 135, y + 110);
 
-  for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 4; i++) {
     hudCtx.fillStyle = (i < lockCount) ? '#ef4444' : 'rgba(51, 65, 85, 0.6)';
     hudCtx.fillRect(x + 232 + i * 12, y + 100, 8, 12);
   }
 
+  const curMslType = (typeof getCurrentMissileType === 'function') ? getCurrentMissileType() : 'LIGERO';
+  drawMissilePodIcon(x + 14, y + 118, 56, 38, curMslType, hasLock);
+  hudCtx.shadowBlur = 0;
+  hudCtx.font = 'bold 9px Conthrax, sans-serif';
+  hudCtx.fillStyle = '#94a3b8';
+  hudCtx.fillText('POD: ' + curMslType + ' [TAB]', x + 80, y + 133);
+  hudCtx.fillStyle = hasLock ? '#fca5a5' : '#38bdf8';
+  hudCtx.fillText(curMslType === 'PESADO' ? 'SALVA: 01 // HEAVY' : 'SALVA: 04 // MULTI', x + 80, y + 149);
+
   hudCtx.shadowBlur = 0;
   hudCtx.beginPath();
-  hudCtx.moveTo(x + 12, y + 124); hudCtx.lineTo(x + boxW - 12, y + 124);
+  hudCtx.moveTo(x + 12, y + 166); hudCtx.lineTo(x + boxW - 12, y + 166);
   hudCtx.stroke();
 
   const isBattroid = (typeof currentMode !== 'undefined' && currentMode === 'BATTROID');
   const tMode = (typeof battroidTrackMode !== 'undefined') ? battroidTrackMode : 'NONE';
+  hudCtx.font = 'bold 10px Conthrax, sans-serif';
   hudCtx.fillStyle = '#38bdf8';
-  hudCtx.fillText('TRACK [N]', x + 14, y + 148);
+  hudCtx.fillText('TRACK [N]', x + 14, y + 190);
 
   let trackLabel = 'N/A (B-ONLY)', trackColor = '#64748b';
   if (isBattroid) {
@@ -265,17 +341,17 @@ function drawWeaponStatusPanel(w) {
   hudCtx.shadowColor = trackColor;
   hudCtx.shadowBlur = (isBattroid && tMode !== 'NONE') ? 6 : 0;
   hudCtx.fillStyle = trackColor;
-  hudCtx.fillText(trackLabel, x + 135, y + 148);
+  hudCtx.fillText(trackLabel, x + 135, y + 190);
   hudCtx.shadowBlur = 0;
   hudCtx.beginPath();
-  hudCtx.moveTo(x + 12, y + 160); hudCtx.lineTo(x + boxW - 12, y + 160);
+  hudCtx.moveTo(x + 12, y + 202); hudCtx.lineTo(x + boxW - 12, y + 202);
   hudCtx.stroke();
 
   const isFighterMode = (typeof currentMode !== 'undefined' && currentMode === 'FIGHTER');
   const cCooldown = (typeof chaffCooldown !== 'undefined') ? chaffCooldown : 0;
   const cActive = (typeof chaffFlares !== 'undefined' && chaffFlares.length > 0);
   hudCtx.fillStyle = '#38bdf8';
-  hudCtx.fillText('CHAFF [C]', x + 14, y + 183);
+  hudCtx.fillText('CHAFF [C]', x + 14, y + 225);
 
   let chaffLabel = 'N/A (F-ONLY)', chaffColor = '#64748b';
   if (isFighterMode) {
@@ -286,7 +362,7 @@ function drawWeaponStatusPanel(w) {
   hudCtx.shadowColor = chaffColor;
   hudCtx.shadowBlur = (isFighterMode && (cActive || cCooldown <= 0)) ? 6 : 0;
   hudCtx.fillStyle = chaffColor;
-  hudCtx.fillText(chaffLabel, x + 135, y + 183);
+  hudCtx.fillText(chaffLabel, x + 135, y + 225);
   hudCtx.restore();
 }
 
@@ -358,6 +434,280 @@ function drawPropulsionPanel(h) {
   hudCtx.fillRect(barX + 2, heatBarY + 2, (barW - 4) * Math.min(1, heat), barH - 4);
   hudCtx.restore();
 }
+
+function drawTacticalRadarBox(w, h, playerContainer, enemies) {
+  const boxW = 148, boxH = 160, x = w - boxW - 15, y = h - boxH - 58, cut = 10;
+  const rcx = x + boxW * 0.5, rcy = y + boxH * 0.5 + 8, rad = 58;
+
+  hudCtx.save();
+  hudCtx.beginPath();
+  hudCtx.moveTo(x + cut, y); hudCtx.lineTo(x + boxW, y);
+  hudCtx.lineTo(x + boxW, y + boxH - cut); hudCtx.lineTo(x + boxW - cut, y + boxH);
+  hudCtx.lineTo(x, y + boxH); hudCtx.lineTo(x, y + cut);
+  hudCtx.closePath();
+  hudCtx.fillStyle = 'rgba(6, 12, 24, 0.84)';
+  hudCtx.fill();
+  hudCtx.shadowColor = '#38bdf8';
+  hudCtx.shadowBlur = 8;
+  hudCtx.strokeStyle = '#38bdf8';
+  hudCtx.lineWidth = 1.6;
+  hudCtx.stroke();
+
+  hudCtx.shadowBlur = 0;
+  hudCtx.font = 'bold 9px Conthrax, sans-serif';
+  hudCtx.fillStyle = '#38bdf8';
+  hudCtx.fillText('RADAR // 360°', x + 12, y + 16);
+
+  hudCtx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+  hudCtx.lineWidth = 1;
+  hudCtx.beginPath(); hudCtx.arc(rcx, rcy, rad, 0, Math.PI * 2); hudCtx.stroke();
+  hudCtx.beginPath(); hudCtx.arc(rcx, rcy, rad * 0.5, 0, Math.PI * 2); hudCtx.stroke();
+  hudCtx.beginPath();
+  hudCtx.moveTo(rcx - rad, rcy); hudCtx.lineTo(rcx + rad, rcy);
+  hudCtx.moveTo(rcx, rcy - rad); hudCtx.lineTo(rcx, rcy + rad);
+  hudCtx.stroke();
+
+  hudCtx.fillStyle = 'rgba(56, 189, 248, 0.14)';
+  hudCtx.beginPath();
+  hudCtx.moveTo(rcx, rcy);
+  hudCtx.arc(rcx, rcy, rad, -Math.PI * 0.5 - 0.52, -Math.PI * 0.5 + 0.52);
+  hudCtx.closePath();
+  hudCtx.fill();
+
+  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
+  const yaw = Math.atan2(fwd.x, -fwd.z);
+  const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
+  const rangeMax = 160;
+
+  const plotDot = (worldPos, color, size, ring) => {
+    const dx = worldPos.x - playerContainer.position.x;
+    const dz = worldPos.z - playerContainer.position.z;
+    const rx = dx * cosY + dz * sinY;
+    const rz = -dx * sinY + dz * cosY;
+    const d = Math.hypot(rx, rz);
+    const scale = Math.min(1, d / rangeMax);
+    const ang = Math.atan2(rx, rz);
+    const px = rcx + Math.sin(ang) * (scale * (rad - 5));
+    const py = rcy + Math.cos(ang) * (scale * (rad - 5));
+    hudCtx.fillStyle = color;
+    hudCtx.beginPath(); hudCtx.arc(px, py, size, 0, Math.PI * 2); hudCtx.fill();
+    if (ring) {
+      hudCtx.strokeStyle = color; hudCtx.lineWidth = 1.2;
+      hudCtx.beginPath(); hudCtx.arc(px, py, size + 3, 0, Math.PI * 2); hudCtx.stroke();
+    }
+  };
+
+  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
+    plotDot(mpState.rivalMesh.position, '#facc15', 3.4, true);
+  } else if (enemies) {
+    for (let i = 0; i < enemies.length; i++) {
+      if (enemies.at(i).respawnTimer <= 0) plotDot(enemies.at(i).mesh.position, '#ef4444', 2.8, false);
+    }
+  }
+  if (typeof enemyMissiles !== 'undefined') {
+    for (let i = 0; i < enemyMissiles.length; i++) {
+      plotDot(enemyMissiles.at(i).mesh.position, '#fb923c', 2.0, false);
+    }
+  }
+
+  hudCtx.fillStyle = '#4ade80';
+  hudCtx.beginPath();
+  hudCtx.moveTo(rcx, rcy - 5); hudCtx.lineTo(rcx + 4, rcy + 4); hudCtx.lineTo(rcx - 4, rcy + 4);
+  hudCtx.closePath();
+  hudCtx.fill();
+  hudCtx.restore();
+}
+
+function drawTopCompassTape(w, playerContainer, enemies) {
+  const tapeW = 310, tapeH = 34, x = w * 0.5 - tapeW * 0.5, y = 14, cx = w * 0.5;
+  const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
+  const heading = (Math.atan2(fwd.x, -fwd.z) * (180 / Math.PI) + 360) % 360;
+  const pxPerDeg = 3.2;
+
+  hudCtx.save();
+  hudCtx.fillStyle = 'rgba(6, 12, 24, 0.72)';
+  hudCtx.fillRect(x, y, tapeW, tapeH);
+  hudCtx.strokeStyle = 'rgba(56, 189, 248, 0.45)';
+  hudCtx.lineWidth = 1.2;
+  hudCtx.strokeRect(x, y, tapeW, tapeH);
+
+  hudCtx.beginPath();
+  hudCtx.rect(x + 2, y, tapeW - 4, tapeH);
+  hudCtx.clip();
+
+  const cardinals = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SO', 270: 'O', 315: 'NO' };
+  hudCtx.font = 'bold 9.5px Conthrax, sans-serif';
+  hudCtx.textAlign = 'center';
+
+  for (let deg = -60; deg <= 420; deg += 15) {
+    let diff = deg - heading;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+    const tx = cx + diff * pxPerDeg;
+    if (tx < x - 20 || tx > x + tapeW + 20) continue;
+
+    const normDeg = (deg + 360) % 360;
+    const isMajor = (normDeg % 45 === 0);
+    hudCtx.strokeStyle = isMajor ? '#38bdf8' : 'rgba(148, 163, 184, 0.55)';
+    hudCtx.beginPath();
+    hudCtx.moveTo(tx, y + tapeH);
+    hudCtx.lineTo(tx, y + tapeH - (isMajor ? 9 : 5));
+    hudCtx.stroke();
+
+    if (normDeg % 30 === 0 || isMajor) {
+      hudCtx.fillStyle = isMajor ? '#facc15' : '#cbd5e1';
+      const lbl = cardinals[normDeg] || String(normDeg).padStart(3, '0');
+      hudCtx.fillText(lbl, tx, y + 15);
+    }
+  }
+
+  let targetPos = null;
+  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
+    targetPos = mpState.rivalMesh.position;
+  } else if (enemies) {
+    let minD = Infinity;
+    for (let i = 0; i < enemies.length; i++) {
+      if (enemies.at(i).respawnTimer > 0) continue;
+      const d = enemies.at(i).mesh.position.distanceTo(playerContainer.position);
+      if (d < minD) { minD = d; targetPos = enemies.at(i).mesh.position; }
+    }
+  }
+  if (targetPos) {
+    const tBearing = (Math.atan2(targetPos.x - playerContainer.position.x, -(targetPos.z - playerContainer.position.z)) * (180 / Math.PI) + 360) % 360;
+    let bDiff = tBearing - heading;
+    if (bDiff > 180) bDiff -= 360;
+    if (bDiff < -180) bDiff += 360;
+    const bx = Math.max(x + 8, Math.min(x + tapeW - 8, cx + bDiff * pxPerDeg));
+    hudCtx.fillStyle = '#ef4444';
+    hudCtx.beginPath();
+    hudCtx.moveTo(bx, y + 2); hudCtx.lineTo(bx + 5, y + 8); hudCtx.lineTo(bx - 5, y + 8);
+    hudCtx.closePath();
+    hudCtx.fill();
+  }
+  hudCtx.restore();
+
+  hudCtx.save();
+  hudCtx.fillStyle = 'rgba(6, 12, 24, 0.92)';
+  hudCtx.strokeStyle = '#22c55e';
+  hudCtx.lineWidth = 1.4;
+  hudCtx.fillRect(cx - 26, y + tapeH + 5, 52, 16);
+  hudCtx.strokeRect(cx - 26, y + tapeH + 5, 52, 16);
+  hudCtx.font = 'bold 9.5px Conthrax, sans-serif';
+  hudCtx.fillStyle = '#4ade80';
+  hudCtx.textAlign = 'center';
+  hudCtx.fillText(String(Math.round(heading)).padStart(3, '0') + '°', cx, y + tapeH + 16);
+  hudCtx.restore();
+
+}
+
+function drawOffScreenTargetArrow(w, h, camera, playerContainer, enemies) {
+  const targets = new Array();
+
+  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
+    targets.push({ pos: mpState.rivalMesh.position, tag: mpState.rivalName || 'RIVAL', isRival: true });
+  } else if (enemies) {
+    for (let i = 0; i < enemies.length; i++) {
+      if (enemies.at(i).respawnTimer > 0) continue;
+      targets.push({ pos: enemies.at(i).mesh.position, tag: enemies.at(i).id, isRival: false });
+    }
+  }
+  if (targets.length === 0) return;
+
+  targets.sort((a, b) => a.pos.distanceToSquared(playerContainer.position) - b.pos.distanceToSquared(playerContainer.position));
+
+  const cx = w * 0.5, cy = h * 0.5;
+  const maxX = cx - 34, maxY = cy - 34;
+
+  for (let i = 0; i < targets.length; i++) {
+    const t = targets.at(i);
+    const proj = t.pos.clone().project(camera);
+    const sx = (proj.x * 0.5 + 0.5) * w;
+    const sy = (-(proj.y * 0.5) + 0.5) * h;
+
+    const inFront = proj.z <= 1;
+    if (inFront && sx >= 28 && sx <= w - 28 && sy >= 28 && sy <= h - 28) continue;
+
+    let dx = sx - cx, dy = sy - cy;
+    if (!inFront) { dx = -dx; dy = -dy; }
+
+    const ang = Math.atan2(dy, dx);
+    const cos = Math.cos(ang), sin = Math.sin(ang);
+    const scale = Math.min(
+      Math.abs(cos) > 0.001 ? maxX / Math.abs(cos) : 99999,
+      Math.abs(sin) > 0.001 ? maxY / Math.abs(sin) : 99999
+    );
+    const ax = cx + cos * scale;
+    const ay = cy + sin * scale;
+    const dist = t.pos.distanceTo(playerContainer.position);
+    const distM = Math.round(dist * 10);
+
+    // Código de color estilo Macross PS2: Rojo (más cercano/amenaza), Amarillo (media dist.), Blanco (lejano)
+    let color = '#ffffff';
+    if (t.isRival || (i === 0 && dist < 55) || dist < 40) color = '#ef4444';
+    else if (dist < 90 || i === 0) color = '#facc15';
+
+    hudCtx.save();
+    hudCtx.translate(ax, ay);
+    hudCtx.rotate(ang);
+    hudCtx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+    hudCtx.shadowBlur = 5;
+    hudCtx.fillStyle = color;
+    hudCtx.beginPath();
+    hudCtx.moveTo(11, 0); hudCtx.lineTo(-7, -7); hudCtx.lineTo(-3.5, 0); hudCtx.lineTo(-7, 7);
+    hudCtx.closePath();
+    hudCtx.fill();
+    hudCtx.rotate(-ang);
+
+    if (color !== '#ffffff') {
+      hudCtx.font = 'bold 8.5px Conthrax, sans-serif';
+      hudCtx.fillStyle = color;
+      hudCtx.textAlign = 'center';
+      hudCtx.fillText((t.isRival ? t.tag + ' ' : '') + distM + 'M', -cos * 22, -sin * 16 + 3);
+    }
+    hudCtx.restore();
+  }
+}
+
+
+function drawMissileAlertBanner(w, h, playerContainer) {
+  if (typeof enemyMissiles === 'undefined' || enemyMissiles.length === 0) return;
+  if ((typeof isPlayerDying !== 'undefined' && isPlayerDying) || (typeof isGameOver !== 'undefined' && isGameOver)) return;
+
+  let minDist = Infinity;
+  for (let i = 0; i < enemyMissiles.length; i++) {
+    const em = enemyMissiles.at(i);
+    if (!em.isLockedOn) continue;
+    const d = em.mesh.position.distanceTo(playerContainer.position);
+    if (d < minDist) minDist = d;
+  }
+  if (minDist > 42) return;
+
+  const blink = (Math.floor(performance.now() / 130) % 2 === 0);
+  if (!blink) return;
+
+  const boxW = 310, boxH = 30, x = w * 0.5 - boxW * 0.5, y = h - boxH - 15, cut = 8;
+  const isFighter = (typeof currentMode !== 'undefined' && currentMode === 'FIGHTER');
+  const tip = isFighter ? 'DEPLOY CHAFF [C]' : 'EVADE // REVERSE [R]';
+
+  hudCtx.save();
+  hudCtx.beginPath();
+  hudCtx.moveTo(x + cut, y); hudCtx.lineTo(x + boxW, y);
+  hudCtx.lineTo(x + boxW, y + boxH - cut); hudCtx.lineTo(x + boxW - cut, y + boxH);
+  hudCtx.lineTo(x, y + boxH); hudCtx.lineTo(x, y + cut);
+  hudCtx.closePath();
+  hudCtx.fillStyle = 'rgba(127, 29, 29, 0.85)';
+  hudCtx.fill();
+  hudCtx.strokeStyle = '#ef4444';
+  hudCtx.lineWidth = 1.6;
+  hudCtx.stroke();
+
+  hudCtx.font = 'bold 10px Conthrax, sans-serif';
+  hudCtx.fillStyle = '#fef2f2';
+  hudCtx.textAlign = 'center';
+  hudCtx.fillText('MISSILE ALERT // ' + tip, w * 0.5, y + 19);
+  hudCtx.restore();
+}
+
 
 function drawPauseOverlay(w, h) {
   const cx = w / 2, cy = h / 2, boxW = 340, boxH = 115, x = cx - boxW / 2, y = cy - boxH / 2, cut = 14;
@@ -699,7 +1049,11 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
 
   drawWeaponStatusPanel(w);
   drawPropulsionPanel(h);
-
+  drawTacticalRadarBox(w, h, playerContainer, enemies);
+  drawTopCompassTape(w, playerContainer, enemies);
+  drawOffScreenTargetArrow(w, h, camera, playerContainer, enemies);
+  drawMissileAlertBanner(w, h, playerContainer);
+  
   if (typeof isGameOver !== 'undefined' && isGameOver && !(typeof mpState !== 'undefined' && mpState.active)) drawRestartOverlay(w, h);
   else if (isPaused) drawPauseOverlay(w, h);
 }
