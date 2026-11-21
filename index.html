@@ -294,18 +294,19 @@
           </select>
           <button id="btnCreateRoom" class="options-save" type="button" style="width: 100%; margin-bottom: 8px;">GENERAR CÓDIGO DE SALA</button>
 
-          <div style="display: flex; gap: 6px;">
+            <div style="display: flex; gap: 6px;">
             <input id="mpRoomCodeOut" type="text" readonly placeholder="AR-XXXX" style="flex: 1; min-width: 0; width: 100%; background: #020617; border: 1px solid #475569; color: #facc15; text-align: center; font-weight: bold; letter-spacing: 2px; padding: 6px;" />
-           <button id="btnCopyRoomCode" class="options-secondary" type="button" style="flex-shrink: 0;">COPIAR</button>
+            <button id="btnCopyRoomCode" class="options-secondary" type="button" style="flex-shrink: 0;">COPIAR</button>
           </div>
+          <button id="btnCopyRoomLink" class="options-secondary" type="button" style="width: 100%; margin-top: 8px; font-size: 10px; padding: 7px 8px;">COPIAR LINK DE INVITACIÓN</button>
         </div>
 
         <div style="background: rgba(15,23,42,0.75); border: 1px solid rgba(56,189,248,0.4); padding: 12px;">
           <div style="font-size: 11px; color: #38bdf8; margin-bottom: 8px;">2. UNIRSE A SALA (INVITADO)</div>
-          <input id="mpRoomCodeIn" type="text" maxlength="10" placeholder="PEGA CÓDIGO (EJ: AR-4829)" style="width: 100%; box-sizing: border-box; background: #020617; border: 1px solid #38bdf8; color: #fff; text-align: center; font-weight: bold; letter-spacing: 2px; padding: 6px; margin-bottom: 8px; text-transform: uppercase;" />
+          <input id="mpRoomCodeIn" type="text" maxlength="80" placeholder="CÓDIGO O LINK (EJ: AR-4829)" style="width: 100%; box-sizing: border-box; background: #020617; border: 1px solid #38bdf8; color: #fff; text-align: center; font-weight: bold; letter-spacing: 1.5px; padding: 6px; margin-bottom: 8px;" />
           <button id="btnJoinRoom" class="options-save" type="button" style="width: 100%;">CONECTAR AL RIVAL</button>
         </div>
-      </div>
+
 
       <p id="mpStatusText" class="binding-status" role="status" aria-live="polite">Ingresa tu nombre y crea una sala o pega el código de tu rival.</p>
       <footer class="options-footer options-global-footer">
