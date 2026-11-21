@@ -158,9 +158,21 @@ if (btnStartGame) {
   btnStartGame.addEventListener('click', startMission);
 }
 
+function resumeGame() {
+  if (!isPaused) return;
+  if (window.gameControls?.isOptionsOpen?.()) {
+    if (window.gameControls.closeOptions() === false) return;
+  }
+  isPaused = false;
+  clock.getDelta();
+}
+
 function togglePause() {
   if (!isGameStarted || isPlayerDying || isGameOver) return;
-  if (isPaused) return;
+  if (isPaused) {
+    resumeGame();
+    return;
+  }
   isPaused = true;
   clock.getDelta();
   if (window.gameControls?.openPauseOptions) window.gameControls.openPauseOptions();
@@ -243,12 +255,66 @@ document.addEventListener('macross:options-opened', event => {
   if (event.detail?.pause) setGamepadMenuFocus(document.getElementById('btnContinueGame'));
 });
 
+function findSpatialMenuTarget(items, current, direction) {
+  if (!items.length) return null;
+  if (!current || !items.includes(current)) {
+    return (direction === 'up' || direction === 'left') ? items[items.length - 1] : items[0];
+  }
+
+  const curRect = current.getBoundingClientRect();
+  const curCx = curRect.left + curRect.width * 0.5;
+  const curCy = curRect.top + curRect.height * 0.5;
+  const tol = 6;
+
+  let best = null;
+  let bestScore = Infinity;
+
+  for (const candidate of items) {
+    if (candidate === current) continue;
+    const rect = candidate.getBoundingClientRect();
+    const cx = rect.left + rect.width * 0.5;
+    const cy = rect.top + rect.height * 0.5;
+    const dx = cx - curCx;
+    const dy = cy - curCy;
+
+    let primary = 0;
+    let secondary = 0;
+
+    if (direction === 'down') {
+      if (dy <= tol) continue;
+      primary = dy;
+      secondary = Math.abs(dx) * 2.2;
+    } else if (direction === 'up') {
+      if (dy >= -tol) continue;
+      primary = -dy;
+      secondary = Math.abs(dx) * 2.2;
+    } else if (direction === 'right') {
+      if (dx <= tol) continue;
+      primary = dx;
+      secondary = Math.abs(dy) * 2.2;
+    } else if (direction === 'left') {
+      if (dx >= -tol) continue;
+      primary = -dx;
+      secondary = Math.abs(dy) * 2.2;
+    }
+
+    const score = primary + secondary;
+    if (score < bestScore) {
+      bestScore = score;
+      best = candidate;
+    }
+  }
+
+  return best;
+}
+
 function stepGamepadMenuFocus(direction) {
   const items = visibleGamepadMenuItems();
   if (!items.length) return;
   let currentIndex = items.indexOf(gamepadFocusedElement);
   if (currentIndex < 0) currentIndex = items.indexOf(document.activeElement);
-  const current = currentIndex >= 0 ? items[currentIndex] : document.activeElement;
+  const current = currentIndex >= 0 ? items[currentIndex] : (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+
   if (current instanceof HTMLInputElement && current.type === 'range' && (direction === 'left' || direction === 'right')) {
     const step = Number(current.step) || 1;
     const sign = direction === 'right' ? 1 : -1;
@@ -257,6 +323,7 @@ function stepGamepadMenuFocus(direction) {
     setGamepadMenuFocus(current);
     return;
   }
+
   if (current instanceof HTMLSelectElement && (direction === 'left' || direction === 'right')) {
     const offset = direction === 'right' ? 1 : -1;
     current.selectedIndex = (current.selectedIndex + offset + current.options.length) % current.options.length;
@@ -264,11 +331,20 @@ function stepGamepadMenuFocus(direction) {
     setGamepadMenuFocus(current);
     return;
   }
+
+  const spatialTarget = findSpatialMenuTarget(items, current, direction);
+  if (spatialTarget) {
+    setGamepadMenuFocus(spatialTarget);
+    spatialTarget.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    return;
+  }
+
   const offset = (direction === 'up' || direction === 'left') ? -1 : 1;
   const nextIndex = currentIndex < 0
     ? (offset > 0 ? 0 : items.length - 1)
     : (currentIndex + offset + items.length) % items.length;
   setGamepadMenuFocus(items[nextIndex]);
+  items[nextIndex]?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
 }
 
 function acceptGamepadMenuSelection() {
