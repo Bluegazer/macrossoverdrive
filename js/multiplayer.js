@@ -4,6 +4,7 @@ const mpState = {
   active: false,
   isHost: false,
   country: 'AR',
+  countryReady: false,
   pilotName: 'PILOT-01',
   rivalName: 'RIVAL',
   rivalCountry: 'AR',
@@ -25,7 +26,6 @@ const mpState = {
   victory: false
 };
 
-
 function detectLocalCountryCode() {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
@@ -37,8 +37,12 @@ function detectLocalCountryCode() {
     if (tz.includes('Bogota')) return 'CO';
     if (tz.includes('Lima')) return 'PE';
     if (tz.includes('Madrid')) return 'ES';
+    const lang = (navigator.language || '').split('-');
+    if (lang[1] && lang[1].length === 2 && /^[A-Za-z]{2}$/.test(lang[1])) {
+      return lang[1].toUpperCase();
+    }
   } catch (e) {}
-  return 'AR';
+  return 'GL';
 }
 function initMultiplayerUI() {
   const mpScreen = document.getElementById('multiplayerScreen');
@@ -64,15 +68,16 @@ function initMultiplayerUI() {
         mpState.country = String(d.country_code).toUpperCase();
         if (countryBadge) countryBadge.textContent = 'REGIÓN: ' + mpState.country;
       }
+      mpState.countryReady = true;
     })
-    .catch(() => {});
+    .catch(() => { mpState.countryReady = true; });
 
   try {
     const savedName = localStorage.getItem(MP_NAME_KEY);
     if (savedName && nameInput) nameInput.value = savedName;
   } catch (e) {}
 
-    const mpMapSelect = document.getElementById('mpMapSelect');
+  const mpMapSelect = document.getElementById('mpMapSelect');
   if (mpMapSelect) {
     mpMapSelect.addEventListener('change', () => {
       if (typeof selectedMapId !== 'undefined') selectedMapId = mpMapSelect.value;
@@ -96,8 +101,8 @@ function initMultiplayerUI() {
 
   if (btnCreate) btnCreate.addEventListener('click', () => createMultiplayerRoom(nameInput, codeOut));
   if (btnJoin) btnJoin.addEventListener('click', () => joinMultiplayerRoom(nameInput, codeIn));
-  
-    if (btnCopy && codeOut) {
+
+  if (btnCopy && codeOut) {
     btnCopy.addEventListener('click', () => {
       if (!codeOut.value) return;
       navigator.clipboard?.writeText(codeOut.value).catch(() => {});
@@ -120,18 +125,16 @@ function initMultiplayerUI() {
     if (startSc) startSc.classList.add('hidden');
     if (mpScreen) mpScreen.classList.remove('hidden');
     if (codeIn) codeIn.value = urlRoom.trim().toUpperCase();
-    setMpStatus('Enlace detectado (' + codeIn.value + '). Esperando carga de sistemas...');
+    setMpStatus('Enlace detectado (' + codeIn.value + '). Verificando región y sistemas...');
     const waitReady = setInterval(() => {
       const startBtn = document.getElementById('btnStartGame');
-      if (!startBtn || !startBtn.disabled) {
+      if ((!startBtn || !startBtn.disabled) && mpState.countryReady) {
         clearInterval(waitReady);
         joinMultiplayerRoom(nameInput, codeIn);
       }
     }, 300);
   }
 }
-
-
 function setMpStatus(msg, isError) {
   const el = document.getElementById('mpStatusText');
   if (!el) return;
@@ -173,12 +176,11 @@ function createMultiplayerRoom(nameInput, codeOut) {
   mpState.peer = peer;
   mpState.isHost = true;
 
-    peer.on('open', () => {
+  peer.on('open', () => {
     const mapSel = document.getElementById('mpMapSelect');
     const mapLabel = (mapSel && mapSel.selectedOptions && mapSel.selectedOptions[0]) ? mapSel.selectedOptions[0].textContent : 'MAPA 1';
     setMpStatus('Sala ' + roomCode + ' (' + mapLabel + ') lista. Esperando rival de ' + mpState.country + '...');
   });
-
 
   peer.on('connection', (conn) => {
     if (mpState.conn && mpState.conn.open) {
@@ -191,14 +193,12 @@ function createMultiplayerRoom(nameInput, codeOut) {
 
   peer.on('error', (err) => setMpStatus('Error de red: ' + (err.type || err.message), true));
 }
-
 function joinMultiplayerRoom(nameInput, codeIn) {
   if (typeof Peer !== 'function') { setMpStatus('Error: librería PeerJS no cargada.', true); return; }
   const rawInput = (codeIn && codeIn.value ? codeIn.value : '').trim().toUpperCase();
   const match = rawInput.match(/([A-Z]{2}-\d{4})/);
   const code = match ? match[1] : '';
   if (!code) {
-  
     setMpStatus('Formato inválido. Usa el código de 4 dígitos (Ej: AR-4829).', true);
     return;
   }
@@ -271,6 +271,11 @@ function handleMpPacket(pkt, conn) {
   }
 
   if (pkt.type === 'HELLO_ACK' && mpState.isHost) {
+    if (pkt.country !== mpState.country) {
+      conn.send({ type: 'REJECT', reason: 'PAÍS DISTINTO (' + pkt.country + ')' });
+      setTimeout(destroyMpConnection, 150);
+      return;
+    }
     mpState.rivalName = pkt.name || 'RIVAL';
     mpState.rivalCountry = pkt.country || mpState.country;
     const mapChoice = (typeof selectedMapId !== 'undefined') ? selectedMapId : 'MAPA_1';
@@ -314,8 +319,6 @@ function handleMpPacket(pkt, conn) {
     return;
   }
 }
-
-
 function launchMultiplayerMatch(mapId) {
   mpState.active = true;
   mpState.matchEnded = false;
@@ -453,7 +456,6 @@ function updateMultiplayer(delta, playerContainer) {
     }
   }
 
-  // 2. Detección continua por segmento de nuestras balas contra el Valkyrie rival (cero tunneling)
   if (mpState.rivalMesh && typeof bullets !== 'undefined') {
     const segStart = new THREE.Vector3();
     const segVec = new THREE.Vector3();
