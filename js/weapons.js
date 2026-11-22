@@ -305,7 +305,7 @@ function cloneSkinnedScene(source) {
   });
   return clone;
 }
-const REGULT_TOTAL_FRAMES = 24;
+const REGULT_TOTAL_FRAMES = 56;
 const CITY_STREETS_X = new Array(-180, -152, -124, -96, -68);
 const CITY_STREETS_Z = new Array(-14, 14, 42, 70, 98);
 
@@ -990,17 +990,15 @@ function updateEnemies(delta, playerContainer) {
     } else {
       e.stateTimer -= delta;
 
-      if (e.walkState === 'WALK') {
-        const trotSpeed = 14.0;
-        e.animFrame += e.animDir * trotSpeed * delta;
-        if (e.animFrame >= 19) {
-          e.animFrame = 19;
-          e.animDir = -1;
-        } else if (e.animFrame <= 16) {
-          e.animFrame = 16;
-          e.animDir = 1;
-        }
-        setRegultFrame(e, e.animFrame);
+   if (e.walkState === 'WALK') {
+     const walkAnimSpeed = 28.0;
+     if (e.animFrame < 24 || e.animFrame > 56) e.animFrame = 24;
+     e.animFrame += walkAnimSpeed * delta;
+     if (e.animFrame >= 56) {
+       e.animFrame = 24 + (e.animFrame - 56);
+     }
+     setRegultFrame(e, e.animFrame);
+
 
         if (isInteriorBattle) {
           if (typeof e.targetWorldX !== 'number') chooseNextInteriorWaypoint(e);
@@ -1053,7 +1051,7 @@ function updateEnemies(delta, playerContainer) {
         if (e.stateTimer <= 0) {
           e.walkState = 'WALK';
           e.stateTimer = 3.2 + Math.random() * 4.0;
-          e.animFrame = 16;
+          e.animFrame = 24;
           e.animDir = 1;
           chooseNextCityWaypoint(e);
         }
