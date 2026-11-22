@@ -48,7 +48,7 @@ sharedLoadingManager.onLoad = () => {
     if (preloadBoxEl) preloadBoxEl.style.display = 'none';
     if (btnStartInitEl) {
       btnStartInitEl.disabled = false;
-      btnStartInitEl.textContent = 'INICIAR MISIÓN';
+      btnStartInitEl.textContent = (typeof t === 'function') ? t('startBtn') : 'INICIAR MISIÓN';
       btnStartInitEl.style.opacity = '1';
       btnStartInitEl.focus({ preventScroll: true });
     }

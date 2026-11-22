@@ -298,28 +298,38 @@ function drawWeaponStatusPanel(w) {
   hudCtx.beginPath();
   hudCtx.moveTo(x + 12, y + 86); hudCtx.lineTo(x + boxW - 12, y + 86);
   hudCtx.stroke();
+  const lang = (typeof activeLang !== 'undefined') ? activeLang : 'es';
+  const curMslType = (typeof getCurrentMissileType === 'function') ? getCurrentMissileType() : 'LIGERO';
+  const mslNames = {
+    LIGERO: { es: 'LIGERO', en: 'LIGHT', zh: '轻型', ja: '軽量' },
+    PESADO: { es: 'PESADO', en: 'HEAVY', zh: '重型', ja: '重量' },
+    ESPECIAL: { es: 'ESPECIAL', en: 'SPECIAL', zh: '特种', ja: '特殊' }
+  };
+  const mslLabel = (mslNames[curMslType] && mslNames[curMslType][lang]) || curMslType;
+  const salvoWord = lang === 'en' ? 'SALVO' : (lang === 'zh' ? '齐射' : (lang === 'ja' ? '斉射' : 'SALVA'));
+
   const lockCount = (typeof lockedEnemies !== 'undefined') ? lockedEnemies.length : 0;
   const hasLock = lockCount > 0;
   hudCtx.fillStyle = '#38bdf8';
-  hudCtx.fillText('MSL: ' + (typeof getCurrentMissileType === 'function' ? getCurrentMissileType() : 'AMM-1'), x + 14, y + 110);
+  hudCtx.fillText('MSL: ' + mslLabel, x + 14, y + 110);
   hudCtx.shadowColor = hasLock ? 'rgba(239, 68, 68, 0.9)' : 'rgba(56, 189, 248, 0.6)';
   hudCtx.shadowBlur = 6;
   hudCtx.fillStyle = hasLock ? '#ef4444' : '#94a3b8';
   hudCtx.fillText(hasLock ? ('LOCK [' + lockCount + '/4]') : 'STBY', x + 135, y + 110);
 
-    for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 4; i++) {
     hudCtx.fillStyle = (i < lockCount) ? '#ef4444' : 'rgba(51, 65, 85, 0.6)';
     hudCtx.fillRect(x + 232 + i * 12, y + 100, 8, 12);
   }
 
-  const curMslType = (typeof getCurrentMissileType === 'function') ? getCurrentMissileType() : 'LIGERO';
   drawMissilePodIcon(x + 14, y + 118, 56, 38, curMslType, hasLock);
   hudCtx.shadowBlur = 0;
   hudCtx.font = 'bold 9px Conthrax, sans-serif';
   hudCtx.fillStyle = '#94a3b8';
-  hudCtx.fillText('POD: ' + curMslType + ' [TAB]', x + 80, y + 133);
+  hudCtx.fillText('POD: ' + mslLabel + ' [TAB]', x + 80, y + 133);
   hudCtx.fillStyle = hasLock ? '#fca5a5' : '#38bdf8';
-  hudCtx.fillText(curMslType === 'PESADO' ? 'SALVA: 01 // HEAVY' : 'SALVA: 04 // MULTI', x + 80, y + 149);
+  hudCtx.fillText(curMslType === 'PESADO' ? (salvoWord + ': 01 // HEAVY') : (salvoWord + ': 04 // MULTI'), x + 80, y + 149);
+
 
   hudCtx.shadowBlur = 0;
   hudCtx.beginPath();
@@ -899,19 +909,41 @@ function drawMultiplayerRivalHUD(w, h, camera, playerContainer, delta) {
     hudCtx.restore();
   }
 
-  if (mpState.matchEnded) {
+    if (mpState.matchEnded) {
+    const lang = (typeof activeLang !== 'undefined') ? activeLang : 'es';
+    const myName = mpState.pilotName || 'PILOT';
+    const enemyName = mpState.rivalName || 'RIVAL';
+
+    let resultText = '';
+    let exitHint = 'PRESIONA [ESC] PARA VOLVER AL MENÚ PRINCIPAL';
+
+    if (lang === 'en') {
+      resultText = mpState.victory ? (myName + ' WINS // ' + enemyName + ' SHOT DOWN') : (myName + ' LOST // SHOT DOWN BY ' + enemyName);
+      exitHint = 'PRESS [ESC] TO RETURN TO MAIN MENU';
+    } else if (lang === 'zh') {
+      resultText = mpState.victory ? (myName + ' 获胜 // 击落 ' + enemyName) : (myName + ' 战败 // 被 ' + enemyName + ' 击落');
+      exitHint = '按 [ESC] 键返回主菜单';
+    } else if (lang === 'ja') {
+      resultText = mpState.victory ? (myName + ' の勝利 // ' + enemyName + ' を撃墜') : (myName + ' の敗北 // ' + enemyName + ' に撃墜された');
+      exitHint = '[ESC] キーでメインメニューに戻る';
+    } else {
+      resultText = mpState.victory ? ('GANÓ ' + myName + ' // ' + enemyName + ' DERRIBADO') : ('PERDIÓ ' + myName + ' // DERRIBADO POR ' + enemyName);
+    }
+
     hudCtx.save();
     hudCtx.fillStyle = 'rgba(2, 6, 23, 0.72)';
     hudCtx.fillRect(0, h * 0.5 - 55, w, 110);
     hudCtx.textAlign = 'center';
-    hudCtx.font = 'bold 28px Conthrax, sans-serif';
+    hudCtx.font = 'bold 24px Conthrax, sans-serif';
     hudCtx.fillStyle = mpState.victory ? '#22c55e' : '#ef4444';
-    hudCtx.fillText(mpState.victory ? 'VICTORIA // RIVAL DERRIBADO' : 'DERROTA // VF-1A DESTRUIDO', w * 0.5, h * 0.5 - 6);
+    hudCtx.fillText(resultText, w * 0.5, h * 0.5 - 6);
     hudCtx.font = 'bold 11px Conthrax, sans-serif';
     hudCtx.fillStyle = '#38bdf8';
-    hudCtx.fillText('PRESIONA [ESC] PARA VOLVER AL MENÚ PRINCIPAL', w * 0.5, h * 0.5 + 26);
+    hudCtx.fillText(exitHint, w * 0.5, h * 0.5 + 26);
     hudCtx.restore();
   }
+
+
 }
 
 
@@ -1054,6 +1086,20 @@ function drawDYRLHud(delta, camera, playerContainer, enemies, isPaused) {
   drawOffScreenTargetArrow(w, h, camera, playerContainer, enemies);
   drawMissileAlertBanner(w, h, playerContainer);
   
+  const lang = (typeof activeLang !== 'undefined') ? activeLang : 'es';
+  const topLeftHud = document.getElementById('hud');
+  if (topLeftHud && lang !== 'es') {
+    let txt = topLeftHud.innerHTML;
+    if (lang === 'en') {
+      txt = txt.replace('MODO:', 'MODE:').replace('ALTITUD:', 'ALTITUDE:').replace('RUMBO:', 'HEADING:').replace('ENEMIGO CERCANO:', 'CLOSEST TARGET:').replace('SIN BLANCOS', 'NO TARGETS');
+    } else if (lang === 'zh') {
+      txt = txt.replace('MODO:', '形态:').replace('ALTITUD:', '高度:').replace('RUMBO:', '航向:').replace('ENEMIGO CERCANO:', '最近目标:').replace('SIN BLANCOS', '无目标');
+    } else if (lang === 'ja') {
+      txt = txt.replace('MODO:', '形態:').replace('ALTITUD:', '高度:').replace('RUMBO:', '方位:').replace('ENEMIGO CERCANO:', '最寄り目標:').replace('SIN BLANCOS', '目標なし');
+    }
+    if (topLeftHud.innerHTML !== txt) topLeftHud.innerHTML = txt;
+  }
+
   if (typeof isGameOver !== 'undefined' && isGameOver && !(typeof mpState !== 'undefined' && mpState.active)) drawRestartOverlay(w, h);
   else if (isPaused) drawPauseOverlay(w, h);
 }
