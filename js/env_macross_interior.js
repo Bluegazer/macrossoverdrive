@@ -117,8 +117,8 @@ function createInteriorAvenueTexture() {
   for (let g = 0; g < glowPositions.length; g++) {
     const gy = glowPositions.at(g);
     const grad = ctx.createRadialGradient(w * 0.5, gy, 10, w * 0.5, gy, 210);
-    grad.addColorStop(0.0, 'rgba(56, 189, 248, 0.14)');
-    grad.addColorStop(0.5, 'rgba(250, 204, 21, 0.06)');
+    grad.addColorStop(0.0, 'rgba(245, 158, 11, 0.18)');
+    grad.addColorStop(0.5, 'rgba(217, 119, 6, 0.08)');
     grad.addColorStop(1.0, 'rgba(12, 16, 23, 0.0)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, gy - 210, w, 420);
@@ -372,7 +372,7 @@ function buildAvenueAndSidewalks(targetGroup, toonGradient) {
     map: roadTex,
     emissiveMap: roadTex,
     emissive: new THREE.Color(0xffffff),
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 1.35,
     roughness: 0.45,
     metalness: 0.25
   });
@@ -821,7 +821,7 @@ function buildInteriorParks(targetGroup) {
   );
 
   const lawnTex = createProceduralLawnTexture();
-  const grassMat = new THREE.MeshStandardMaterial({ map: lawnTex, color: 0xffffff, emissive: new THREE.Color(0x0f2912), emissiveIntensity: 0.35, roughness: 0.88 });
+  const grassMat = new THREE.MeshStandardMaterial({ map: lawnTex, color: 0xffffff, emissive: new THREE.Color(0x0f2912), emissiveIntensity: 1.35, roughness: 0.88 });
   const pathMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, emissive: new THREE.Color(0x38bdf8), emissiveIntensity: 0.18, roughness: 0.6 });
   const waterMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
 
@@ -999,10 +999,10 @@ function buildSDF1EngineVault(targetGroup) {
 
   const hullTex = createEngineHullWallTexture();
   hullTex.repeat.set(8, 3);
-  const wallMat = new THREE.MeshStandardMaterial({ map: hullTex, emissiveMap: hullTex, emissive: new THREE.Color(0x38bdf8), emissiveIntensity: 0.28, roughness: 0.65, metalness: 0.55 });
+  const wallMat = new THREE.MeshStandardMaterial({ map: hullTex, emissiveMap: hullTex, emissive: new THREE.Color(0xd97706), emissiveIntensity: 0.28, roughness: 0.65, metalness: 0.55 });
   const ceilTex = createBrushedMetalTexture('#1a202c', '#0b0f17');
   ceilTex.repeat.set(14, 36);
-  const ceilMat = new THREE.MeshStandardMaterial({ map: ceilTex, emissive: new THREE.Color(0x0f172a), emissiveIntensity: 0.35, roughness: 0.6, metalness: 0.6 });
+  const ceilMat = new THREE.MeshStandardMaterial({ map: ceilTex, emissive: new THREE.Color(0x0f172a), emissiveIntensity: 1.35, roughness: 0.6, metalness: 0.6 });
 
   const ceilGeo = new THREE.PlaneGeometry(halfW * 2, halfL * 2);
   ceilGeo.rotateX(Math.PI / 2);
@@ -1022,7 +1022,7 @@ function buildSDF1EngineVault(targetGroup) {
   // Detalle estructural del techo: vigas transversales, largueros, pasarelas técnicas y paneles de luz
   const ribMat = new THREE.MeshStandardMaterial({ color: 0x26303d, roughness: 0.55, metalness: 0.65 });
   const pipeMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.4, metalness: 0.75 });
-  const skyPanelMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+  const skyPanelMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
 
   const ribZList = new Array();
   for (let z = -halfL + 30; z <= halfL - 30; z += 45) ribZList.push(z);
@@ -1610,7 +1610,7 @@ function buildIrregularLevel2Buildings(targetGroup) {
     map: wallTex,
     emissiveMap: wallTex,
     emissive: new THREE.Color(0xfef08a),
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 1.35,
     roughness: 0.68,
     metalness: 0.35
   });
@@ -1903,7 +1903,7 @@ const cylWallMat = new THREE.MeshStandardMaterial({
 map: cylWallTex,
 emissiveMap: cylWallTex,
 emissive: new THREE.Color(0xfef08a),
-emissiveIntensity: 0.35,
+emissiveIntensity: 1.35,
 roughness: 0.68,
 metalness: 0.35
 });
@@ -2314,13 +2314,90 @@ function buildLevel3TerracePavilions(targetGroup) {
   if (railGeos.length > 0) targetGroup.add(new THREE.Mesh(mergeSimpleGeometries(railGeos), rimMat));
 }
 
+function buildAmberStreetLightPools(targetGroup) {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+  grad.addColorStop(0.0, 'rgba(251, 191, 36, 0.42)');
+  grad.addColorStop(0.45, 'rgba(217, 119, 6, 0.18)');
+  grad.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 128, 128);
+
+  const poolTex = new THREE.CanvasTexture(c);
+  const poolMat = new THREE.MeshBasicMaterial({
+    map: poolTex,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  const matrices = new Array();
+  const dummy = new THREE.Object3D();
+  const halfL = INTERIOR_CONFIG.length * 0.5;
+  const roadW = INTERIOR_CONFIG.roadWidth;
+
+  // 1. Halos ámbar bajo cada farola de la avenida (Nivel 0)
+  for (let z = -halfL + 12; z <= halfL - 12; z += 16) {
+    dummy.position.set(-(roadW * 0.5 + 0.1), 0.045, z);
+    dummy.rotation.set(-Math.PI / 2, 0, 0);
+    dummy.scale.set(3.4, 4.2, 1);
+    dummy.updateMatrix();
+    matrices.push(dummy.matrix.clone());
+
+    dummy.position.set(roadW * 0.5 + 0.1, 0.025, z);
+    dummy.updateMatrix();
+    matrices.push(dummy.matrix.clone());
+  }
+
+  // 2. Halos ámbar en los pasillos libres entre edificios (Nivel 1)
+  const deckY = INTERIOR_CONFIG.upperDeckY + 0.032;
+  const lanesX = new Array(-6.5, -22.5, -53.5, -90.5, 6.5, 22.5, 53.5, 90.5);
+  const isFree = (x, z) => {
+    const sign = x < 0 ? -1 : 1;
+    if (Math.abs(x) < getUpperDeckInnerDist(sign, z) + 0.8) return false;
+    if (Math.hypot(x - 62, z - (-20)) < 46) return false;
+    for (let i = 0; i < level2TerracePolys.length; i++) {
+      if (isPointInPolyXZ(x, z, level2TerracePolys.at(i).pts)) return false;
+    }
+    for (let k = 0; k < level2CylinderTerraces.length; k++) {
+      const cyl = level2CylinderTerraces.at(k);
+      if (Math.hypot(x - cyl.x, z - cyl.z) <= cyl.r + 1.0) return false;
+    }
+    return true;
+  };
+
+  for (let l = 0; l < lanesX.length; l++) {
+    const lx = lanesX.at(l);
+    for (let z = -halfL + 20; z <= halfL - 20; z += 24) {
+      if (!isFree(lx, z)) continue;
+      dummy.position.set(lx, deckY, z);
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      dummy.scale.set(4.6, 5.4, 1);
+      dummy.updateMatrix();
+      matrices.push(dummy.matrix.clone());
+    }
+  }
+
+  if (matrices.length > 0) {
+    const poolGeo = new THREE.PlaneGeometry(1, 1);
+    const instPools = new THREE.InstancedMesh(poolGeo, poolMat, matrices.length);
+	instPools.frustumCulled = false;
+    for (let i = 0; i < matrices.length; i++) instPools.setMatrixAt(i, matrices.at(i));
+    instPools.instanceMatrix.needsUpdate = true;
+    targetGroup.add(instPools);
+  }
+}
+
 
 function buildMacrossInteriorEnvironment(scene, targetGroup) {
-scene.background = new THREE.Color(0x030712);
-scene.fog = new THREE.FogExp2(0x060d1f, 0.00095);
-if (typeof dirLight !== 'undefined' && dirLight) { dirLight.position.set(80, 220, 60); dirLight.color.setHex(0x93c5fd); dirLight.intensity = 0.55; }
-if (typeof ambientLight !== 'undefined' && ambientLight) { ambientLight.color.setHex(0x1e293b); ambientLight.intensity = 0.42; }
-if (typeof hemiLight !== 'undefined' && hemiLight) { hemiLight.color.setHex(0x38bdf8); hemiLight.groundColor.setHex(0x0f172a); hemiLight.intensity = 0.38; }
+scene.background = new THREE.Color(0x080503);
+scene.fog = new THREE.FogExp2(0x120904, 0.0009);
+if (typeof dirLight !== 'undefined' && dirLight) { dirLight.position.set(80, 220, 60); dirLight.color.setHex(0xfbbf24); dirLight.intensity = 0.36; }
+if (typeof ambientLight !== 'undefined' && ambientLight) { ambientLight.color.setHex(0x2e1808); ambientLight.intensity = 0.32; }
+if (typeof hemiLight !== 'undefined' && hemiLight) { hemiLight.color.setHex(0xd97706); hemiLight.groundColor.setHex(0x0f0804); hemiLight.intensity = 0.28; }
 const toonGradient = (typeof createAnimeToonGradient === 'function') ? createAnimeToonGradient() : null;
 buildAvenueAndSidewalks(targetGroup, toonGradient);
 buildUpperCityDecksAndShops(targetGroup);
@@ -2330,6 +2407,7 @@ buildOpenDomeAuditorium(targetGroup);
 buildIrregularLevel2Buildings(targetGroup);
 buildLevel3TerracePavilions(targetGroup);
 buildPedestrianWalkwayMarkings(targetGroup);
+buildAmberStreetLightPools(targetGroup);
 buildSDF1EngineVault(targetGroup);
 buildVerticalGiantMonitors(targetGroup);
 }
