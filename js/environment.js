@@ -1336,7 +1336,7 @@ function switchEnvironmentMap(scene, mapId) {
 
   structureColliders.length = 0;
 
-  // Si el mapa ya está en caché, restaurarlo en 0 ms
+   // Si el mapa ya está en caché, restaurarlo en 0 ms
   if (mapCache[targetId]) {
     const cached = mapCache[targetId];
     scene.background = cached.background;
@@ -1348,6 +1348,10 @@ function switchEnvironmentMap(scene, mapId) {
       dirLight.position.copy(SUN_DIR_VEC).multiplyScalar(600);
       dirLight.color.setHex(0xfff7ed);
       dirLight.intensity = 1.65;
+    } else if (targetId === 'MAPA_3') {
+      if (typeof dirLight !== 'undefined' && dirLight) { dirLight.position.set(80, 220, 60); dirLight.color.setHex(0xfbbf24); dirLight.intensity = 0.36; }
+      if (typeof ambientLight !== 'undefined' && ambientLight) { ambientLight.color.setHex(0x2e1808); ambientLight.intensity = 0.32; }
+      if (typeof hemiLight !== 'undefined' && hemiLight) { hemiLight.color.setHex(0xd97706); hemiLight.groundColor.setHex(0x0f0804); hemiLight.intensity = 0.28; }
     }
     if (typeof onEnvironmentMapChanged === 'function') {
       onEnvironmentMapChanged(activeMapId);

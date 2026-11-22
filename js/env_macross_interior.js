@@ -2347,7 +2347,7 @@ function buildAmberStreetLightPools(targetGroup) {
     dummy.updateMatrix();
     matrices.push(dummy.matrix.clone());
 
-    dummy.position.set(roadW * 0.5 + 0.1, 0.025, z);
+    dummy.position.set(roadW * 0.5 + 0.1, 0.045, z);
     dummy.updateMatrix();
     matrices.push(dummy.matrix.clone());
   }
