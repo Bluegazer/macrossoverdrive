@@ -239,6 +239,18 @@
       </section>
 
       <section class="options-category-panel game-options" id="gameOptions" role="tabpanel" hidden>
+	          <h3 class="options-section-title" id="i18nSectionTitle">IDIOMA // LANGUAGE</h3>
+        <p class="options-help" id="i18nSectionHelp">Detecta automáticamente el idioma de tu navegador o elige uno manualmente.</p>
+        <label class="time-of-day-setting" for="languageModeSelect" style="margin-bottom: 18px;">
+          <span id="i18nSelectLabel">IDIOMA DE INTERFAZ</span>
+          <select id="languageModeSelect">
+            <option value="auto">Automático (Navegador)</option>
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="zh">中文 (Chino)</option>
+            <option value="ja">日本語 (Japonés)</option>
+          </select>
+        </label>
         <h3 class="options-section-title">HORA DEL DÍA · MAPA 1</h3>
         <p class="options-help">Elige si South Ataria sigue la hora local de tu PC o si prefieres fijar el momento. Esta opción solo afecta al Mapa 1.</p>
         <label class="time-of-day-setting" for="timeOfDayMode">
@@ -306,6 +318,7 @@
           <input id="mpRoomCodeIn" type="text" maxlength="80" placeholder="CÓDIGO O LINK (EJ: AR-4829)" style="width: 100%; box-sizing: border-box; background: #020617; border: 1px solid #38bdf8; color: #fff; text-align: center; font-weight: bold; letter-spacing: 1.5px; padding: 6px; margin-bottom: 8px;" />
           <button id="btnJoinRoom" class="options-save" type="button" style="width: 100%;">CONECTAR AL RIVAL</button>
         </div>
+	  </div>
 
 
       <p id="mpStatusText" class="binding-status" role="status" aria-live="polite">Ingresa tu nombre y crea una sala o pega el código de tu rival.</p>
@@ -331,6 +344,7 @@
   <script src="./js/env_macross_interior.js"></script>
   <script src="./js/controls.js"></script>
   <script src="./js/multiplayer.js"></script>
+  <script src="./js/i18n.js"></script>
   <script src="./js/main.js"></script>
 </body>
 </html>
