@@ -1090,98 +1090,87 @@ function createScreenFallbackTexture(screenIdx) {
 
 let broadcastScreenState = null;
 
-function drawBroadcastMonitorFrame(ctx, w, h, t) {
-  // Fondo degradado escenario nocturno
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-  bgGrad.addColorStop(0, '#090d1f');
-  bgGrad.addColorStop(0.65, '#1e1b4b');
-  bgGrad.addColorStop(1, '#311042');
-  ctx.fillStyle = bgGrad;
+function drawBroadcastMonitorFrame(ctx, w, h, t, cachedBgGrad) {
+  ctx.fillStyle = cachedBgGrad;
   ctx.fillRect(0, 0, w, h);
 
-  // Haces de reflectores láser del escenario moviéndose suavemente
-  const beamColors = ['rgba(56, 189, 248, 0.22)', 'rgba(244, 114, 182, 0.22)', 'rgba(250, 204, 21, 0.18)'];
+  const beamColors = new Array('rgba(56, 189, 248, 0.22)', 'rgba(244, 114, 182, 0.22)', 'rgba(250, 204, 21, 0.18)');
   for (let b = 0; b < 5; b++) {
     const angle = Math.sin(t * 1.1 + b * 1.3) * 0.45;
     const baseX = w * (0.2 + b * 0.15);
-    ctx.fillStyle = beamColors[b % beamColors.length];
+    ctx.fillStyle = beamColors.at(b % beamColors.length);
     ctx.beginPath();
-    ctx.moveTo(baseX - 8, h - 34);
-    ctx.lineTo(baseX + Math.sin(angle) * 180 - 45, 0);
-    ctx.lineTo(baseX + Math.sin(angle) * 180 + 45, 0);
-    ctx.lineTo(baseX + 8, h - 34);
+    ctx.moveTo(baseX - 4, h - 17);
+    ctx.lineTo(baseX + Math.sin(angle) * 90 - 22, 0);
+    ctx.lineTo(baseX + Math.sin(angle) * 90 + 22, 0);
+    ctx.lineTo(baseX + 4, h - 17);
     ctx.closePath();
     ctx.fill();
   }
 
-  // Halo luminoso central de escenario
-  const pulseR = 68 + Math.sin(t * 4.0) * 6;
-  const halo = ctx.createRadialGradient(w * 0.5, h * 0.46, 8, w * 0.5, h * 0.46, pulseR);
-  halo.addColorStop(0, 'rgba(244, 114, 182, 0.85)');
-  halo.addColorStop(0.55, 'rgba(56, 189, 248, 0.35)');
-  halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
-  ctx.fillStyle = halo;
-  ctx.fillRect(0, 0, w, h);
+  const pulseR = 34 + Math.sin(t * 4.0) * 3;
+  ctx.fillStyle = 'rgba(244, 114, 182, 0.28)';
+  ctx.beginPath();
+  ctx.arc(w * 0.5, h * 0.46, pulseR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+  ctx.beginPath();
+  ctx.arc(w * 0.5, h * 0.46, pulseR * 0.55, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Silueta estilizada de idol en escenario (Lynn Minmay)
   const cx = w * 0.5;
-  const cy = h * 0.48 + Math.sin(t * 3.2) * 2.5;
+  const cy = h * 0.48 + Math.sin(t * 3.2) * 1.4;
   ctx.fillStyle = '#fdf2f8';
   ctx.beginPath();
-  ctx.arc(cx, cy - 28, 12, 0, Math.PI * 2); // cabeza
+  ctx.arc(cx, cy - 14, 6, 0, Math.PI * 2);
   ctx.fill();
-  // Cabello azul largo con movimiento
+
   ctx.fillStyle = '#38bdf8';
   ctx.beginPath();
-  ctx.arc(cx, cy - 30, 14, Math.PI * 0.85, Math.PI * 2.15);
-  ctx.lineTo(cx + 22 + Math.sin(t * 3) * 4, cy + 12);
-  ctx.lineTo(cx - 22 + Math.sin(t * 3) * 4, cy + 12);
+  ctx.arc(cx, cy - 15, 7, Math.PI * 0.85, Math.PI * 2.15);
+  ctx.lineTo(cx + 11 + Math.sin(t * 3) * 2, cy + 6);
+  ctx.lineTo(cx - 11 + Math.sin(t * 3) * 2, cy + 6);
   ctx.closePath();
   ctx.fill();
-  // Vestido de escenario
+
   ctx.fillStyle = '#f472b6';
   ctx.beginPath();
-  ctx.moveTo(cx - 8, cy - 14);
-  ctx.lineTo(cx + 8, cy - 14);
-  ctx.lineTo(cx + 24, cy + 32);
-  ctx.lineTo(cx - 24, cy + 32);
+  ctx.moveTo(cx - 4, cy - 7);
+  ctx.lineTo(cx + 4, cy - 7);
+  ctx.lineTo(cx + 12, cy + 16);
+  ctx.lineTo(cx - 12, cy + 16);
   ctx.closePath();
   ctx.fill();
 
-  // Barras de ecualizador de audio a ambos lados
-  const bars = 12;
-  for (let i = 0; i < bars; i++) {
-    const val = 12 + Math.abs(Math.sin(t * 5.5 + i * 0.85)) * 46;
+  for (let i = 0; i < 10; i++) {
+    const val = 6 + Math.abs(Math.sin(t * 5.5 + i * 0.85)) * 23;
     ctx.fillStyle = (i % 2 === 0) ? '#38bdf8' : '#f472b6';
-    ctx.fillRect(24 + i * 11, h - 38 - val, 7, val);
-    ctx.fillRect(w - 31 - i * 11, h - 38 - val, 7, val);
+    ctx.fillRect(12 + i * 6, h - 19 - val, 4, val);
+    ctx.fillRect(w - 16 - i * 6, h - 19 - val, 4, val);
   }
 
-  // Banner superior e inferior estilo transmisión TV Macross 1984
   ctx.fillStyle = 'rgba(9, 13, 22, 0.88)';
-  ctx.fillRect(0, 0, w, 24);
-  ctx.fillRect(0, h - 28, w, 28);
+  ctx.fillRect(0, 0, w, 13);
+  ctx.fillRect(0, h - 15, w, 15);
 
   ctx.fillStyle = '#ef4444';
   ctx.beginPath();
-  ctx.arc(16, 12, 5, 0, Math.PI * 2);
+  ctx.arc(9, 6.5, 3, 0, Math.PI * 2);
   ctx.fill();
-  ctx.font = 'bold 11px sans-serif';
+  ctx.font = 'bold 7px sans-serif';
   ctx.fillStyle = '#f8fafc';
   ctx.textAlign = 'left';
-  ctx.fillText('LIVE // SDF-1 MACROSS BROADCAST NETWORK', 28, 16);
+  ctx.fillText('LIVE // SDF-1 MACROSS BROADCAST', 16, 9);
 
-  // Cintillo inferior en movimiento
-  const ticker = 'LYNN MINMAY SPECIAL CONCERT  ★  DO YOU REMEMBER LOVE?  ★  U.N. SPACY CIVIL DEFENSE  ★  ';
-  const scrollX = w - ((t * 55) % (w + 420));
+  const ticker = 'LYNN MINMAY CONCERT  ★  DO YOU REMEMBER LOVE?  ★  U.N. SPACY  ★  ';
+  const scrollX = w - ((t * 32) % (w + 260));
   ctx.fillStyle = '#fde047';
-  ctx.font = 'bold 12px sans-serif';
-  ctx.fillText(ticker + ticker, scrollX, h - 10);
+  ctx.font = 'bold 8px sans-serif';
+  ctx.fillText(ticker + ticker, scrollX, h - 4);
 
-  // Marco exterior
   ctx.strokeStyle = '#38bdf8';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(2, 2, w - 4, h - 4);
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, w - 2, h - 2);
 }
 
 function buildVerticalGiantMonitors(targetGroup) {
@@ -1194,9 +1183,9 @@ function buildVerticalGiantMonitors(targetGroup) {
   towerBack.position.set(-2.0, 38, 0);
   towerGroup.add(towerBack);
 
-  const neonSideColors = [0xf472b6, 0x38bdf8, 0xfacc15, 0x4ade80];
+  const neonSideColors = new Array(0xf472b6, 0x38bdf8, 0xfacc15, 0x4ade80);
   for (let s = 0; s < 6; s++) {
-    const signMat = new THREE.MeshBasicMaterial({ color: neonSideColors[s % neonSideColors.length] });
+    const signMat = new THREE.MeshBasicMaterial({ color: neonSideColors.at(s % neonSideColors.length) });
     const signL = new THREE.Mesh(new THREE.BoxGeometry(1.1, 6.5, 2.4), signMat);
     signL.position.set(0.8, 14 + s * 9.5, -24.5);
     const signR = signL.clone(); signR.position.z = 24.5;
@@ -1204,30 +1193,37 @@ function buildVerticalGiantMonitors(targetGroup) {
   }
 
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 256;
+  canvas.width = 256;
+  canvas.height = 128;
   const ctx = canvas.getContext('2d', { alpha: false });
-  drawBroadcastMonitorFrame(ctx, 512, 256, 0);
+
+  const cachedBgGrad = ctx.createLinearGradient(0, 0, 0, 128);
+  cachedBgGrad.addColorStop(0, '#090d1f');
+  cachedBgGrad.addColorStop(0.65, '#1e1b4b');
+  cachedBgGrad.addColorStop(1, '#311042');
+
+  drawBroadcastMonitorFrame(ctx, 256, 128, 0, cachedBgGrad);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.generateMipmaps = false;
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
 
-  broadcastScreenState = { canvas: canvas, ctx: ctx, tex: tex, time: 0, accum: 0 };
+  broadcastScreenState = { canvas: canvas, ctx: ctx, tex: tex, bgGrad: cachedBgGrad, time: 0, accum: 0 };
   const sharedScreenMat = new THREE.MeshBasicMaterial({ map: tex });
 
   const yCenters = new Array(19, 41, 63);
   for (let i = 0; i < 3; i++) {
     const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(38, 20), sharedScreenMat);
-    screenMesh.position.set(0.8, yCenters[i], 0);
+    screenMesh.position.set(0.8, yCenters.at(i), 0);
     screenMesh.rotation.y = Math.PI / 2;
     const bezel = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.2, 40), towerFrameMat);
-    bezel.position.set(0.6, yCenters[i] - 10.6, 0);
+    bezel.position.set(0.6, yCenters.at(i) - 10.6, 0);
     towerGroup.add(screenMesh, bezel);
   }
   targetGroup.add(towerGroup);
 }
+
 
 
 function buildSpaceBattleWindow(targetGroup) {
@@ -2338,18 +2334,15 @@ buildSDF1EngineVault(targetGroup);
 buildVerticalGiantMonitors(targetGroup);
 }
 
-let vidFrameAccum = 0;
-
 function updateInteriorEnvironment(delta) {
   if (auditoriumLaserGroup) auditoriumLaserGroup.rotation.y += 0.12 * delta;
-  updateSpaceBattleWindow(delta);
 
   if (broadcastScreenState) {
     broadcastScreenState.time += delta;
     broadcastScreenState.accum += delta;
-    if (broadcastScreenState.accum >= (1 / 15)) {
+    if (broadcastScreenState.accum >= (1 / 8)) {
       broadcastScreenState.accum = 0;
-      drawBroadcastMonitorFrame(broadcastScreenState.ctx, 512, 256, broadcastScreenState.time);
+      drawBroadcastMonitorFrame(broadcastScreenState.ctx, 256, 128, broadcastScreenState.time, broadcastScreenState.bgGrad);
       broadcastScreenState.tex.needsUpdate = true;
     }
   }
