@@ -497,9 +497,69 @@ function initWeaponsAndEnemies(scene, playerContainer) {
     });
   }
 }
+
+function getArcadeGunLockTarget(playerContainer) {
+  if (typeof hudStyleMode === 'undefined' || hudStyleMode !== 'ARCADE') return null;
+  if (typeof currentMode === 'undefined' || (currentMode !== 'GERWALK' && currentMode !== 'BATTROID')) return null;
+
+  const camDir = new THREE.Vector3();
+  if (typeof camera !== 'undefined') camera.getWorldDirection(camDir);
+  else camDir.set(0, 0, -1).applyQuaternion(playerContainer.quaternion);
+  const camOrigin = (typeof camera !== 'undefined') ? camera.position : playerContainer.position;
+
+  const maxRange = 95;
+  let bestTarget = null;
+  let bestDot = -1;
+
+  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
+    const aimPos = mpState.rivalMesh.position.clone().add(new THREE.Vector3(0, 0.4, 0));
+    const toTarget = aimPos.clone().sub(camOrigin);
+    const dist = toTarget.length();
+    if (dist > 1 && dist <= maxRange) {
+      const dot = camDir.dot(toTarget.normalize());
+      if (dot >= 0.992) {
+        bestTarget = { pos: aimPos, isRival: true, id: mpState.rivalName || 'RIVAL', dist: dist, enemyObj: null };
+      }
+    }
+    return bestTarget;
+  }
+
+  const minCos = Math.cos(THREE.MathUtils.degToRad(22));
+  for (let i = 0; i < enemies.length; i++) {
+    const e = enemies.at(i);
+    if (e.respawnTimer > 0) continue;
+    const aimPos = e.mesh.position.clone().add(new THREE.Vector3(0, 1.35, 0));
+    const toTarget = aimPos.clone().sub(camOrigin);
+    const dist = toTarget.length();
+    if (dist <= 1 || dist > maxRange) continue;
+    const dot = camDir.dot(toTarget.normalize());
+    if (dot >= minCos && dot > bestDot) {
+      bestDot = dot;
+      bestTarget = { pos: aimPos, isRival: false, id: e.id, dist: dist, enemyObj: e };
+    }
+  }
+  return bestTarget;
+}
+
 function fireGunpod(scene, playerContainer, velocity) {
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
   const offset = new THREE.Vector3(0, -0.15, -0.9).applyQuaternion(playerContainer.quaternion);
+  const spawnPos = playerContainer.position.clone().add(offset);
+
+  const bulletSpeed = 145;
+  const lockTarget = getArcadeGunLockTarget(playerContainer);
+  let aimDir = forward.clone();
+
+  if (lockTarget) {
+    const predictedPos = lockTarget.pos.clone();
+    const flightTime = predictedPos.distanceTo(spawnPos) / bulletSpeed;
+    const e = lockTarget.enemyObj;
+    if (e && e._prevPos && e._lastDelta > 0) {
+      const estVel = e.mesh.position.clone().sub(e._prevPos).divideScalar(e._lastDelta);
+      predictedPos.addScaledVector(estVel, flightTime);
+    }
+    aimDir = predictedPos.sub(spawnPos).normalize();
+  }
 
   const boltGroup = new THREE.Group();
   const p1 = new THREE.Mesh(beamPlaneGeo, beamMat);
@@ -507,14 +567,15 @@ function fireGunpod(scene, playerContainer, velocity) {
   p2.rotateZ(Math.PI / 2);
   boltGroup.add(p1, p2);
 
-  boltGroup.position.copy(playerContainer.position).add(offset);
-  boltGroup.quaternion.copy(playerContainer.quaternion);
+  boltGroup.position.copy(spawnPos);
+  boltGroup.lookAt(spawnPos.clone().add(aimDir));
   scene.add(boltGroup);
 
-  const shotVel = forward.multiplyScalar(125).add(velocity);
+  const shotVel = lockTarget
+    ? aimDir.multiplyScalar(bulletSpeed)
+    : aimDir.multiplyScalar(125).add(velocity);
   bullets.push({ mesh: boltGroup, vel: shotVel, life: 1.5 });
   if (typeof notifyMpGunpodShot === 'function') notifyMpGunpodShot(boltGroup.position, shotVel);
-
 
   muzzleGroup.visible = true;
   muzzleGroup.rotation.z = Math.random() * Math.PI;
@@ -522,6 +583,9 @@ function fireGunpod(scene, playerContainer, velocity) {
   muzzleGroup.scale.set(s, s, s);
   muzzleFlashTimer = 0.04;
 }
+
+
+
 function fireRegultVioletLaser(scene, enemy, playerContainer) {
   const muzzles = (enemy.gunMuzzles && enemy.gunMuzzles.length > 0) ? enemy.gunMuzzles : new Array(null, null);
 
@@ -858,6 +922,10 @@ function updateEnemies(delta, playerContainer) {
 
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies.at(i);
+	if (!e._prevPos) e._prevPos = new THREE.Vector3();
+    e._prevPos.copy(e.mesh.position);
+    e._lastDelta = delta;
+
 
     if (e.respawnTimer > 0) {
       e.respawnTimer -= delta;
@@ -1047,16 +1115,26 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     if (muzzleFlashTimer <= 0) muzzleGroup.visible = false;
   }
 
+    if (typeof window.isChargingMissileLock === 'undefined') window.isChargingMissileLock = false;
+
   if (!isPlayerDying && !isGameOver) {
     if (keys.ShiftLeft && gunCooldown <= 0) {
       fireGunpod(scene, playerContainer, velocity);
       gunCooldown = 0.085;
     }
-    if (keys.Space && missileCooldown <= 0) {
-      fireMicroMissiles(scene, playerContainer);
-      missileCooldown = getCurrentMissileCooldown();
+    if (keys.Space) {
+      if (missileCooldown <= 0) window.isChargingMissileLock = true;
+    } else if (window.isChargingMissileLock) {
+      window.isChargingMissileLock = false;
+      if (missileCooldown <= 0) {
+        fireMicroMissiles(scene, playerContainer);
+        missileCooldown = getCurrentMissileCooldown();
+      }
     }
+  } else {
+    window.isChargingMissileLock = false;
   }
+
   
     const segStart = new THREE.Vector3();
   const segVec = new THREE.Vector3();

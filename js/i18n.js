@@ -23,6 +23,9 @@ const I18N_DICT = {
     audioTitle: 'SONIDO Y MÚSICA', audioHelp: 'Ajusta el volumen y prueba las pistas antes de iniciar la misión.',
     sfxLbl: 'EFECTOS', bgmLbl: 'MÚSICA', testerLbl: 'REPRODUCTOR DE PRUEBA',
     trackMenu: 'Música del menú', trackMission: 'Música de la misión',
+    hudTitle: 'ESTILO DE HUD // COCKPIT',
+    hudHelp: 'Elige entre la cabina táctica completa (Simulador) o la vista directa con asistencia de Gunpod en Gerwalk y Battroid (Arcade PS2).',
+    hudLabel: 'MODO DE INTERFAZ', hudOptSim: 'Simulador', hudOptArc: 'Arcade',
     langTitle: 'IDIOMA // LANGUAGE', langHelp: 'Detecta automáticamente el idioma de tu navegador o elige uno manualmente.',
     langLabel: 'IDIOMA DE INTERFAZ', langAuto: 'Automático (Navegador)',
     todTitle: 'HORA DEL DÍA · MAPA 1', todHelp: 'Elige si South Ataria sigue la hora local de tu PC o si prefieres fijar el momento.',
@@ -34,7 +37,6 @@ const I18N_DICT = {
     legFlight: 'Vuelo', legTransform: 'Transformación', legAttack: 'Ataque', legSystems: 'Sistemas', legMenu: 'Menú', legListen: 'En edición',
     audioStatusInit: 'Reproductor de prueba · inicia la reproducción cuando quieras.'
   },
-
   en: {
     startBtn: 'START MISSION', loadingBtn: 'LOADING SYSTEMS...', optionsBtn: 'OPTIONS', mpBtn: '1 VS 1 COMBAT',
     mapLabel: 'THEATER OF OPERATIONS', mapBtn1: 'MAP 1', mapBtn2: 'MAP 2', mapBtn3: 'MAP 3',
@@ -57,6 +59,9 @@ const I18N_DICT = {
     audioTitle: 'SOUND & MUSIC', audioHelp: 'Adjust volume levels and preview tracks before starting.',
     sfxLbl: 'SFX', bgmLbl: 'MUSIC', testerLbl: 'SOUND TESTER',
     trackMenu: 'Menu Theme', trackMission: 'Mission Theme',
+    hudTitle: 'HUD STYLE // COCKPIT',
+    hudHelp: 'Choose between full tactical cockpit (Simulator) or streamlined view with Gunpod lock assist in Gerwalk & Battroid (Arcade PS2).',
+    hudLabel: 'INTERFACE MODE', hudOptSim: 'Simulator', hudOptArc: 'Arcade',
     langTitle: 'LANGUAGE // IDIOMA', langHelp: 'Automatically detects your browser language or lets you choose manually.',
     langLabel: 'INTERFACE LANGUAGE', langAuto: 'Automatic (Browser)',
     todTitle: 'TIME OF DAY · MAP 1', todHelp: 'Choose whether South Ataria follows your local PC clock or a fixed time.',
@@ -68,7 +73,6 @@ const I18N_DICT = {
     legFlight: 'Flight', legTransform: 'Transformation', legAttack: 'Attack', legSystems: 'Systems', legMenu: 'Menu', legListen: 'Listening',
     audioStatusInit: 'Sound tester · start playback whenever you want.'
   },
-
   zh: {
     startBtn: '开始任务', loadingBtn: '系统加载中...', optionsBtn: '选项设置', mpBtn: '1 VS 1 对战',
     mapLabel: '作战区域', mapBtn1: '地图 1', mapBtn2: '地图 2', mapBtn3: '地图 3',
@@ -91,6 +95,9 @@ const I18N_DICT = {
     audioTitle: '音效与音乐', audioHelp: '在开始任务前调整音量并试听音轨。',
     sfxLbl: '音效', bgmLbl: '音乐', testerLbl: '试听播放器',
     trackMenu: '主菜单音乐', trackMission: '任务战斗音乐',
+    hudTitle: 'HUD 界面风格 // COCKPIT',
+    hudHelp: '选择完整战术座舱（模拟模式）或带有 Gerwalk/Battroid 机炮辅助锁定的简洁视图（街机 PS2 模式）。',
+    hudLabel: '界面模式', hudOptSim: '模拟模式', hudOptArc: '街机模式',
     langTitle: '语言 // LANGUAGE', langHelp: '自动检测浏览器语言或手动选择界面语言。',
     langLabel: '界面语言', langAuto: '自动 (浏览器语言)',
     todTitle: '昼夜时间 · 地图 1', todHelp: '选择南阿塔利亚岛跟随电脑本地时间或固定时段。',
@@ -125,6 +132,9 @@ const I18N_DICT = {
     audioTitle: 'サウンド・BGM', audioHelp: 'ミッション開始前に音量調整とサウンドテストが行えます。',
     sfxLbl: '効果音', bgmLbl: 'BGM', testerLbl: 'サウンドテスト',
     trackMenu: 'メニューBGM', trackMission: 'ミッションBGM',
+    hudTitle: 'HUD スタイル // COCKPIT',
+    hudHelp: 'フル機能コックピット（シミュレーター）か、ガウォーク・バトロイド時のガンポッド補正付きシンプル表示（アーケードPS2）を選択します。',
+    hudLabel: 'インターフェースモード', hudOptSim: 'シミュレーター', hudOptArc: 'アーケード',
     langTitle: '言語 // LANGUAGE', langHelp: 'ブラウザの言語を自動検出するか、手動で選択できます。',
     langLabel: '表示言語', langAuto: '自動 (ブラウザ設定)',
     todTitle: '時間帯設定 · マップ 1', todHelp: '南アタリア島の時間帯をPCの現在時刻にするか固定するか選択します。',
@@ -136,7 +146,6 @@ const I18N_DICT = {
     legFlight: 'フライト', legTransform: '変形', legAttack: '攻撃', legSystems: 'システム', legMenu: 'メニュー', legListen: '入力待機',
     audioStatusInit: 'サウンドテスト · いつでも再生テストが可能です。'
   }
-
 };
 const I18N_ACTIONS = {
   moveForward: { es: 'Avanzar / empuje', en: 'Forward / Throttle Up', zh: '前进 / 增加推力', ja: '前進 / スロットル上昇' },
@@ -296,15 +305,26 @@ function applyTranslations(langCode) {
     trackSel.options[1].textContent = t('trackMission');
   }
 
+  setTxt('hudModeSectionTitle', 'hudTitle');
+  setTxt('hudModeSectionHelp', 'hudHelp');
+  setTxt('hudModeSelectLabel', 'hudLabel');
+  const hudModeSel = document.getElementById('hudStyleModeSelect');
+  if (hudModeSel && hudModeSel.options.length >= 2) {
+    hudModeSel.options[0].textContent = t('hudOptSim');
+    hudModeSel.options[1].textContent = t('hudOptArc');
+  }
+
   setTxt('i18nSectionTitle', 'langTitle');
   setTxt('i18nSectionHelp', 'langHelp');
   setTxt('i18nSelectLabel', 'langLabel');
   const langSel = document.getElementById('languageModeSelect');
   if (langSel && langSel.options.length >= 1) langSel.options[0].textContent = t('langAuto');
+
   const gameTitles = document.querySelectorAll('#gameOptions .options-section-title');
   const gameHelps = document.querySelectorAll('#gameOptions .options-help');
-  if (gameTitles.length >= 2) gameTitles[1].textContent = t('todTitle');
-  if (gameHelps.length >= 2) gameHelps[1].textContent = t('todHelp');
+  if (gameTitles.length >= 1) gameTitles[gameTitles.length - 1].textContent = t('todTitle');
+  if (gameHelps.length >= 1) gameHelps[gameHelps.length - 1].textContent = t('todHelp');
+
   setSel('label[for="timeOfDayMode"] span', 'todLabel');
   const todSel = document.getElementById('timeOfDayMode');
   if (todSel && todSel.options.length >= 5) {
@@ -352,4 +372,3 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-

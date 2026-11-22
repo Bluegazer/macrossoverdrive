@@ -117,12 +117,13 @@ function startMission() {
   restartDeclined = false;
   if (typeof stopTitleMusic === 'function') stopTitleMusic();
   if (startScreenEl) startScreenEl.classList.add('hidden');
-  if (uiPanelEl) uiPanelEl.classList.remove('hidden');
+  if (uiPanelEl) uiPanelEl.classList.toggle('hidden', hudStyleMode === 'ARCADE');
   if (fpsEl) fpsEl.classList.remove('hidden');
   if (typeof unlockAudio === 'function') unlockAudio();
   if (typeof playSFX === 'function') playSFX('transform', 0.85, 0);
   clock.getDelta();
 }
+
 function returnToStartScreen() {
   isGameStarted = false;
   isPaused = false;
@@ -200,6 +201,25 @@ if (timeOfDaySelect) {
     updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHourOffset, timeOfDayMode);
   });
 }
+
+const hudStyleStorageKey = 'macrossvoxp-hud-style-v1';
+let hudStyleMode = (() => {
+  try {
+    const saved = localStorage.getItem(hudStyleStorageKey);
+    return (saved === 'ARCADE' || saved === 'SIM') ? saved : 'SIM';
+  } catch (_) { return 'SIM'; }
+})();
+
+const hudStyleSelect = document.getElementById('hudStyleModeSelect');
+if (hudStyleSelect) {
+  hudStyleSelect.value = hudStyleMode;
+  hudStyleSelect.addEventListener('change', () => {
+    hudStyleMode = (hudStyleSelect.value === 'ARCADE') ? 'ARCADE' : 'SIM';
+    try { localStorage.setItem(hudStyleStorageKey, hudStyleMode); } catch (_) {}
+    if (uiPanelEl && isGameStarted) uiPanelEl.classList.toggle('hidden', hudStyleMode === 'ARCADE');
+  });
+}
+
 
 let selectedMapId = 'MAPA_1';
 
