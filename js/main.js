@@ -245,6 +245,7 @@ mapSelectButtons.forEach((btn) => {
 
     if (typeof switchEnvironmentMap === 'function') {
       switchEnvironmentMap(scene, selectedMapId);
+	  try { renderer.compile(scene, camera); } catch (e) {}
     }
   });
 });

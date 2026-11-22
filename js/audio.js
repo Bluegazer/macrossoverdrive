@@ -171,15 +171,17 @@ function stopTitleMusic() {
 }
 
 function handleFirstInteraction() {
+  unlockAudio();
   if (isTitleMusicActive) {
     playTitleMusic();
-  } else {
-    unlockAudio();
   }
 }
 
 window.addEventListener('pointerdown', handleFirstInteraction);
 window.addEventListener('keydown', handleFirstInteraction);
+window.addEventListener('focus', unlockAudio);
+window.addEventListener('gamepadconnected', unlockAudio);
+
 
 function startBGMLoop() {
   if (!audioCtx || !soundBuffers.bgm || bgmSource) return;
