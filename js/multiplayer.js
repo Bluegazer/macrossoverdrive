@@ -23,8 +23,75 @@ const mpState = {
   pingMs: 0,
   pingTimer: 0,
   matchEnded: false,
-  victory: false
+  victory: false,
+  hostGameMode: 'SIM',
+  savedLocalHudMode: null
 };
+
+const MP_STATUS_I18N = {
+  es: {
+    copiedCode: (c, r) => 'Código ' + c + ' copiado. Pásalo a tu rival de ' + r + '.',
+    copiedLink: (r) => 'Link de invitación copiado. Compártelo con tu rival de ' + r + '.',
+    linkDetected: (c) => 'Enlace detectado (' + c + '). Verificando región y sistemas...',
+    noPeerJs: 'Error: librería PeerJS no cargada.',
+    openingRoom: (c) => 'Abriendo enlace satelital ' + c + '...',
+    roomReady: (c, m, r) => 'Sala ' + c + ' (' + m + ') lista. Esperando rival de ' + r + '...',
+    netError: (e) => 'Error de red: ' + e,
+    badFormat: 'Formato inválido. Usa el código de 4 dígitos (Ej: AR-4829).',
+    regionBlocked: (rc, mc) => 'Bloqueado por región: la sala es de [' + rc + '] y tu región es [' + mc + '].',
+    connecting: (c) => 'Conectando a sala ' + c + '...',
+    notFound: (c) => 'No se encontró la sala ' + c + ' o ya inició.',
+    rejected: (r) => 'Sala rechazada: ' + r
+  },
+  en: {
+    copiedCode: (c, r) => 'Code ' + c + ' copied. Share it with your ' + r + ' rival.',
+    copiedLink: (r) => 'Invite link copied. Share it with your ' + r + ' rival.',
+    linkDetected: (c) => 'Invite link detected (' + c + '). Verifying region and systems...',
+    noPeerJs: 'Error: PeerJS library not loaded.',
+    openingRoom: (c) => 'Opening satellite link ' + c + '...',
+    roomReady: (c, m, r) => 'Room ' + c + ' (' + m + ') ready. Waiting for ' + r + ' rival...',
+    netError: (e) => 'Network error: ' + e,
+    badFormat: 'Invalid format. Use the 4-digit code (Ex: US-4829).',
+    regionBlocked: (rc, mc) => 'Region locked: room is [' + rc + '] and your region is [' + mc + '].',
+    connecting: (c) => 'Connecting to room ' + c + '...',
+    notFound: (c) => 'Room ' + c + ' not found or already started.',
+    rejected: (r) => 'Room rejected: ' + r
+  },
+  zh: {
+    copiedCode: (c, r) => '代码 ' + c + ' 已复制。请发送给你的 ' + r + ' 地区对手。',
+    copiedLink: (r) => '邀请链接已复制。请分享给你的 ' + r + ' 地区对手。',
+    linkDetected: (c) => '检测到邀请链接 (' + c + ')。正在验证地区与系统...',
+    noPeerJs: '错误：PeerJS 网络库未加载。',
+    openingRoom: (c) => '正在开启卫星链路 ' + c + '...',
+    roomReady: (c, m, r) => '房间 ' + c + ' (' + m + ') 已就绪。正在等待 ' + r + ' 地区对手...',
+    netError: (e) => '网络错误：' + e,
+    badFormat: '格式无效。请输入4位房间代码（例：CN-4829）。',
+    regionBlocked: (rc, mc) => '地区限制：该房间属于 [' + rc + ']，而你的地区是 [' + mc + ']。',
+    connecting: (c) => '正在连接房间 ' + c + '...',
+    notFound: (c) => '未找到房间 ' + c + ' 或对战已开始。',
+    rejected: (r) => '房间拒绝连接：' + r
+  },
+  ja: {
+    copiedCode: (c, r) => 'コード ' + c + ' をコピーしました。' + r + ' 地域のライバルに送ってください。',
+    copiedLink: (r) => '招待リンクをコピーしました。' + r + ' 地域のライバルに共有してください。',
+    linkDetected: (c) => '招待リンクを検出 (' + c + ')。地域とシステムを確認中...',
+    noPeerJs: 'エラー：PeerJSライブラリが読み込まれていません。',
+    openingRoom: (c) => '衛星リンク ' + c + ' を開設中...',
+    roomReady: (c, m, r) => 'ルーム ' + c + ' (' + m + ') 準備完了。' + r + ' 地域のライバルを待機中...',
+    netError: (e) => 'ネットワークエラー：' + e,
+    badFormat: '無効な形式です。4桁のコードを入力してください（例：JP-4829）。',
+    regionBlocked: (rc, mc) => '地域制限：ルームは [' + rc + '] 用ですが、あなたの地域は [' + mc + '] です。',
+    connecting: (c) => 'ルーム ' + c + ' に接続中...',
+    notFound: (c) => 'ルーム ' + c + ' が見つからないか、既に対戦中です。',
+    rejected: (r) => '接続が拒否されました：' + r
+  }
+};
+
+function mpMsg(key, a, b, c) {
+  const lang = (typeof activeLang !== 'undefined' && MP_STATUS_I18N[activeLang]) ? activeLang : 'es';
+  const entry = MP_STATUS_I18N[lang][key] || MP_STATUS_I18N.es[key];
+  return (typeof entry === 'function') ? entry(a, b, c) : entry;
+}
 
 function detectLocalCountryCode() {
   try {
@@ -39,11 +106,12 @@ function detectLocalCountryCode() {
     if (tz.includes('Madrid')) return 'ES';
     const lang = (navigator.language || '').split('-');
     if (lang[1] && lang[1].length === 2 && /^[A-Za-z]{2}$/.test(lang[1])) {
-      return lang[1].toUpperCase();
+    return lang[1].toUpperCase();
     }
   } catch (e) {}
   return 'GL';
 }
+
 function initMultiplayerUI() {
   const mpScreen = document.getElementById('multiplayerScreen');
   const startSc = document.getElementById('startScreen');
@@ -84,9 +152,19 @@ function initMultiplayerUI() {
     });
   }
 
+  const mpModeButtons = document.querySelectorAll('#mpGameModeGroup [data-mp-mode]');
+  const syncMpModeButtons = (mode) => {
+    mpState.hostGameMode = (mode === 'ARCADE') ? 'ARCADE' : 'SIM';
+    mpModeButtons.forEach((b) => b.classList.toggle('active', b.dataset.mpMode === mpState.hostGameMode));
+  };
+  mpModeButtons.forEach((btn) => {
+    btn.addEventListener('click', () => syncMpModeButtons(btn.dataset.mpMode));
+  });
+
   if (btnOpen && mpScreen) {
     btnOpen.addEventListener('click', () => {
       if (mpMapSelect && typeof selectedMapId !== 'undefined') mpMapSelect.value = selectedMapId;
+      syncMpModeButtons(typeof hudStyleMode !== 'undefined' ? hudStyleMode : 'SIM');
       if (startSc) startSc.classList.add('hidden');
       mpScreen.classList.remove('hidden');
     });
@@ -106,7 +184,7 @@ function initMultiplayerUI() {
     btnCopy.addEventListener('click', () => {
       if (!codeOut.value) return;
       navigator.clipboard?.writeText(codeOut.value).catch(() => {});
-      setMpStatus('Código ' + codeOut.value + ' copiado. Pásalo a tu rival de ' + mpState.country + '.');
+      setMpStatus(mpMsg('copiedCode', codeOut.value, mpState.country));
     });
   }
 
@@ -116,7 +194,7 @@ function initMultiplayerUI() {
       if (!codeOut.value) return;
       const inviteUrl = window.location.origin + window.location.pathname + '?room=' + codeOut.value;
       navigator.clipboard?.writeText(inviteUrl).catch(() => {});
-      setMpStatus('Link de invitación copiado. Compártelo con tu rival de ' + mpState.country + '.');
+      setMpStatus(mpMsg('copiedLink', mpState.country));
     });
   }
 
@@ -125,7 +203,7 @@ function initMultiplayerUI() {
     if (startSc) startSc.classList.add('hidden');
     if (mpScreen) mpScreen.classList.remove('hidden');
     if (codeIn) codeIn.value = urlRoom.trim().toUpperCase();
-    setMpStatus('Enlace detectado (' + codeIn.value + '). Verificando región y sistemas...');
+    setMpStatus(mpMsg('linkDetected', codeIn.value));
     const waitReady = setInterval(() => {
       const startBtn = document.getElementById('btnStartGame');
       if ((!startBtn || !startBtn.disabled) && mpState.countryReady) {
@@ -154,6 +232,13 @@ function destroyMpConnection() {
   mpState.active = false;
   mpState.matchEnded = false;
   mpState.victory = false;
+  const hudSel = document.getElementById('hudStyleModeSelect');
+  if (hudSel) hudSel.disabled = false;
+  if (mpState.savedLocalHudMode && typeof hudStyleMode !== 'undefined') {
+    hudStyleMode = mpState.savedLocalHudMode;
+    if (hudSel) hudSel.value = hudStyleMode;
+    mpState.savedLocalHudMode = null;
+  }
   if (mpState.conn) { try { mpState.conn.close(); } catch (e) {} mpState.conn = null; }
   if (mpState.peer) { try { mpState.peer.destroy(); } catch (e) {} mpState.peer = null; }
   if (mpState.rivalMesh && typeof scene !== 'undefined') {
@@ -163,14 +248,14 @@ function destroyMpConnection() {
 }
 
 function createMultiplayerRoom(nameInput, codeOut) {
-  if (typeof Peer !== 'function') { setMpStatus('Error: librería PeerJS no cargada.', true); return; }
+  if (typeof Peer !== 'function') { setMpStatus(mpMsg('noPeerJs'), true); return; }
   destroyMpConnection();
   readPilotName(nameInput);
 
   const num = Math.floor(1000 + Math.random() * 9000);
   const roomCode = mpState.country + '-' + num;
   if (codeOut) codeOut.value = roomCode;
-  setMpStatus('Abriendo enlace satelital ' + roomCode + '...');
+  setMpStatus(mpMsg('openingRoom', roomCode));
 
   const peer = new Peer('macross-od-' + roomCode.toLowerCase());
   mpState.peer = peer;
@@ -179,7 +264,7 @@ function createMultiplayerRoom(nameInput, codeOut) {
   peer.on('open', () => {
     const mapSel = document.getElementById('mpMapSelect');
     const mapLabel = (mapSel && mapSel.selectedOptions && mapSel.selectedOptions[0]) ? mapSel.selectedOptions[0].textContent : 'MAPA 1';
-    setMpStatus('Sala ' + roomCode + ' (' + mapLabel + ') lista. Esperando rival de ' + mpState.country + '...');
+    setMpStatus(mpMsg('roomReady', roomCode, mapLabel, mpState.country));
   });
 
   peer.on('connection', (conn) => {
@@ -191,26 +276,27 @@ function createMultiplayerRoom(nameInput, codeOut) {
     setupPeerDataChannel(conn);
   });
 
-  peer.on('error', (err) => setMpStatus('Error de red: ' + (err.type || err.message), true));
+  peer.on('error', (err) => setMpStatus(mpMsg('netError', err.type || err.message), true));
 }
+
 function joinMultiplayerRoom(nameInput, codeIn) {
-  if (typeof Peer !== 'function') { setMpStatus('Error: librería PeerJS no cargada.', true); return; }
+  if (typeof Peer !== 'function') { setMpStatus(mpMsg('noPeerJs'), true); return; }
   const rawInput = (codeIn && codeIn.value ? codeIn.value : '').trim().toUpperCase();
   const match = rawInput.match(/([A-Z]{2}-\d{4})/);
   const code = match ? match[1] : '';
   if (!code) {
-    setMpStatus('Formato inválido. Usa el código de 4 dígitos (Ej: AR-4829).', true);
+    setMpStatus(mpMsg('badFormat'), true);
     return;
   }
   const roomCountry = code.slice(0, 2);
   if (roomCountry !== mpState.country) {
-    setMpStatus('Bloqueado por región: la sala es de [' + roomCountry + '] y tu región es [' + mpState.country + '].', true);
+    setMpStatus(mpMsg('regionBlocked', roomCountry, mpState.country), true);
     return;
   }
 
   destroyMpConnection();
   readPilotName(nameInput);
-  setMpStatus('Conectando a sala ' + code + '...');
+  setMpStatus(mpMsg('connecting', code));
 
   const peer = new Peer();
   mpState.peer = peer;
@@ -222,7 +308,7 @@ function joinMultiplayerRoom(nameInput, codeIn) {
     setupPeerDataChannel(conn);
   });
 
-  peer.on('error', () => setMpStatus('No se encontró la sala ' + code + ' o ya inició.', true));
+  peer.on('error', () => setMpStatus(mpMsg('notFound', code), true));
 }
 
 function setupPeerDataChannel(conn) {
@@ -232,7 +318,8 @@ function setupPeerDataChannel(conn) {
       type: 'HELLO',
       name: mpState.pilotName,
       country: mpState.country,
-      mapId: mapChoice
+      mapId: mapChoice,
+      gameMode: mpState.hostGameMode || 'SIM'
     });
   });
 
@@ -245,11 +332,12 @@ function setupPeerDataChannel(conn) {
     }
   });
 }
+
 function handleMpPacket(pkt, conn) {
   if (!pkt || !pkt.type) return;
 
   if (pkt.type === 'REJECT') {
-    setMpStatus('Sala rechazada: ' + (pkt.reason || 'OCUPADA'), true);
+    setMpStatus(mpMsg('rejected', pkt.reason || 'OCUPADA'), true);
     destroyMpConnection();
     return;
   }
@@ -265,7 +353,7 @@ function handleMpPacket(pkt, conn) {
 
     if (!mpState.isHost) {
       conn.send({ type: 'HELLO_ACK', name: mpState.pilotName, country: mpState.country });
-      launchMultiplayerMatch(pkt.mapId || 'MAPA_1');
+      launchMultiplayerMatch(pkt.mapId || 'MAPA_1', pkt.gameMode || 'SIM');
     }
     return;
   }
@@ -279,7 +367,7 @@ function handleMpPacket(pkt, conn) {
     mpState.rivalName = pkt.name || 'RIVAL';
     mpState.rivalCountry = pkt.country || mpState.country;
     const mapChoice = (typeof selectedMapId !== 'undefined') ? selectedMapId : 'MAPA_1';
-    launchMultiplayerMatch(mapChoice);
+    launchMultiplayerMatch(mapChoice, mpState.hostGameMode || 'SIM');
     return;
   }
 
@@ -319,11 +407,22 @@ function handleMpPacket(pkt, conn) {
     return;
   }
 }
-function launchMultiplayerMatch(mapId) {
+function launchMultiplayerMatch(mapId, matchGameMode) {
   mpState.active = true;
   mpState.matchEnded = false;
   mpState.victory = false;
   mpState.rivalArmor = 140;
+
+  const targetMode = (matchGameMode === 'ARCADE') ? 'ARCADE' : 'SIM';
+  if (typeof hudStyleMode !== 'undefined') {
+    if (mpState.savedLocalHudMode === null) mpState.savedLocalHudMode = hudStyleMode;
+    hudStyleMode = targetMode;
+  }
+  const hudSel = document.getElementById('hudStyleModeSelect');
+  if (hudSel) {
+    hudSel.value = targetMode;
+    hudSel.disabled = true;
+  }
 
   const mpScreen = document.getElementById('multiplayerScreen');
   if (mpScreen) mpScreen.classList.add('hidden');
@@ -377,6 +476,7 @@ function spawnRivalValkyrie() {
     }
   });
 }
+
 function spawnRivalGunBolt(pkt) {
   if (typeof scene === 'undefined' || typeof enemyBullets === 'undefined') return;
   const boltGroup = new THREE.Group();

@@ -7,7 +7,7 @@ const I18N_DICT = {
     map1: '01 // ISLA SOUTH ATARIA', map2: '02 // ÓRBITA DE SATURNO', map3: '03 // MACROSS CITY INTERIOR (DYRL)',
     startHint: 'ENTER / A: ACEPTAR · CRUCETA O STICK: MOVER · B: VOLVER', backBlog: 'Regresar a la Bitácora',
     mpTitle: 'COMBATE 1 VS 1', mpSub: 'DUELO DIRECTO POR CÓDIGO DE SALA · SIN IA', mpNameLbl: 'NOMBRE DE PILOTO:',
-    mpCreateTitle: '1. CREAR SALA (HOST)', mpCreateBtn: 'GENERAR CÓDIGO DE SALA', mpCopyBtn: 'COPIAR',
+    mpCreateTitle: '1. CREAR SALA (HOST)', mpGameModeLbl: 'MODO DE JUEGO', mpModeSim: 'SIMULADOR', mpModeArc: 'ARCADE', mpCreateBtn: 'GENERAR CÓDIGO DE SALA', mpCopyBtn: 'COPIAR',
     mpCopyLinkBtn: 'COPIAR LINK DE INVITACIÓN', mpJoinTitle: '2. UNIRSE A SALA (INVITADO)',
     mpJoinPh: 'CÓDIGO O LINK (EJ: AR-4829)', mpJoinBtn: 'CONECTAR AL RIVAL',
     mpStatusInit: 'Ingresa tu nombre y crea una sala o pega el código de tu rival.',
@@ -43,7 +43,7 @@ const I18N_DICT = {
     map1: '01 // SOUTH ATARIA ISLAND', map2: '02 // SATURN ORBIT', map3: '03 // MACROSS CITY INTERIOR (DYRL)',
     startHint: 'ENTER / A: ACCEPT · D-PAD OR STICK: MOVE · B: BACK', backBlog: 'Back to Logbook',
     mpTitle: '1 VS 1 COMBAT', mpSub: 'DIRECT ROOM CODE DUEL · NO AI', mpNameLbl: 'PILOT NAME:',
-    mpCreateTitle: '1. CREATE ROOM (HOST)', mpCreateBtn: 'GENERATE ROOM CODE', mpCopyBtn: 'COPY',
+    mpCreateTitle: '1. CREATE ROOM (HOST)', mpGameModeLbl: 'GAME MODE', mpModeSim: 'SIMULATOR', mpModeArc: 'ARCADE', mpCreateBtn: 'GENERATE ROOM CODE', mpCopyBtn: 'COPY',
     mpCopyLinkBtn: 'COPY INVITE LINK', mpJoinTitle: '2. JOIN ROOM (GUEST)',
     mpJoinPh: 'CODE OR LINK (EX: US-4829)', mpJoinBtn: 'CONNECT TO RIVAL',
     mpStatusInit: 'Enter your pilot name and create a room or paste your rival code.',
@@ -79,7 +79,7 @@ const I18N_DICT = {
     map1: '01 // 南阿塔利亚岛', map2: '02 // 土星轨道', map3: '03 // 麦克罗斯市内部 (DYRL)',
     startHint: 'ENTER / A: 确认 · 十字键/摇杆: 移动 · B: 返回', backBlog: '返回日志主页',
     mpTitle: '1 VS 1 在线对战', mpSub: '房间代码直连决斗 · 无AI', mpNameLbl: '飞行员代号:',
-    mpCreateTitle: '1. 创建房间 (房主)', mpCreateBtn: '生成房间代码', mpCopyBtn: '复制',
+    mpCreateTitle: '1. 创建房间 (房主)', mpGameModeLbl: '游戏模式', mpModeSim: '模拟模式', mpModeArc: '街机模式', mpCreateBtn: '生成房间代码', mpCopyBtn: '复制',
     mpCopyLinkBtn: '复制邀请链接', mpJoinTitle: '2. 加入房间 (访客)',
     mpJoinPh: '输入代码或链接 (例: CN-4829)', mpJoinBtn: '连接对手',
     mpStatusInit: '输入代号并创建房间，或粘贴对手的房间代码。',
@@ -116,7 +116,7 @@ const I18N_DICT = {
     map1: '01 // 南アタリア島', map2: '02 // 土星軌道', map3: '03 // マクロス・シティ内部 (DYRL)',
     startHint: 'ENTER / A: 決定 · 十字キー/スティック: 移動 · B: 戻る', backBlog: 'ログブックへ戻る',
     mpTitle: '1 VS 1 オンライン対戦', mpSub: 'ルームコード直接通信デュエル · AIなし', mpNameLbl: 'パイロット名:',
-    mpCreateTitle: '1. ルーム作成 (ホスト)', mpCreateBtn: 'ルームコード生成', mpCopyBtn: 'コピー',
+    mpCreateTitle: '1. ルーム作成 (ホスト)', mpGameModeLbl: 'ゲームモード', mpModeSim: 'シミュレーター', mpModeArc: 'アーケード', mpCreateBtn: 'ルームコード生成', mpCopyBtn: 'コピー',
     mpCopyLinkBtn: '招待リンクをコピー', mpJoinTitle: '2. ルーム参加 (ゲスト)',
     mpJoinPh: 'コードまたはURL (例: JP-4829)', mpJoinBtn: 'ライバルに接続',
     mpStatusInit: 'パイロット名を入力し、ルームを作成するかコードを入力してください。',
@@ -243,6 +243,10 @@ function applyTranslations(langCode) {
   setTxt('mpStatusText', 'mpStatusInit');
   setTxt('btnBackMp', 'backMenu');
   setSel('#multiplayerScreen .options-footer span', 'mpFooterNote');
+  setTxt('mpGameModeLabel', 'mpGameModeLbl');
+  setSel('#mpGameModeGroup [data-mp-mode="SIM"]', 'mpModeSim');
+  setSel('#mpGameModeGroup [data-mp-mode="ARCADE"]', 'mpModeArc');
+
 
   const mpBoxes = document.querySelectorAll('#multiplayerScreen > section > div:nth-of-type(2) > div > div:first-child');
   if (mpBoxes[0]) mpBoxes[0].textContent = t('mpCreateTitle');

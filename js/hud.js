@@ -434,11 +434,23 @@ function drawPropulsionPanel(h) {
   hudCtx.fillStyle = overheat ? '#ef4444' : '#94a3b8';
   hudCtx.fillText('TURBINE HEAT', x + 14, y + 60);
 
+  const isArcadeHud = (typeof hudStyleMode !== 'undefined' && hudStyleMode === 'ARCADE');
   const blink = (Math.floor(performance.now() / 160) % 2 === 0);
   let heatStatus = Math.round(heat * 100) + '% // NOMINAL', heatColor = '#38bdf8';
-  if (overheat) { heatStatus = blink ? 'OVERHEAT // COOLING' : 'LOCKED // COOLING'; heatColor = '#ef4444'; }
-  else if (heat > 0.75) { heatStatus = Math.round(heat * 100) + '% // HEAT WARN'; heatColor = '#f59e0b'; }
-  else if (heat > 0.35) { heatStatus = Math.round(heat * 100) + '% // WARM'; heatColor = '#facc15'; }
+  if (overheat) {
+    if (!isArcadeHud && accel) {
+      heatStatus = blink ? 'OVERHEAT // HULL DMG' : 'CRITICAL // THERMAL';
+    } else {
+      heatStatus = blink ? 'OVERHEAT // COOLING' : (isArcadeHud ? 'LOCKED // COOLING' : 'HIGH TEMP // COOLING');
+    }
+    heatColor = '#ef4444';
+  } else if (heat > 0.75) {
+    heatStatus = Math.round(heat * 100) + '% // HEAT WARN';
+    heatColor = '#f59e0b';
+  } else if (heat > 0.35) {
+    heatStatus = Math.round(heat * 100) + '% // WARM';
+    heatColor = '#facc15';
+  }
 
   hudCtx.shadowColor = heatColor;
   hudCtx.shadowBlur = overheat ? 10 : 5;

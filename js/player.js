@@ -105,6 +105,7 @@ function stopReverseGerwalk() {
   if (currentMode !== 'FIGHTER') transformTo('FIGHTER');
 }
 function startAcceleration() {
+  const isArcade = (typeof hudStyleMode !== 'undefined' && hudStyleMode === 'ARCADE');
   if (!mixer || isAccelerating || isOverheated) return;
   isAttacking = false;
   isReverseGerwalk = false;
@@ -128,7 +129,8 @@ function startAcceleration() {
 }
 
 function triggerBattroidImpulse(keys) {
-  if (currentMode !== 'BATTROID' || isOverheated) return;
+  const isArcade = (typeof hudStyleMode !== 'undefined' && hudStyleMode === 'ARCADE');
+  if (currentMode !== 'BATTROID' || (isArcade && isOverheated)) return;
   const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(playerContainer.quaternion);
   const right = new THREE.Vector3(1, 0, 0).applyQuaternion(playerContainer.quaternion);
   const impulse = new THREE.Vector3();
@@ -141,10 +143,15 @@ function triggerBattroidImpulse(keys) {
   if (impulse.lengthSq() === 0) impulse.y = 1;
   impulse.normalize().multiplyScalar(13);
   velocity.add(impulse);
-  turboHeat = Math.min(1, turboHeat + 0.28);
-  if (turboHeat >= 1) isOverheated = true;
+  const nextHeat = turboHeat + (isArcade ? 0.34 : 0.28);
+  if (!isArcade && nextHeat > 1.0 && typeof damagePlayerArmor === 'function') {
+    damagePlayerArmor(scene, camera, playerContainer, Math.round((nextHeat - 1.0) * 35));
+  }
+  turboHeat = Math.min(1.0, nextHeat);
+  if (turboHeat >= 1.0) isOverheated = true;
   if (typeof playSFX === 'function') playSFX('boost', 0.75, 0);
 }
+
 function stopAcceleration() {
   if (!isAccelerating) return;
   isAccelerating = false;
@@ -446,14 +453,31 @@ function updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, ke
     return;
   }
 
-  if (isAccelerating && !isOverheated) {
-    turboHeat = Math.min(1.0, turboHeat + 0.22 * delta);
-    if (turboHeat >= 1.0) { isOverheated = true; stopAcceleration(); }
+    const isArcadeTurbo = (typeof hudStyleMode !== 'undefined' && hudStyleMode === 'ARCADE');
+  if (isAccelerating && !(isArcadeTurbo && isOverheated)) {
+    const heatRate = isArcadeTurbo ? 0.55 : 0.22;
+    turboHeat = Math.min(1.0, turboHeat + heatRate * delta);
+    if (turboHeat >= 1.0) {
+      isOverheated = true;
+      if (isArcadeTurbo) {
+        stopAcceleration();
+      } else if (typeof damagePlayerArmor === 'function') {
+        if (typeof window._turboHeatDmgAccum !== 'number') window._turboHeatDmgAccum = 0;
+        window._turboHeatDmgAccum += 16.0 * delta;
+        if (window._turboHeatDmgAccum >= 1.0) {
+          const dmgTick = Math.floor(window._turboHeatDmgAccum);
+          window._turboHeatDmgAccum -= dmgTick;
+          damagePlayerArmor(scene, camera, playerContainer, dmgTick);
+        }
+      }
+    }
   } else {
-    const coolRate = isFullStop ? 0.35 : 0.18;
+    window._turboHeatDmgAccum = 0;
+    const coolRate = isArcadeTurbo ? (isFullStop ? 0.55 : 0.42) : (isFullStop ? 0.35 : 0.18);
     turboHeat = Math.max(0.0, turboHeat - coolRate * delta);
     if (isOverheated && turboHeat <= 0.35) isOverheated = false;
   }
+
 
   if (currentMode !== 'BATTROID') {
     battroidTrackMode = 'NONE';
