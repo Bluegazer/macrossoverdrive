@@ -42,8 +42,8 @@
       </div>
 
       <div class="start-hint">ENTER / A: ACEPTAR · CRUCETA O STICK: MOVER · B: VOLVER</div>
+      <button id="btnBitacora" class="start-options-btn" type="button" style="margin-top: 12px;" onclick="window.location.href='https://bitacoramegaroad.github.io/'">Regresar a la Bitácora</button>
     </div>
-    <button id="btnBitacora" class="start-options-btn" type="button" style="position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); width: auto; margin: 0; white-space: nowrap; z-index: 5;" onclick="window.location.href='https://bitacoramegaroad.github.io/'">Regresar a la Bitácora</button>
   </div>
   <div id="optionsScreen" class="hidden" role="dialog" aria-modal="true" aria-labelledby="optionsTitle">
     <section class="options-panel">
@@ -306,13 +306,20 @@
       </div>
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 14px 0;">
-        <div style="background: rgba(15,23,42,0.75); border: 1px solid rgba(56,189,248,0.4); padding: 12px;">
+      <div style="background: rgba(15,23,42,0.75); border: 1px solid rgba(56,189,248,0.4); padding: 12px;">
           <div style="font-size: 11px; color: #38bdf8; margin-bottom: 8px;">1. CREAR SALA (HOST)</div>
           <select id="mpMapSelect" style="width: 100%; background: #020617; border: 1px solid #38bdf8; color: #e2e8f0; padding: 6px; margin-bottom: 8px; font-family: inherit; font-size: 11px;">
             <option value="MAPA_1">01 // ISLA SOUTH ATARIA</option>
             <option value="MAPA_2">02 // ÓRBITA DE SATURNO</option>
             <option value="MAPA_3">03 // MACROSS CITY INTERIOR</option>
           </select>
+          <div style="margin-bottom: 8px;">
+            <div id="mpGameModeLabel" style="font-size: 9px; color: #94a3b8; letter-spacing: 1px; margin-bottom: 5px;">MODO DE JUEGO</div>
+            <div class="map-btn-group" id="mpGameModeGroup">
+              <button type="button" class="map-select-btn active" data-mp-mode="SIM">SIMULADOR</button>
+              <button type="button" class="map-select-btn" data-mp-mode="ARCADE">ARCADE</button>
+            </div>
+          </div>
           <button id="btnCreateRoom" class="options-save" type="button" style="width: 100%; margin-bottom: 8px;">GENERAR CÓDIGO DE SALA</button>
 
             <div style="display: flex; gap: 6px;">
