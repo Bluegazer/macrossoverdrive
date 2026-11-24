@@ -539,3 +539,83 @@ button.warn {
   color: #4ade80;
   letter-spacing: 1.2px;
 }
+/* Desplegable custom compatible con mando y mouse */
+.macross-select-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.macross-select-trigger {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 32px 7px 10px;
+  color: #e2e8f0;
+  background: #0b1320;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  font: 13px Arial, sans-serif;
+  text-align: left;
+  position: relative;
+  cursor: pointer;
+}
+
+.macross-select-trigger::after {
+  content: '▾';
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #38bdf8;
+  font-size: 13px;
+}
+
+.macross-select-trigger:hover,
+.macross-select-wrap.is-open .macross-select-trigger {
+  border-color: #38bdf8;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
+}
+
+.macross-select-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 120;
+  background: #060d1a;
+  border: 1px solid #38bdf8;
+  border-radius: 4px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+}
+
+.macross-select-menu[hidden] {
+  display: none;
+}
+
+.macross-select-option {
+  display: block;
+  width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #cbd5e1;
+  font: 13px Arial, sans-serif;
+  text-align: left;
+  cursor: pointer;
+}
+
+.macross-select-option:hover,
+.macross-select-option.is-highlighted {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.macross-select-option.is-selected {
+  color: #b9f878;
+  font-weight: 700;
+}
+
+.macross-select-option.is-selected.is-highlighted {
+  color: #ffffff;
+}
