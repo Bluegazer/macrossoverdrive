@@ -12,6 +12,7 @@ let isGameStarted = false;
 let isPaused = false;
 let restartDeclined = false;
 let gamepadFocusedElement = null;
+let openSelectElement = null;
 let introOrbitAngle = 0.65;
 let manualHourOffset = 0;
 const timeOfDayStorageKey = 'macrossvoxp-time-of-day-v1';
@@ -72,13 +73,12 @@ function detectHardwareProfile() {
   const mem = navigator.deviceMemory || 8;
   const cores = navigator.hardwareConcurrency || 4;
   const isDedicated = /(nvidia|geforce|rtx|gtx|radeon rx|arc a\d)/i.test(g);
-  const isWeakIgpu = /(uhd|hd graphics|radeon\(tm\) r[357]|mali|adreno|swiftshader|llvmpipe)/i.test(g) || mem <= 4 || (cores <= 4 && !/vega|iris/i.test(g));
+  const isWeakIgpu = /(uhd|hd graphics|radeon\(tm\) r|mali|adreno|swiftshader|llvmpipe)/i.test(g) || mem <= 4 || (cores <= 4 && !/vega|iris/i.test(g));
 
   if (isDedicated) return { tier: 'HIGH', antialias: true, maxDpr: 1.75 };
   if (isWeakIgpu) return { tier: 'LOW', antialias: false, maxDpr: 1.0 };
   return { tier: 'MEDIUM', antialias: true, maxDpr: 1.25 };
 }
-
 const hwProfile = detectHardwareProfile();
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.25, 5000);
@@ -110,7 +110,6 @@ playerContainer.add(visualTiltGroup);
 initWeaponsAndEnemies(scene, playerContainer);
 loadPlayerModel(visualTiltGroup);
 
-
 function startMission() {
   if (isGameStarted) return;
   isGameStarted = true;
@@ -131,16 +130,9 @@ function returnToStartScreen() {
   for (const k in keys) keys[k] = false;
   if (typeof destroyMpConnection === 'function') destroyMpConnection();
 
-
-  if (typeof silenceAllCombatAudio === 'function') {
-    silenceAllCombatAudio();
-  }
-  if (typeof resetPlayerMission === 'function') {
-    resetPlayerMission(playerContainer, visualTiltGroup);
-  }
-  if (typeof clearAllProjectiles === 'function') {
-    clearAllProjectiles(scene);
-  }
+  if (typeof silenceAllCombatAudio === 'function') silenceAllCombatAudio();
+  if (typeof resetPlayerMission === 'function') resetPlayerMission(playerContainer, visualTiltGroup);
+  if (typeof clearAllProjectiles === 'function') clearAllProjectiles(scene);
   if (typeof hudCtx !== 'undefined' && typeof hudCanvas !== 'undefined') {
     hudCtx.clearRect(0, 0, hudCanvas.width, hudCanvas.height);
   }
@@ -149,15 +141,11 @@ function returnToStartScreen() {
   if (fpsEl) fpsEl.classList.add('hidden');
   if (startScreenEl) startScreenEl.classList.remove('hidden');
 
-  if (typeof playTitleMusic === 'function') {
-    playTitleMusic();
-  }
+  if (typeof playTitleMusic === 'function') playTitleMusic();
 }
 
 const btnStartGame = document.getElementById('btnStartGame');
-if (btnStartGame) {
-  btnStartGame.addEventListener('click', startMission);
-}
+if (btnStartGame) btnStartGame.addEventListener('click', startMission);
 
 function resumeGame() {
   if (!isPaused) return;
@@ -178,7 +166,6 @@ function togglePause() {
   clock.getDelta();
   if (window.gameControls?.openPauseOptions) window.gameControls.openPauseOptions();
 }
-
 window.addEventListener('macross:resume-game', () => {
   isPaused = false;
   clock.getDelta();
@@ -220,9 +207,7 @@ if (hudStyleSelect) {
   });
 }
 
-
 let selectedMapId = 'MAPA_1';
-
 const MAP_TITLES = {
   MAPA_1: '01 // ISLA SOUTH ATARIA',
   MAPA_2: '02 // ÓRBITA DE SATURNO',
@@ -236,34 +221,29 @@ mapSelectButtons.forEach((btn) => {
   btn.addEventListener('click', () => {
     const mapKey = btn.dataset.map;
     if (!mapKey || mapKey === selectedMapId) return;
-
     selectedMapId = mapKey;
     mapSelectButtons.forEach((b) => b.classList.toggle('active', b === btn));
-    if (selectedMapTitleEl) {
-      selectedMapTitleEl.textContent = MAP_TITLES[mapKey] || mapKey;
-    }
-
+    if (selectedMapTitleEl) selectedMapTitleEl.textContent = MAP_TITLES[mapKey] || mapKey;
     if (typeof switchEnvironmentMap === 'function') {
       switchEnvironmentMap(scene, selectedMapId);
-	  try { renderer.compile(scene, camera); } catch (e) {}
+      try { renderer.compile(scene, camera); } catch (e) {}
     }
   });
 });
 
 function visibleGamepadMenuItems() {
   if (window.gameControls?.isOptionsOpen()) {
-    const candidates = [...document.querySelectorAll('#optionsScreen button, #optionsScreen input, #optionsScreen select')];
+    const candidates = Array.from(document.querySelectorAll('#optionsScreen button, #optionsScreen input, #optionsScreen select'));
     return candidates.filter(element => {
       if (element.disabled || !element.getClientRects().length) return false;
       return !element.closest('[hidden]');
     });
   }
   if (!isGameStarted) {
-    return [...document.querySelectorAll('#startScreen button')].filter(element => element.getClientRects().length && !element.disabled);
+    return Array.from(document.querySelectorAll('#startScreen button')).filter(element => element.getClientRects().length && !element.disabled);
   }
   return [];
 }
-
 function setGamepadMenuFocus(element) {
   document.querySelectorAll('.gamepad-menu-focus').forEach(item => item.classList.remove('gamepad-menu-focus'));
   gamepadFocusedElement = element || null;
@@ -279,53 +259,35 @@ document.addEventListener('macross:options-opened', event => {
 function findSpatialMenuTarget(items, current, direction) {
   if (!items.length) return null;
   if (!current || !items.includes(current)) {
-    return (direction === 'up' || direction === 'left') ? items[items.length - 1] : items[0];
+    return (direction === 'up' || direction === 'left') ? items.at(-1) : items.at(0);
   }
-
   const curRect = current.getBoundingClientRect();
   const curCx = curRect.left + curRect.width * 0.5;
   const curCy = curRect.top + curRect.height * 0.5;
-  const tol = 6;
-
-  let best = null;
-  let bestScore = Infinity;
-
-  for (const candidate of items) {
-    if (candidate === current) continue;
-    const rect = candidate.getBoundingClientRect();
-    const cx = rect.left + rect.width * 0.5;
-    const cy = rect.top + rect.height * 0.5;
-    const dx = cx - curCx;
-    const dy = cy - curCy;
-
-    let primary = 0;
-    let secondary = 0;
-
-    if (direction === 'down') {
-      if (dy <= tol) continue;
-      primary = dy;
-      secondary = Math.abs(dx) * 2.2;
-    } else if (direction === 'up') {
-      if (dy >= -tol) continue;
-      primary = -dy;
-      secondary = Math.abs(dx) * 2.2;
-    } else if (direction === 'right') {
-      if (dx <= tol) continue;
-      primary = dx;
-      secondary = Math.abs(dy) * 2.2;
-    } else if (direction === 'left') {
-      if (dx >= -tol) continue;
-      primary = -dx;
-      secondary = Math.abs(dy) * 2.2;
-    }
-
-    const score = primary + secondary;
-    if (score < bestScore) {
-      bestScore = score;
-      best = candidate;
-    }
+  const isHorizontal = direction === 'left' || direction === 'right';
+  const sameRow = isHorizontal ? items.filter(c => {
+    if (c === current) return false;
+    const r = c.getBoundingClientRect();
+    return Math.abs((r.top + r.height * 0.5) - curCy) < Math.max(curRect.height, r.height) * 0.6;
+  }) : [];
+  const pool = sameRow.length ? sameRow : items;
+  let best = null, bestScore = Infinity;
+  for (const c of pool) {
+    if (c === current) continue;
+    const r = c.getBoundingClientRect();
+    const dx = (r.left + r.width * 0.5) - curCx;
+    const dy = (r.top + r.height * 0.5) - curCy;
+    const gapX = Math.max(0, r.left - curRect.right, curRect.left - r.right);
+    const gapY = Math.max(0, r.top - curRect.bottom, curRect.top - r.bottom);
+    if (direction === 'down' && dy <= 6) continue;
+    if (direction === 'up' && dy >= -6) continue;
+    if (direction === 'right' && dx <= 6) continue;
+    if (direction === 'left' && dx >= -6) continue;
+    const score = isHorizontal
+      ? (gapX || Math.abs(dx)) + gapY * 4 + Math.abs(dy) * 0.5
+      : (gapY || Math.abs(dy)) * 3 + gapX * 0.8 + Math.abs(dx) * 0.15;
+    if (score < bestScore) { bestScore = score; best = c; }
   }
-
   return best;
 }
 
@@ -334,7 +296,7 @@ function stepGamepadMenuFocus(direction) {
   if (!items.length) return;
   let currentIndex = items.indexOf(gamepadFocusedElement);
   if (currentIndex < 0) currentIndex = items.indexOf(document.activeElement);
-  const current = currentIndex >= 0 ? items[currentIndex] : (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  const current = currentIndex >= 0 ? items.at(currentIndex) : (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 
   if (current instanceof HTMLInputElement && current.type === 'range' && (direction === 'left' || direction === 'right')) {
     const step = Number(current.step) || 1;
@@ -364,13 +326,114 @@ function stepGamepadMenuFocus(direction) {
   const nextIndex = currentIndex < 0
     ? (offset > 0 ? 0 : items.length - 1)
     : (currentIndex + offset + items.length) % items.length;
-  setGamepadMenuFocus(items[nextIndex]);
-  items[nextIndex]?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  const fallbackTarget = items.at(nextIndex);
+  setGamepadMenuFocus(fallbackTarget);
+  fallbackTarget?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
 }
+let activeCustomSelect = null;
+
+function initCustomOptionSelects() {
+  document.querySelectorAll('#optionsScreen select').forEach(select => {
+    if (select.dataset.customized === '1') return;
+    select.dataset.customized = '1';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'macross-select-wrap';
+    select.parentNode.insertBefore(wrap, select);
+    select.style.display = 'none';
+    wrap.appendChild(select);
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'macross-select-trigger';
+    wrap.appendChild(trigger);
+
+    const menu = document.createElement('div');
+    menu.className = 'macross-select-menu';
+    menu.hidden = true;
+    wrap.appendChild(menu);
+
+    let highlightedIndex = Math.max(0, select.selectedIndex);
+
+    const syncLabels = () => {
+      const opt = select.options.item(select.selectedIndex);
+      trigger.textContent = opt ? opt.textContent : '';
+      Array.from(menu.children).forEach((btn, idx) => {
+        btn.textContent = select.options.item(idx)?.textContent || '';
+        btn.classList.toggle('is-selected', idx === select.selectedIndex);
+        btn.classList.toggle('is-highlighted', idx === highlightedIndex);
+      });
+    };
+
+    const closeMenu = (restoreFocus = false) => {
+      menu.hidden = true;
+      wrap.classList.remove('is-open');
+      if (activeCustomSelect?.select === select) activeCustomSelect = null;
+      if (restoreFocus) setGamepadMenuFocus(trigger);
+    };
+
+    const openMenu = () => {
+      if (activeCustomSelect && activeCustomSelect.select !== select) activeCustomSelect.closeMenu(false);
+      highlightedIndex = Math.max(0, select.selectedIndex);
+      syncLabels();
+      menu.hidden = false;
+      wrap.classList.add('is-open');
+      activeCustomSelect = { select, trigger, menu, closeMenu, moveHighlight, commitHighlight };
+    };
+
+    const moveHighlight = (delta) => {
+      const len = select.options.length;
+      if (!len) return;
+      highlightedIndex = (highlightedIndex + delta + len) % len;
+      syncLabels();
+    };
+
+    const commitHighlight = () => {
+      select.selectedIndex = highlightedIndex;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+      syncLabels();
+      closeMenu(true);
+    };
+
+    Array.from(select.options).forEach((option, idx) => {
+      const itemBtn = document.createElement('button');
+      itemBtn.type = 'button';
+      itemBtn.className = 'macross-select-option';
+      itemBtn.textContent = option.textContent;
+      itemBtn.addEventListener('mouseenter', () => {
+        highlightedIndex = idx;
+        syncLabels();
+      });
+      itemBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        highlightedIndex = idx;
+        commitHighlight();
+      });
+      menu.appendChild(itemBtn);
+    });
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (menu.hidden) openMenu();
+      else closeMenu(true);
+    });
+
+    select.addEventListener('change', syncLabels);
+    const observer = new MutationObserver(syncLabels);
+    observer.observe(select, { childList: true, subtree: true, characterData: true });
+    syncLabels();
+  });
+}
+
+document.addEventListener('click', () => {
+  if (activeCustomSelect) activeCustomSelect.closeMenu(false);
+});
+document.addEventListener('macross:options-opened', initCustomOptionSelects);
+initCustomOptionSelects();
 
 function acceptGamepadMenuSelection() {
   const items = visibleGamepadMenuItems();
-  const target = items.includes(gamepadFocusedElement) ? gamepadFocusedElement : items[0];
+  const target = items.includes(gamepadFocusedElement) ? gamepadFocusedElement : items.at(0);
   if (!target) return;
   setGamepadMenuFocus(target);
   if (!(target instanceof HTMLInputElement && target.type === 'range')) target.click();
@@ -383,6 +446,23 @@ function acceptGamepadMenuSelection() {
 window.addEventListener('macross:gamepad-menu-input', event => {
   const { direction, accept, back } = event.detail || {};
   if (window.gameControls?.isOptionsOpen()) {
+    if (activeCustomSelect) {
+      if (direction === 'up' || direction === 'down') {
+        activeCustomSelect.moveHighlight(direction === 'down' ? 1 : -1);
+        return;
+      }
+      if (accept) {
+        suppressNextGamepadFrame = true;
+        activeCustomSelect.commitHighlight();
+        return;
+      }
+      if (back) {
+        suppressNextGamepadFrame = true;
+        activeCustomSelect.closeMenu(true);
+        return;
+      }
+      return;
+    }
     if (back) {
       suppressNextGamepadFrame = true;
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true }));
@@ -396,7 +476,6 @@ window.addEventListener('macross:gamepad-menu-input', event => {
     }
     return;
   }
-
   if (typeof isGameOver !== 'undefined' && isGameOver) {
     if (direction === 'left' || direction === 'up') restartDeclined = false;
     if (direction === 'right' || direction === 'down') restartDeclined = true;
@@ -445,17 +524,15 @@ if (btnSweep) {
 
 const sliderSFX = document.getElementById('sliderSFX');
 const initialAudioSettings = typeof getAudioSettings === 'function' ? getAudioSettings() : { sfx: 50, bgm: 50 };
-if (sliderSFX) sliderSFX.value = String(initialAudioSettings.sfx);
 if (sliderSFX) {
-  sliderSFX.addEventListener('input', (e) => {
-    if (typeof setSFXVolume === 'function') setSFXVolume(Number(e.target.value));
-  });
+  sliderSFX.value = String(initialAudioSettings.sfx);
+  sliderSFX.addEventListener('input', (e) => { if (typeof setSFXVolume === 'function') setSFXVolume(Number(e.target.value)); });
   sliderSFX.addEventListener('change', (e) => e.target.blur());
 }
 
 const sliderBGM = document.getElementById('sliderBGM');
-if (sliderBGM) sliderBGM.value = String(initialAudioSettings.bgm);
 if (sliderBGM) {
+  sliderBGM.value = String(initialAudioSettings.bgm);
   sliderBGM.addEventListener('input', (e) => {
     const volume = Number(e.target.value);
     if (typeof setBGMVolume === 'function') setBGMVolume(volume);
@@ -474,15 +551,9 @@ if (soundTestTrack && soundTester) {
     soundTester.load();
     if (audioStatus) audioStatus.textContent = 'Pista lista para reproducir.';
   });
-  soundTester.addEventListener('play', () => {
-    if (audioStatus) audioStatus.textContent = `Reproduciendo: ${soundTestTrack.selectedOptions[0].textContent}.`;
-  });
-  soundTester.addEventListener('pause', () => {
-    if (audioStatus) audioStatus.textContent = 'Reproductor de prueba pausado.';
-  });
-  soundTester.addEventListener('error', () => {
-    if (audioStatus) audioStatus.textContent = 'No se pudo cargar esta pista.';
-  });
+  soundTester.addEventListener('play', () => { if (audioStatus) audioStatus.textContent = `Reproduciendo: ${soundTestTrack.selectedOptions.item(0).textContent}.`; });
+  soundTester.addEventListener('pause', () => { if (audioStatus) audioStatus.textContent = 'Reproductor de prueba pausado.'; });
+  soundTester.addEventListener('error', () => { if (audioStatus) audioStatus.textContent = 'No se pudo cargar esta pista.'; });
   soundTester.volume = sliderBGM ? Number(sliderBGM.value) / 100 : 0.65;
 }
 
@@ -557,7 +628,6 @@ window.addEventListener('keydown', (e) => {
     if (typeof cycleBattroidTracking === 'function') cycleBattroidTracking();
   }
 }, true);
-
 window.addEventListener('click', (e) => {
   if (!isGameStarted) return;
   if (typeof isGameOver !== 'undefined' && isGameOver) {
@@ -586,6 +656,7 @@ window.addEventListener('keyup', (e) => {
   if (actions.includes('turbo')) stopAcceleration();
   if (actions.includes('reverse')) stopReverseGerwalk();
 });
+
 window.addEventListener('macross:clear-inputs', () => {
   keyboardHeldActions.clear();
   gamepadHeldActions.clear();
@@ -621,7 +692,7 @@ function handleGamepadActionPress(action) {
     const modes = ['FIGHTER', 'GERWALK', 'BATTROID'];
     const currentIndex = Math.max(0, modes.indexOf(currentMode));
     const offset = action === 'transformNext' ? 1 : -1;
-    transformTo(modes[(currentIndex + offset + modes.length) % modes.length]);
+    transformTo(modes.at((currentIndex + offset + modes.length) % modes.length));
   }
   if (action === 'melee') triggerGunpodMelee();
   if (action === 'tracking' && typeof cycleBattroidTracking === 'function') cycleBattroidTracking();
@@ -684,7 +755,6 @@ window.addEventListener('macross:gamepad-frame', event => {
   }
   gamepadHeldActions = next;
 });
-
 let fpsFrames = 0;
 let fpsTime = 0;
 const clock = new THREE.Clock();
@@ -731,22 +801,20 @@ function animate() {
     fpsTime = 0;
   }
 
-
   if (!isPaused) {
     if (typeof updateEnvironment === 'function') updateEnvironment(delta);
     updatePlayerAnimation(delta);
     updateEnemies(delta, playerContainer);
     updateWeapons(delta, scene, camera, playerContainer, velocity, keys);
     updatePlayerPhysics(delta, playerContainer, visualTiltGroup, camera, keys, hudEl);
-	if (typeof updateMultiplayer === 'function') updateMultiplayer(delta, playerContainer);
-
+    if (typeof updateMultiplayer === 'function') updateMultiplayer(delta, playerContainer);
   }
 
   const isFullStop = Boolean(keys['KeyX']);
   let closestLockedMissileDist = Infinity;
   if (typeof enemyMissiles !== 'undefined' && enemyMissiles.length > 0) {
     for (let i = 0; i < enemyMissiles.length; i++) {
-      const em = enemyMissiles[i];
+      const em = enemyMissiles.at(i);
       if (em.isLockedOn) {
         const d = em.mesh.position.distanceTo(playerContainer.position);
         if (d < closestLockedMissileDist) closestLockedMissileDist = d;
