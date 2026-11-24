@@ -76,9 +76,45 @@ function getCalderaBlend(x, z) {
   return t * t * (3 - 2 * t);
 }
 
+const southAtariaHeightGrid = {
+  ready: false,
+  cols: 256,
+  rows: 256,
+  minX: -960,
+  maxX: 960,
+  minZ: -960,
+  maxZ: 960,
+  data: new Float32Array(256 * 256)
+};
+window.southAtariaRegultRoutes = { A: [], B: [], C: [] };
+
+
+function sampleSouthAtariaGrid(x, z) {
+  const g = southAtariaHeightGrid;
+  if (!g.ready) return null;
+  if (x < g.minX || x > g.maxX || z < g.minZ || z > g.maxZ) return -3.2;
+  const u = ((x - g.minX) / (g.maxX - g.minX)) * (g.cols - 1);
+  const v = ((z - g.minZ) / (g.maxZ - g.minZ)) * (g.rows - 1);
+  const c0 = Math.floor(u);
+  const r0 = Math.floor(v);
+  const c1 = Math.min(g.cols - 1, c0 + 1);
+  const r1 = Math.min(g.rows - 1, r0 + 1);
+  const tx = u - c0;
+  const tz = v - r0;
+  const h00 = g.data[r0 * g.cols + c0];
+  const h10 = g.data[r0 * g.cols + c1];
+  const h01 = g.data[r1 * g.cols + c0];
+  const h11 = g.data[r1 * g.cols + c1];
+  const h0 = h00 + (h10 - h00) * tx;
+  const h1 = h01 + (h11 - h01) * tx;
+  return h0 + (h1 - h0) * tz;
+}
+  
 function getTerrainHeight(x, z) {
   if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_2') return -9999;
   if (typeof activeMapId !== 'undefined' && activeMapId === 'MAPA_3' && typeof getInteriorTerrainHeight === 'function') return getInteriorTerrainHeight(x, z);
+  const glbH = sampleSouthAtariaGrid(x, z);
+  if (glbH !== null) return glbH;  
 
   for (let i = 0; i < ISLETS.length; i++) {
     const isl = ISLETS[i];
@@ -847,29 +883,12 @@ function isInsideReservedSDF1Local(lx, lz) {
   return Math.abs(lx - SDF1_LOCAL_DOCK.x) < (SDF1_LOCAL_DOCK.width * 0.5 + 10) &&
          Math.abs(lz - SDF1_LOCAL_DOCK.z) < (SDF1_LOCAL_DOCK.length * 0.5 + 10);
 }
-function buildSDF1DockZone(complexGroup, toonGradient) {
-  const dockGroup = new THREE.Group();
-  dockGroup.position.set(SDF1_LOCAL_DOCK.x, 0.03, SDF1_LOCAL_DOCK.z);
 
-  const padMat = new THREE.MeshToonMaterial({ color: 0x1e293b, gradientMap: toonGradient });
-  const borderMat = new THREE.MeshToonMaterial({ color: 0x64748b, gradientMap: toonGradient });
-
-  const padGeo = new THREE.PlaneGeometry(SDF1_LOCAL_DOCK.width, SDF1_LOCAL_DOCK.length);
-  padGeo.rotateX(-Math.PI / 2);
-  dockGroup.add(new THREE.Mesh(padGeo, padMat));
-
-  const sideL = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.55, SDF1_LOCAL_DOCK.length), borderMat);
-  sideL.position.set(-SDF1_LOCAL_DOCK.width * 0.5, 0.27, 0);
-  const sideR = sideL.clone();
-  sideR.position.x = SDF1_LOCAL_DOCK.width * 0.5;
-  dockGroup.add(sideL, sideR);
-
-  complexGroup.add(dockGroup);
-
+function buildSDF1DockZone(targetScene) {
   sdf1AnchorGroup = new THREE.Group();
-  sdf1AnchorGroup.position.set(SDF1_LOCAL_DOCK.x, 0.04, SDF1_LOCAL_DOCK.z);
-  complexGroup.add(sdf1AnchorGroup);
-
+  sdf1AnchorGroup.position.set(COMPLEX_CONFIG.centerX, COMPLEX_CONFIG.groundY, COMPLEX_CONFIG.centerZ);
+  sdf1AnchorGroup.rotation.y = COMPLEX_CONFIG.rotY;
+  targetScene.add(sdf1AnchorGroup);
   loadSDF1Model();
 }
 
@@ -886,17 +905,18 @@ function loadSDF1Model() {
 
     const rawBox = new THREE.Box3().setFromObject(model);
     const rawSize = rawBox.getSize(new THREE.Vector3());
-    model.rotation.y = (rawSize.x > rawSize.z * 1.25) ? (-Math.PI / 2) : Math.PI;
+    model.rotation.y = (rawSize.x > rawSize.z * 1.25) ? 0 : (Math.PI / 2);
     model.updateMatrixWorld(true);
 
     const orientedBox = new THREE.Box3().setFromObject(model);
     const orientedSize = orientedBox.getSize(new THREE.Vector3());
     const maxHoriz = Math.max(orientedSize.x, orientedSize.z);
     if (maxHoriz > 0) {
-      const scaleFactor = 175 / maxHoriz;
+      const scaleFactor = 310 / maxHoriz;
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
       model.updateMatrixWorld(true);
     }
+
 
     const finalBox = new THREE.Box3().setFromObject(model);
     const finalCenter = finalBox.getCenter(new THREE.Vector3());
@@ -942,34 +962,9 @@ function loadSDF1Model() {
       }
     });
 
-    sdf1AnchorGroup.add(model);
-
-    const newColliders = new Array();
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const idx = r * cols + c;
-        if (cellMaxY[idx] <= 0.2) continue;
-
-        const topY = cellMaxY[idx];
-        const botY = Math.max(0, cellMinY[idx]);
-        const h = Math.max(1.2, topY - botY);
-        const midY = botY + h * 0.5;
-
-        const localCellX = SDF1_LOCAL_DOCK.x + minX + (c + 0.5) * cellW;
-        const localCellZ = SDF1_LOCAL_DOCK.z + minZ + (r + 0.5) * cellD;
-        const wp = localToWorldXZ(localCellX, localCellZ);
-
-        registerBoxCollider(wp.x, COMPLEX_CONFIG.groundY + midY, wp.z, cellW * 0.96, h, cellD * 0.96, COMPLEX_CONFIG.rotY);
-        newColliders.push(structureColliders[structureColliders.length - 1]);
-      }
-    }
-
-    // Guardar también los colisionadores del SDF-1 en el caché de MAPA_1 si ya fue creado
-    if (typeof mapCache !== 'undefined' && mapCache.MAPA_1 && mapCache.MAPA_1.colliders) {
-      for (let k = 0; k < newColliders.length; k++) {
-        mapCache.MAPA_1.colliders.push(newColliders[k]);
-      }
-    }
+       sdf1AnchorGroup.add(model);
+    window.sdf1LoadedModel = model;
+    rebuildSDF1Colliders();
 
     model.visible = true;
     try {
@@ -978,6 +973,53 @@ function loadSDF1Model() {
       }
     } catch (e) {}
   });
+}
+
+function rebuildSDF1Colliders() {
+  const model = window.sdf1LoadedModel;
+  if (!model || !sdf1AnchorGroup) return;
+  for (let i = structureColliders.length - 1; i >= 0; i--) {
+    if (structureColliders[i].isSDF1) structureColliders.splice(i, 1);
+  }
+  sdf1AnchorGroup.updateMatrixWorld(true);
+  model.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(model);
+  const cols = 10, rows = 20;
+  const cellW = (box.max.x - box.min.x) / cols;
+  const cellD = (box.max.z - box.min.z) / rows;
+  const cellMaxY = new Float32Array(cols * rows).fill(-999);
+  const cellMinY = new Float32Array(cols * rows).fill(9999);
+  const vTmp = new THREE.Vector3();
+  model.traverse((child) => {
+    if (!child.isMesh) return;
+    const posAttr = child.geometry && child.geometry.attributes && child.geometry.attributes.position;
+    if (!posAttr) return;
+    const step = Math.max(2, Math.floor(posAttr.count / 8000));
+    for (let i = 0; i < posAttr.count; i += step) {
+      vTmp.fromBufferAttribute(posAttr, i).applyMatrix4(child.matrixWorld);
+      const c = Math.min(cols - 1, Math.max(0, Math.floor((vTmp.x - box.min.x) / cellW)));
+      const r = Math.min(rows - 1, Math.max(0, Math.floor((vTmp.z - box.min.z) / cellD)));
+      const idx = r * cols + c;
+      if (vTmp.y > cellMaxY[idx]) cellMaxY[idx] = vTmp.y;
+      if (vTmp.y < cellMinY[idx]) cellMinY[idx] = vTmp.y;
+    }
+  });
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const idx = r * cols + c;
+      if (cellMaxY[idx] <= -900) continue;
+      const topY = cellMaxY[idx];
+      const botY = Math.min(cellMinY[idx], topY - 1.5);
+      const h = Math.max(1.5, topY - botY);
+      const wx = box.min.x + (c + 0.5) * cellW;
+      const wz = box.min.z + (r + 0.5) * cellD;
+      registerBoxCollider(wx, botY + h * 0.5, wz, cellW * 0.96, h, cellD * 0.96, 0);
+      const colObj = structureColliders[structureColliders.length - 1];
+      colObj.isSDF1 = true;
+      if (mapCache.MAPA_1 && mapCache.MAPA_1.colliders) mapCache.MAPA_1.colliders.push(colObj);
+    }
+  }
 }
 
 
@@ -1247,70 +1289,286 @@ buildSDF1DockZone(complexGroup, toonGradient);
 buildMacrossCityGrid(complexGroup, toonGradient);
 buildNavalCarriers(scene, toonGradient);
 }
+
+function applyCubicWorldUVs(mesh, tileMeters) {
+  if (!mesh || !mesh.geometry) return;
+  const geo = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
+  mesh.geometry = geo;
+  geo.computeVertexNormals();
+  const pos = geo.attributes.position;
+  const norm = geo.attributes.normal;
+  if (!pos || !norm) return;
+  const uvArr = new Float32Array(pos.count * 2);
+  const v = new THREE.Vector3();
+  const n = new THREE.Vector3();
+  const nMat = new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
+  const invTile = 1.0 / (tileMeters || 18.0);
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+    n.fromBufferAttribute(norm, i).applyMatrix3(nMat).normalize();
+    const ax = Math.abs(n.x), ay = Math.abs(n.y), az = Math.abs(n.z);
+    if (ay >= ax && ay >= az) {
+      uvArr[i * 2] = v.x * invTile;
+      uvArr[i * 2 + 1] = v.z * invTile;
+    } else if (ax >= az) {
+      uvArr[i * 2] = v.z * invTile;
+      uvArr[i * 2 + 1] = v.y * invTile;
+    } else {
+      uvArr[i * 2] = v.x * invTile;
+      uvArr[i * 2 + 1] = v.y * invTile;
+    }
+  }
+  geo.setAttribute('uv', new THREE.BufferAttribute(uvArr, 2));
+  geo.attributes.uv.needsUpdate = true;
+}
+
+function loadSouthAtariaModel(targetGroup, toonGradient) {
+  if (typeof THREE.GLTFLoader !== 'function') return;
+  const loader = (typeof sharedLoadingManager !== 'undefined' && sharedLoadingManager)
+    ? new THREE.GLTFLoader(sharedLoadingManager)
+    : new THREE.GLTFLoader();
+
+  loader.load('./models/southataria.glb', (gltf) => {
+    const model = gltf.scene;
+    model.visible = false;
+
+    const rawBox = new THREE.Box3().setFromObject(model);
+    const rawSize = rawBox.getSize(new THREE.Vector3());
+    const maxHoriz = Math.max(rawSize.x, rawSize.z);
+    if (maxHoriz > 0) {
+      const scale = 1850 / maxHoriz;
+      model.scale.set(scale, scale, scale);
+      model.updateMatrixWorld(true);
+    }
+
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    model.position.x -= center.x;
+    model.position.z -= center.z;
+    model.position.y -= box.min.y;
+    model.updateMatrixWorld(true);
+
+    const farolaPoints = [];
+    const routePts = { A: [], B: [], C: [] };
+    const groundMeshes = [];
+    const buildingMeshes = [];
+    let sdf1AnchorPos = null;
+    model.traverse((child) => {
+      const n = child.name || '';
+      if (n.indexOf('Anchor_SDF1') !== -1 && sdf1AnchorGroup) {
+        const wPos = new THREE.Vector3();
+        const wQuat = new THREE.Quaternion();
+        child.getWorldPosition(wPos);
+        child.getWorldQuaternion(wQuat);
+        const wEuler = new THREE.Euler().setFromQuaternion(wQuat, 'YXZ');
+        sdf1AnchorPos = wPos.clone();
+        sdf1AnchorGroup.position.set(wPos.x, wPos.y, wPos.z);
+        sdf1AnchorGroup.rotation.set(0, wEuler.y - Math.PI / 2, 0);
+        sdf1AnchorGroup.updateMatrixWorld(true);
+      } else if (n.indexOf('Farola_') === 0) {
+        const fPos = new THREE.Vector3();
+        child.getWorldPosition(fPos);
+        farolaPoints.push(fPos);
+      } else if (/ruta[\s_.-]*regult/i.test(n)) {
+        const m = n.match(/ruta[\s_.-]*regult[\s_.-]*([ABC])[\s_.-]*(\d+)/i);
+        if (m) {
+          const rPos = new THREE.Vector3();
+          child.getWorldPosition(rPos);
+          routePts[m.at(1).toUpperCase()].push({ idx: parseInt(m.at(2), 10), x: rPos.x, y: rPos.y, z: rPos.z });
+        }
+      }
+
+
+      if (!child.isMesh) return;
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      let isBuilding = (n.indexOf('MacrossCity') !== -1 || n.indexOf('Building') !== -1 || n.indexOf('Edificio') !== -1);
+      for (let m = 0; m < mats.length; m++) {
+        if (mats[m] && (mats[m].name || '').indexOf('MacrossCity') !== -1) isBuilding = true;
+      }
+      if (isBuilding) {
+        applyCubicWorldUVs(child, 22.0);
+        buildingMeshes.push(child);
+      } else {
+        groundMeshes.push(child);
+      }
+      const isCityFloor = (n.indexOf('Piso') !== -1 && n.indexOf('Ciudad') !== -1);
+      for (let m = 0; m < mats.length; m++) {
+        const mat = mats[m];
+        if (!mat) continue;
+        const mName = mat.name || '';
+        if (isCityFloor || mName.indexOf('Piso') !== -1) {
+          mat.transparent = false;
+          mat.alphaTest = 0.5;
+          mat.depthWrite = true;
+          mat.polygonOffset = true;
+          mat.polygonOffsetFactor = -2;
+          mat.polygonOffsetUnits = -2;
+        }
+        if (mat.map) {
+          mat.map.flipY = false;
+          mat.map.colorSpace = THREE.SRGBColorSpace;
+          mat.map.wrapS = THREE.RepeatWrapping;
+          mat.map.wrapT = THREE.RepeatWrapping;
+          mat.map.rotation = 0;
+          mat.map.needsUpdate = true;
+        }
+        if (mat.emissiveMap) {
+          mat.emissiveMap.flipY = false;
+          mat.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+          mat.emissiveMap.wrapS = THREE.RepeatWrapping;
+          mat.emissiveMap.wrapT = THREE.RepeatWrapping;
+          mat.emissiveMap.rotation = 0;
+          mat.emissiveMap.needsUpdate = true;
+          if (!mat.emissive) mat.emissive = new THREE.Color(0xffffff);
+          else if (mat.emissive.getHex() === 0x000000) mat.emissive.setHex(0xffffff);
+          mat.emissiveIntensity = 0.0;
+          if (nightEmissiveMaterials.indexOf(mat) === -1) nightEmissiveMaterials.push(mat);
+        }
+      }
+    });
+
+    const g = southAtariaHeightGrid;
+    g.data.fill(-3.2);
+    const cellW = (g.maxX - g.minX) / (g.cols - 1);
+    const cellD = (g.maxZ - g.minZ) / (g.rows - 1);
+    const va = new THREE.Vector3(), vb = new THREE.Vector3(), vc = new THREE.Vector3();
+    for (let m = 0; m < groundMeshes.length; m++) {
+      const gm = groundMeshes[m];
+      const pos = gm.geometry && gm.geometry.attributes && gm.geometry.attributes.position;
+      if (!pos) continue;
+      const idx = gm.geometry.index;
+      const triCount = idx ? (idx.count / 3) : (pos.count / 3);
+      for (let t = 0; t < triCount; t++) {
+        const i0 = idx ? idx.getX(t * 3) : t * 3;
+        const i1 = idx ? idx.getX(t * 3 + 1) : t * 3 + 1;
+        const i2 = idx ? idx.getX(t * 3 + 2) : t * 3 + 2;
+        va.fromBufferAttribute(pos, i0).applyMatrix4(gm.matrixWorld);
+        vb.fromBufferAttribute(pos, i1).applyMatrix4(gm.matrixWorld);
+        vc.fromBufferAttribute(pos, i2).applyMatrix4(gm.matrixWorld);
+     const spanX = Math.max(va.x, vb.x, vc.x) - Math.min(va.x, vb.x, vc.x);
+     const spanZ = Math.max(va.z, vb.z, vc.z) - Math.min(va.z, vb.z, vc.z);
+     const triY = (spanX > cellW * 2 || spanZ > cellD * 2) ? ((va.y + vb.y + vc.y) / 3) : Math.max(va.y, vb.y, vc.y);
+     const cMin = Math.max(0, Math.floor((Math.min(va.x, vb.x, vc.x) - g.minX) / cellW));
+     const cMax = Math.min(g.cols - 1, Math.ceil((Math.max(va.x, vb.x, vc.x) - g.minX) / cellW));
+     const rMin = Math.max(0, Math.floor((Math.min(va.z, vb.z, vc.z) - g.minZ) / cellD));
+     const rMax = Math.min(g.rows - 1, Math.ceil((Math.max(va.z, vb.z, vc.z) - g.minZ) / cellD));
+
+        for (let r = rMin; r <= rMax; r++) {
+          for (let c = cMin; c <= cMax; c++) {
+            if (triY > g.data[r * g.cols + c]) g.data[r * g.cols + c] = triY;
+          }
+        }
+      }
+    }
+        g.ready = true;
+    const cityH = sampleSouthAtariaGrid(0, 0);
+    const baseLandY = (cityH !== null && cityH > 2.0) ? cityH : 14.0;
+    if (window.southAtariaOcean) {
+      window.southAtariaOcean.position.y = baseLandY - 1.8;
+    }
+    if (sdf1AnchorPos && sdf1AnchorGroup) {
+      const dH = sampleSouthAtariaGrid(sdf1AnchorPos.x, sdf1AnchorPos.z);
+      sdf1AnchorGroup.position.y = (dH !== null && dH > 0) ? dH : baseLandY;
+      sdf1AnchorGroup.updateMatrixWorld(true);
+	  rebuildSDF1Colliders();
+    }
+    const bldgTopGrid = new Float32Array(g.cols * g.rows);
+    bldgTopGrid.fill(-999);
+    for (let m = 0; m < buildingMeshes.length; m++) {
+      const bm = buildingMeshes[m];
+      const pos = bm.geometry && bm.geometry.attributes && bm.geometry.attributes.position;
+      if (!pos) continue;
+      for (let i = 0; i < pos.count; i++) {
+        va.fromBufferAttribute(pos, i).applyMatrix4(bm.matrixWorld);
+        const c = Math.round((va.x - g.minX) / cellW);
+        const r = Math.round((va.z - g.minZ) / cellD);
+        if (c >= 0 && c < g.cols && r >= 0 && r < g.rows) {
+          const idx = r * g.cols + c;
+          if (va.y > bldgTopGrid[idx]) bldgTopGrid[idx] = va.y;
+        }
+      }
+    }
+    const newBldgCols = [];
+    for (let r = 0; r < g.rows; r++) {
+      for (let c = 0; c < g.cols; c++) {
+        const idx = r * g.cols + c;
+        const topY = bldgTopGrid[idx];
+        const floorY = Math.max(baseLandY, g.data[idx]);
+        if (topY > floorY + 3.2) {
+          const h = topY - floorY;
+          registerBoxCollider(g.minX + c * cellW, floorY + h * 0.5, g.minZ + r * cellD, cellW * 0.66, h, cellD * 0.66, 0);
+          newBldgCols.push(structureColliders[structureColliders.length - 1]);
+        }
+      }
+    }
+    if (mapCache.MAPA_1 && mapCache.MAPA_1.colliders) {
+      for (let k = 0; k < newBldgCols.length; k++) mapCache.MAPA_1.colliders.push(newBldgCols[k]);
+    }
+
+	
+    ['A', 'B', 'C'].forEach((k) => {
+      routePts[k].sort((a, b) => a.idx - b.idx);
+      window.southAtariaRegultRoutes[k] = routePts[k];
+    });
+    buildGlbFarolas(targetGroup, farolaPoints);
+    targetGroup.add(model);
+    model.visible = true;
+    try {
+      if (typeof renderer !== 'undefined' && renderer && typeof camera !== 'undefined' && typeof scene !== 'undefined') {
+        renderer.compile(model, camera, scene);
+      }
+    } catch (e) {}
+  });
+}
+
+
+function buildGlbFarolas(targetGroup, points) {
+  streetPointLights.length = 0;
+  if (!points || points.length === 0) return;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    const pLight = new THREE.PointLight(0xfde047, 0.0, 55);
+    pLight.position.set(p.x, p.y + 5.8, p.z);
+    targetGroup.add(pLight);
+    streetPointLights.push(pLight);
+  }
+}
+
 function buildSouthAtariaEnvironment(scene) {
-const dynamicSky = initDynamicSkyTexture();
-scene.background = dynamicSky;
-scene.fog = new THREE.FogExp2(0x6b92a8, 0.00062);
-const toonGradient = createAnimeToonGradient();
-waterNormalTex1 = createWaterNormalTexture();
-waterNormalTex2 = waterNormalTex1.clone();
-waterNormalTex2.needsUpdate = true;
-waterNormalTex2.repeat.set(48, 48);
-const oceanGeo = new THREE.PlaneGeometry(5200, 5200);
-oceanGeo.rotateX(-Math.PI / 2);
-oceanMeshMat = new THREE.MeshStandardMaterial({
-color: 0x0b3556,
-roughness: 0.22,
-metalness: 0.72,
-normalMap: waterNormalTex1,
-normalScale: new THREE.Vector2(0.45, 0.45),
-envMap: dynamicSky,
-envMapIntensity: 0.90
-});
-const ocean = new THREE.Mesh(oceanGeo, oceanMeshMat);
-ocean.position.y = -0.35;
-scene.add(ocean);
-const size = 1480;
-const segments = 250;
-const terrainGeo = new THREE.PlaneGeometry(size, size, segments, segments);
-terrainGeo.rotateX(-Math.PI / 2);
-const posAttr = terrainGeo.attributes.position;
-const colors = new Float32Array(posAttr.count * 3);
-const cColor = new THREE.Color();
-for (let i = 0; i < posAttr.count; i++) {
-const vx = posAttr.getX(i);
-const vz = posAttr.getZ(i);
-const vy = getTerrainHeight(vx, vz);
-posAttr.setY(i, vy);
-const inMainCannonZone = (vx < -140 && vz < -160 && vx + vz * 0.45 > -480);
-if (vy < 0.05) {
-cColor.setHex(0x16536b);
-} else if (vy < 1.65) {
-cColor.setHex(0x6b6150);
-} else if (inMainCannonZone && vy > 4.5) {
-cColor.setHex(0x574e3d);
-} else if (vy < 12.0) {
-cColor.setHex(0x36472d);
-} else if (vy < 26.0) {
-cColor.setHex(0x2a3823);
-} else {
-cColor.setHex(0x4f483b);
+  const dynamicSky = initDynamicSkyTexture();
+  scene.background = dynamicSky;
+  scene.fog = new THREE.FogExp2(0x6b92a8, 0.00062);
+  const toonGradient = createAnimeToonGradient();
+  nightEmissiveMaterials.length = 0;
+
+  waterNormalTex1 = createWaterNormalTexture();
+  waterNormalTex2 = waterNormalTex1.clone();
+  waterNormalTex2.needsUpdate = true;
+  waterNormalTex2.repeat.set(48, 48);
+
+  const oceanGeo = new THREE.PlaneGeometry(5200, 5200);
+  oceanGeo.rotateX(-Math.PI / 2);
+  oceanMeshMat = new THREE.MeshStandardMaterial({
+    color: 0x0b3556,
+    roughness: 0.22,
+    metalness: 0.72,
+    normalMap: waterNormalTex1,
+    normalScale: new THREE.Vector2(0.45, 0.45),
+    envMap: dynamicSky,
+    envMapIntensity: 0.90
+  });
+  
+  const ocean = new THREE.Mesh(oceanGeo, oceanMeshMat);
+  ocean.position.y = 1.0;
+  window.southAtariaOcean = ocean;
+  scene.add(ocean);
+
+
+  buildSDF1DockZone(scene);
+  loadSouthAtariaModel(scene, toonGradient);
+  buildSkyClouds(scene, toonGradient);
 }
-colors[i * 3]     = cColor.r;
-colors[i * 3 + 1] = cColor.g;
-colors[i * 3 + 2] = cColor.b;
-}
-terrainGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-terrainGeo.computeVertexNormals();
-const terrainMat = new THREE.MeshToonMaterial({
-vertexColors: true,
-gradientMap: toonGradient
-});
-const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
-scene.add(terrainMesh);
-buildAirbaseAndCity(scene, toonGradient);
-buildSkyClouds(scene, toonGradient);
-}
+
 
 let activeMapId = 'MAPA_1';
 let environmentGroup = null;

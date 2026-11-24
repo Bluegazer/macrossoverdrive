@@ -309,6 +309,24 @@ const REGULT_TOTAL_FRAMES = 56;
 const CITY_STREETS_X = new Array(-180, -152, -124, -96, -68);
 const CITY_STREETS_Z = new Array(-14, 14, 42, 70, 98);
 
+function getGlbRegultRoutePoint(enemy, advanceNext) {
+  const routes = window.southAtariaRegultRoutes;
+  if (!routes) return null;
+  const keys = ['A', 'B', 'C'];
+  const key = enemy.routeKey || keys[(parseInt((enemy.id || '1').slice(-1), 10) - 1) % 3] || 'A';
+  const list = routes[key];
+  if (!list || list.length === 0) return null;
+
+  enemy.routeKey = key;
+  if (typeof enemy.routeIdx !== 'number') enemy.routeIdx = 0;
+  if (advanceNext) enemy.routeIdx = (enemy.routeIdx + 1) % list.length;
+
+  const pt = list[enemy.routeIdx];
+  const wy = (typeof getTerrainHeight === 'function') ? getTerrainHeight(pt.x, pt.z) : pt.y;
+  return { wx: pt.x, wy: wy, wz: pt.z };
+}
+
+
 function getValidCityStreetPoint() {
   for (let attempt = 0; attempt < 25; attempt++) {
     const alongX = Math.random() < 0.5;
@@ -1015,28 +1033,51 @@ function updateEnemies(delta, playerContainer) {
             e.mesh.position.y = 0.0;
             e.mesh.lookAt(e.targetWorldX, 0.0, e.targetWorldZ);
           }
-        } else {
-          const dx = e.targetLx - e.cityLx;
-          const dz = e.targetLz - e.cityLz;
-          const distWp = Math.hypot(dx, dz);
-
-          if (distWp < 1.2) {
-            chooseNextCityWaypoint(e);
+        
+		    } else {
+          const glbTarget = getGlbRegultRoutePoint(e, false);
+          if (glbTarget) {
+            if (!e.glbRouteSynced) {
+              e.glbRouteSynced = true;
+              e.mesh.position.set(glbTarget.wx, glbTarget.wy, glbTarget.wz);
+              getGlbRegultRoutePoint(e, true);
+            } else {
+              const dx = glbTarget.wx - e.mesh.position.x;
+              const dz = glbTarget.wz - e.mesh.position.z;
+              const distWp = Math.hypot(dx, dz);
+              if (distWp < 2.5) {
+                getGlbRegultRoutePoint(e, true);
+              } else {
+                const walkSpeed = 6.2;
+                e.mesh.position.x += (dx / distWp) * walkSpeed * delta;
+                e.mesh.position.z += (dz / distWp) * walkSpeed * delta;
+                const groundY = (typeof getTerrainHeight === 'function') ? getTerrainHeight(e.mesh.position.x, e.mesh.position.z) : glbTarget.wy;
+                e.mesh.position.y = groundY;
+                if (typeof resolveStructureCollisions === 'function') {
+                  const tmpVel = new THREE.Vector3(dx, 0, dz);
+                  resolveStructureCollisions(e.mesh.position, tmpVel);
+                  e.mesh.position.y = groundY;
+                }
+                e.mesh.lookAt(glbTarget.wx, groundY, glbTarget.wz);
+              }
+            }
           } else {
-            const walkSpeed = 5.8;
-            e.cityLx += (dx / distWp) * walkSpeed * delta;
-            e.cityLz += (dz / distWp) * walkSpeed * delta;
-          }
 
-          if (typeof localToWorldXZ === 'function') {
-            const wp = localToWorldXZ(e.cityLx, e.cityLz);
-            const groundY = (typeof getTerrainHeight === 'function') ? getTerrainHeight(wp.x, wp.z) : 3.25;
-            e.mesh.position.set(wp.x, groundY, wp.z);
-
-            const nextWp = localToWorldXZ(e.targetLx, e.targetLz);
-            e.mesh.lookAt(nextWp.x, groundY, nextWp.z);
+            const dx = e.targetLx - e.cityLx;
+            const dz = e.targetLz - e.cityLz;
+            const distWp = Math.hypot(dx, dz);
+            if (distWp < 1.2) chooseNextCityWaypoint(e);
+            else { e.cityLx += (dx / distWp) * 5.8 * delta; e.cityLz += (dz / distWp) * 5.8 * delta; }
+            if (typeof localToWorldXZ === 'function') {
+              const wp = localToWorldXZ(e.cityLx, e.cityLz);
+              const groundY = (typeof getTerrainHeight === 'function') ? getTerrainHeight(wp.x, wp.z) : 3.25;
+              e.mesh.position.set(wp.x, groundY, wp.z);
+              const nextWp = localToWorldXZ(e.targetLx, e.targetLz);
+              e.mesh.lookAt(nextWp.x, groundY, nextWp.z);
+            }
           }
         }
+
 
         if (e.stateTimer <= 0) {
           e.walkState = 'IDLE';
@@ -1463,14 +1504,21 @@ function onEnvironmentMapChanged(mapId) {
         const angle = (i / 3) * Math.PI * 2;
         const radius = 55 + i * 16;
         e.mesh.position.set(Math.cos(angle) * radius, 26 + i * 7, -40 + Math.sin(angle) * radius);
-      } else {
-        const pt = getValidCityStreetPoint();
-        e.cityLx = pt.lx;
-        e.cityLz = pt.lz;
-        e.mesh.position.set(pt.wx, pt.wy, pt.wz);
+            } else {
+        e.routeIdx = 0;
+        const glbStart = getGlbRegultRoutePoint(e, false);
+        if (glbStart) {
+          e.mesh.position.set(glbStart.wx, glbStart.wy, glbStart.wz);
+          getGlbRegultRoutePoint(e, true);
+        } else {
+          const pt = getValidCityStreetPoint();
+          e.cityLx = pt.lx;
+          e.cityLz = pt.lz;
+          e.mesh.position.set(pt.wx, pt.wy, pt.wz);
+          chooseNextCityWaypoint(e);
+        }
         e.walkState = 'WALK';
         e.stateTimer = 3.0 + Math.random() * 2.5;
-        chooseNextCityWaypoint(e);
       }
     }
   }
