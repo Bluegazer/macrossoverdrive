@@ -619,3 +619,28 @@ button.warn {
 .macross-select-option.is-selected.is-highlighted {
   color: #ffffff;
 }
+
+/* Funciones sin asignar (amarillo). El rojo de conflicto, definido arriba, tiene prioridad. */
+.binding-row.is-unassigned, .gamepad-binding-row.is-unassigned { background: rgba(250, 204, 21, .08); outline: 1px dashed rgba(250, 204, 21, .55); outline-offset: -1px; }
+.binding-value.is-unassigned, .pad-binding-value.is-unassigned { color: #facc15; border-color: #ca8a04; background: rgba(66, 50, 6, .75); }
+.binding-row.has-conflict, .gamepad-binding-row.has-conflict { outline-style: solid; }
+.binding-row.has-conflict .binding-value.is-unassigned, .gamepad-binding-row.has-conflict .pad-binding-value.is-unassigned { color: #fff; }
+
+/* Ventanita ASIGNAR / LIMPIAR / CANCELAR (no tapa el teclado ni el esquema del mando) */
+.rebind-modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; }
+.rebind-modal[hidden] { display: none; }
+.rebind-modal-backdrop { position: absolute; inset: 0; background: rgba(2, 6, 23, .62); backdrop-filter: blur(4px); }
+.rebind-modal-card { position: relative; width: min(440px, calc(100vw - 32px)); padding: 12px 14px; border: 1px solid #38bdf8; border-radius: 6px; background: rgba(6, 14, 28, .98); box-shadow: 0 10px 40px rgba(0, 0, 0, .65); font-family: 'Conthrax', sans-serif; }
+.rebind-modal-title { margin: 0 0 8px; color: #e2e8f0; font-size: 10px; letter-spacing: .6px; }
+.rebind-modal-values { display: flex; gap: 14px; margin-bottom: 8px; color: #64748b; font-size: 8px; }
+.rebind-modal-values kbd { margin-left: 4px; padding: 3px 7px; color: #38bdf8; border: 1px solid #1e3a5f; border-radius: 3px; background: rgba(15, 23, 42, .8); font: 9px 'Conthrax', sans-serif; }
+.rebind-modal-hint { min-height: 22px; margin: 0 0 10px; color: #94a3b8; font-size: 8px; line-height: 1.4; }
+.rebind-modal-hint.is-warning { color: #fca5a5; }
+.rebind-modal-actions { display: flex; gap: 8px; }
+.rebind-modal-actions button { flex: 1; min-height: 30px; font-size: 8.5px; }
+.rebind-modal-actions button:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Secciones de vuelo por modo de transformación */
+.binding-group.mode-group { margin-top: 10px; padding-left: 8px; border-left: 2px solid rgba(56, 189, 248, .35); }
+.binding-group.mode-group[data-mode="GERWALK"] { border-left-color: rgba(245, 158, 11, .45); }
+.binding-group.mode-group[data-mode="BATTROID"] { border-left-color: rgba(248, 113, 113, .45); }

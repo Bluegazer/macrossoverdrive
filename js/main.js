@@ -260,6 +260,10 @@ function setGamepadMenuFocus(element) {
   element.focus({ preventScroll: true });
 }
 
+window.addEventListener('macross:focus-element', event => {
+  if (window.gameControls?.isOptionsOpen() && event.detail?.element) setGamepadMenuFocus(event.detail.element);
+});
+
 document.addEventListener('macross:options-opened', event => {
   if (event.detail?.pause) setGamepadMenuFocus(document.getElementById('btnContinueGame'));
 });

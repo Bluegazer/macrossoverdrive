@@ -340,7 +340,12 @@ function applyTranslations(langCode) {
   }
   setSel('.time-of-day-note', 'todNote');
 
-  document.querySelectorAll('.group-flight').forEach(el => { el.textContent = t('grpFlight'); });
+  document.querySelectorAll('.group-flight').forEach(el => {
+    const mode = el.dataset.mode || el.closest('.mode-group')?.dataset.mode;
+    el.textContent = mode
+      ? ({ FIGHTER: 'Fighter', GERWALK: 'GERWALK', BATTROID: 'Battroid' })[mode] || mode
+      : t('grpFlight');
+  });
   document.querySelectorAll('.group-transform').forEach(el => { el.textContent = t('grpTransform'); });
   document.querySelectorAll('.group-attack').forEach(el => { el.textContent = t('grpAttack'); });
   document.querySelectorAll('.group-systems').forEach(el => { el.textContent = t('grpSystems'); });

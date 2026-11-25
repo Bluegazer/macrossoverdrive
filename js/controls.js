@@ -34,10 +34,59 @@
     turnLeft: 'ArrowLeft', turnRight: 'ArrowRight', verticalUp: 'ArrowUp', verticalDown: 'ArrowDown',
     gunpod: 'ShiftLeft', missiles: 'Space', brake: 'KeyX', slowdown: 'GamepadSlowdown'
   };
-  const storageKey = 'macrossvoxp-keyboard-controls-v1';
-  const gamepadStorageKey = 'macrossvoxp-gamepad-controls-v4';
-  const actionNames = Object.keys(defaults);
-  const gamepadActionNames = Object.keys(gamepadDefaults);
+  // ---------- Modelo de asignaciones por modo de transformación ----------
+  // Las acciones de vuelo tienen un botón propio en cada modo (id = 'accion@MODO').
+  // El resto (transformación, ataque, sistemas, cámara, menú) son globales.
+  // El motor no cambia: cada id resuelve a la misma acción base de siempre.
+  const SCOPED_MODES = ['FIGHTER', 'GERWALK', 'BATTROID'];
+  const kbFlight = ['moveForward', 'moveBack', 'moveLeft', 'moveRight', 'turnLeft', 'turnRight', 'verticalUp', 'verticalDown', 'turbo', 'brake'];
+  const kbModeActions = {
+    FIGHTER: [...kbFlight],
+    GERWALK: [...kbFlight, 'reverse'],
+    BATTROID: [...kbFlight]
+  };
+  const padModeActions = {
+    FIGHTER: ['moveForward', 'moveBack', 'turnLeft', 'turnRight', 'verticalUp', 'verticalDown', 'strafeLeft', 'strafeRight', 'turbo', 'slowdown', 'brake'],
+    GERWALK: ['moveForward', 'moveBack', 'moveLeft', 'moveRight', 'strafeLeft', 'strafeRight', 'gerwalkUp', 'gerwalkDown', 'verticalUp', 'verticalDown', 'turbo', 'reverse', 'slowdown', 'descend', 'brake'],
+    BATTROID: ['moveForward', 'moveBack', 'turnLeft', 'turnRight', 'strafeLeft', 'strafeRight', 'verticalUp', 'verticalDown', 'descend', 'turbo', 'brake']
+  };
+  const kbScoped = new Set(Object.values(kbModeActions).flat());
+  const padScoped = new Set(Object.values(padModeActions).flat());
+  const kbModeLabels = {
+    FIGHTER: { moveForward: 'Acelerar / empuje', moveBack: 'Desacelerar / reducir empuje', moveLeft: 'Guiñada izquierda', moveRight: 'Guiñada derecha', turnLeft: 'Alabeo izquierda', turnRight: 'Alabeo derecha', verticalUp: 'Cabeceo: nariz arriba', verticalDown: 'Cabeceo: nariz abajo', turbo: 'Booster / postquemador (mantener)', brake: 'Frenado total' },
+    GERWALK: { moveForward: 'Avanzar', moveBack: 'Retroceder', moveLeft: 'Desplazamiento lateral izq.', moveRight: 'Desplazamiento lateral der.', turnLeft: 'Girar eje vertical izq.', turnRight: 'Girar eje vertical der.', verticalUp: 'Subir altitud', verticalDown: 'Bajar altitud', turbo: 'Propulsión continua (mantener)', reverse: 'Reversa', brake: 'Frenado total' },
+    BATTROID: { moveForward: 'Avanzar / caminar', moveBack: 'Retroceder', moveLeft: 'Desplazamiento lateral izq.', moveRight: 'Desplazamiento lateral der.', turnLeft: 'Girar eje vertical izq.', turnRight: 'Girar eje vertical der.', verticalUp: 'Elevar / salto vertical', verticalDown: 'Descender', turbo: 'Impulso / booster direccional', brake: 'Frenar impulso' }
+  };
+  const padModeLabels = {
+    FIGHTER: { moveForward: 'Empuje (acelerar)', moveBack: 'Reducir empuje', turnLeft: 'Alabeo izquierda', turnRight: 'Alabeo derecha', verticalUp: 'Cabeceo: subir nariz', verticalDown: 'Cabeceo: bajar nariz', strafeLeft: 'Guiñada izquierda', strafeRight: 'Guiñada derecha', turbo: 'Booster (mantener)', slowdown: 'Desacelerar adicional', brake: 'Frenado total' },
+    GERWALK: { moveForward: 'Avanzar', moveBack: 'Retroceder', moveLeft: 'Girar izquierda', moveRight: 'Girar derecha', strafeLeft: 'Desplazamiento lateral izq.', strafeRight: 'Desplazamiento lateral der.', gerwalkUp: 'Subir altitud', gerwalkDown: 'Bajar altitud', verticalUp: 'Eje vertical: subir', verticalDown: 'Eje vertical: bajar', turbo: 'Propulsión (mantener)', reverse: 'Reversa (mantener)', slowdown: 'Desacelerar adicional', descend: 'Descenso adicional', brake: 'Frenado total' },
+    BATTROID: { moveForward: 'Avanzar / caminar', moveBack: 'Retroceder', turnLeft: 'Girar izquierda', turnRight: 'Girar derecha', strafeLeft: 'Desplazamiento lateral izq.', strafeRight: 'Desplazamiento lateral der.', verticalUp: 'Elevar (eje vertical)', verticalDown: 'Descender (eje vertical)', descend: 'Descenso adicional', turbo: 'Impulso / booster', brake: 'Frenar impulso' }
+  };
+
+  function baseOf(id) { return id.split('@')[0]; }
+  function modeOf(id) { return id.includes('@') ? id.split('@')[1] : null; }
+  function bindingId(action, mode, device) {
+    const scoped = device === 'gamepad' ? padScoped : kbScoped;
+    return scoped.has(action) && mode ? `${action}@${mode}` : action;
+  }
+  function expandDefaults(base, modeActions, scoped) {
+    const out = {};
+    Object.keys(base).forEach(action => { if (!scoped.has(action)) out[action] = base[action]; });
+    Object.entries(modeActions).forEach(([mode, list]) => list.forEach(action => { out[`${action}@${mode}`] = base[action]; }));
+    return out;
+  }
+  function currentFlightMode() {
+    try { return typeof currentMode !== 'undefined' ? currentMode : null; } catch (_) { return null; }
+  }
+
+  const kbDefaults = expandDefaults(defaults, kbModeActions, kbScoped);
+  const padDefaults = expandDefaults(gamepadDefaults, padModeActions, padScoped);
+  const storageKey = 'macrossvoxp-keyboard-controls-v2';
+  const gamepadStorageKey = 'macrossvoxp-gamepad-controls-v5';
+  const legacyStorageKey = 'macrossvoxp-keyboard-controls-v1';
+  const legacyGamepadStorageKey = 'macrossvoxp-gamepad-controls-v4';
+  const actionNames = Object.keys(kbDefaults);
+  const gamepadActionNames = Object.keys(padDefaults);
   const gamepadDiagramObjects = {
     xbox: document.getElementById('gamepadDiagramXbox'),
     ps2: document.getElementById('gamepadDiagramPs2')
@@ -86,7 +135,7 @@
     ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', ShiftLeft: 'SHIFT IZQ.', ShiftRight: 'SHIFT DER.',
     Space: 'ESPACIO', Tab: 'TAB', Escape: 'ESC', Enter: 'ENTER', NumpadEnter: 'NUM ENTER', NumpadAdd: 'NUM +',
     NumpadSubtract: 'NUM −', NumpadMultiply: 'NUM ×', NumpadDivide: 'NUM ÷', NumpadDecimal: 'NUM .', NumLock: 'NUM LOCK',
-    ControlLeft: 'CTRL IZQ.', ControlRight: 'CTRL DER.', AltLeft: 'ALT IZQ.', AltRight: 'ALT GR', MetaLeft: 'WIN'
+    none: 'SIN ASIGNAR', ControlLeft: 'CTRL IZQ.', ControlRight: 'CTRL DER.', AltLeft: 'ALT IZQ.', AltRight: 'ALT GR', MetaLeft: 'WIN'
   };
   const padButtonNames = {
     0: 'A', 1: 'B', 2: 'X', 3: 'Y', 4: 'LB', 5: 'RB', 6: 'LT', 7: 'RT',
@@ -163,16 +212,20 @@
   let previousMenuBack = false;
   let lastMenuDirection = null;
   let lastMenuDirectionAt = 0;
-  let bindings = readMap(storageKey, defaults);
-  let gamepadBindings = readMap(gamepadStorageKey, gamepadDefaults);
-  if (gamepadBindings.missileType === 'none') gamepadBindings.missileType = 'button8';
+  initBindingRows();
+  let bindings = readMap(storageKey, kbDefaults, legacyStorageKey);
+  let gamepadBindings = readMap(gamepadStorageKey, padDefaults, legacyGamepadStorageKey);
 
-  function readMap(key, fallback) {
+  // Lee las asignaciones guardadas. Si no hay datos nuevos, migra las antiguas:
+  // el botón que tenía una acción pasa a cada modo donde esa acción existe.
+  function readMap(key, fallback, legacyKey) {
     try {
       const saved = JSON.parse(localStorage.getItem(key) || 'null');
+      const legacy = saved ? null : JSON.parse(localStorage.getItem(legacyKey) || 'null');
       const candidate = { ...fallback };
-      Object.keys(fallback).forEach(action => {
-        if (saved && typeof saved[action] === 'string') candidate[action] = saved[action];
+      Object.keys(fallback).forEach(id => {
+        if (saved && typeof saved[id] === 'string') candidate[id] = saved[id];
+        else if (legacy && typeof legacy[baseOf(id)] === 'string') candidate[id] = legacy[baseOf(id)];
       });
       return candidate;
     } catch (_) {
@@ -180,8 +233,72 @@
     }
   }
 
+  // Genera las secciones VUELO · FIGHTER / GERWALK / BATTROID y limpia filas obsoletas.
+  function initBindingRows() {
+    [['keyboardPane', false], ['gamepadPane', true]].forEach(([paneId, isPad]) => {
+      const pane = document.getElementById(paneId);
+      const anchor = pane?.querySelector('.binding-group > h4.group-flight')?.closest('.binding-group');
+      if (anchor) {
+        const lists = isPad ? padModeActions : kbModeActions;
+        const labels = isPad ? padModeLabels : kbModeLabels;
+        const fragment = document.createDocumentFragment();
+        SCOPED_MODES.forEach(mode => {
+          const section = document.createElement('section');
+          section.className = 'binding-group mode-group';
+          section.dataset.mode = mode;
+          const heading = document.createElement('h4');
+          heading.className = 'group-flight';
+          heading.dataset.mode = mode;
+          heading.textContent = ({ FIGHTER: 'Fighter', GERWALK: 'GERWALK', BATTROID: 'Battroid' })[mode] || mode;
+          section.appendChild(heading);
+          lists[mode].forEach(action => {
+            const row = document.createElement('div');
+            row.className = isPad ? 'gamepad-binding-row' : 'binding-row';
+            row.dataset.bindingId = `${action}@${mode}`;
+            row.dataset.mode = mode;
+            const name = document.createElement('span');
+            name.textContent = labels[mode][action] || action;
+            const value = document.createElement('kbd');
+            value.className = isPad ? 'pad-binding-value' : 'binding-value';
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = isPad ? 'pad-rebind-button' : 'rebind-button';
+            button.textContent = 'CAMBIAR';
+            row.append(name, value, button);
+            section.appendChild(row);
+          });
+          fragment.appendChild(section);
+        });
+        anchor.replaceWith(fragment);
+
+        // Distribuye los bloques por peso para mantener equilibradas las dos columnas.
+        const columnSelector = isPad ? '.pad-binding-column' : '.binding-column';
+        const columns = Array.from(pane.querySelectorAll(columnSelector));
+        const modeGroups = {};
+        pane.querySelectorAll('.binding-group.mode-group').forEach(group => { modeGroups[group.dataset.mode] = group; });
+        const ordinaryGroups = Array.from(pane.querySelectorAll('.binding-group:not(.mode-group)'));
+        const groupWithHeading = className => ordinaryGroups.find(group => group.querySelector('.' + className));
+        const transformGroup = groupWithHeading('group-transform');
+        const attackGroup = groupWithHeading('group-attack');
+        const systemsGroup = groupWithHeading('group-systems');
+        const menuGroup = groupWithHeading('group-menu');
+        if (columns.length >= 2 && modeGroups.FIGHTER && modeGroups.GERWALK && modeGroups.BATTROID &&
+            transformGroup && attackGroup && systemsGroup && menuGroup) {
+          columns[0].replaceChildren(modeGroups.FIGHTER, modeGroups.GERWALK, transformGroup);
+          columns[1].replaceChildren(modeGroups.BATTROID, attackGroup, systemsGroup, menuGroup);
+        }
+      }
+      const known = isPad ? padDefaults : kbDefaults;
+      pane?.querySelectorAll(isPad ? '.gamepad-binding-row[data-pad-action]' : '.binding-row[data-action]').forEach(row => {
+        const id = isPad ? row.dataset.padAction : row.dataset.action;
+        if (!(id in known)) { row.remove(); return; } // acción ahora por modo
+        row.dataset.bindingId = id;
+      });
+    });
+  }
+
   function validCode(code) {
-    return typeof code === 'string' && /^[A-Za-z][A-Za-z0-9]{0,23}$/.test(code);
+    return code === 'none' || (typeof code === 'string' && /^[A-Za-z][A-Za-z0-9]{0,23}$/.test(code));
   }
 
   function keyLabel(code) {
@@ -202,7 +319,10 @@
     return labels[Number(match[1])][match[2] === '-' ? 0 : 1];
   }
 
-  function contextsFor(action, device) {
+  function contextsFor(id, device) {
+    const mode = modeOf(id);
+    if (mode) return [mode];
+    const action = baseOf(id);
     if (actionContexts[action]) return actionContexts[action];
     if (action === 'startMission') return ['TITLE'];
     if (action === 'restartAfterDefeat' || action === 'menuAfterDefeat') return ['DEFEAT'];
@@ -210,7 +330,9 @@
   }
 
   function mayShare(first, second, device) {
-    if (device === 'gamepad' && ((first === 'missiles' && second === 'targetLock') || (first === 'targetLock' && second === 'missiles'))) return true;
+    const a = baseOf(first);
+    const b = baseOf(second);
+    if (device === 'gamepad' && ((a === 'missiles' && b === 'targetLock') || (a === 'targetLock' && b === 'missiles'))) return true;
     const firstContexts = contextsFor(first, device);
     const secondContexts = contextsFor(second, device);
     return !firstContexts.some(context => secondContexts.includes(context));
@@ -218,7 +340,7 @@
 
   function conflictsFor(map, device) {
     const conflicts = new Set();
-    const names = device === 'gamepad' ? gamepadActionNames : actionNames;
+    const names = Object.keys(map);
     for (let i = 0; i < names.length; i++) {
       for (let j = i + 1; j < names.length; j++) {
         const a = names[i];
@@ -252,13 +374,13 @@
 
   function updateConflictUI() {
     const conflicts = allConflicts();
-    document.querySelectorAll('.binding-row[data-action]').forEach(row => {
-      const conflict = conflicts.keyboard.has(row.dataset.action);
+    document.querySelectorAll('.binding-row[data-binding-id]').forEach(row => {
+      const conflict = conflicts.keyboard.has(row.dataset.bindingId);
       row.classList.toggle('has-conflict', conflict);
       row.querySelector('.binding-value').classList.toggle('has-conflict', conflict);
     });
-    document.querySelectorAll('.gamepad-binding-row[data-pad-action]').forEach(row => {
-      const conflict = conflicts.gamepad.has(row.dataset.padAction);
+    document.querySelectorAll('.gamepad-binding-row[data-binding-id]').forEach(row => {
+      const conflict = conflicts.gamepad.has(row.dataset.bindingId);
       row.classList.toggle('has-conflict', conflict);
       row.querySelector('.pad-binding-value').classList.toggle('has-conflict', conflict);
     });
@@ -308,12 +430,36 @@
     shakePanel();
   }
 
-  function actionsForCode(code) {
-    return actionNames.filter(action => bindings[action] === code);
+  function idsForCode(code) {
+    return actionNames.filter(id => bindings[id] === code);
   }
 
+  // Acciones activadas por una tecla en el modo actual (o en todos con allModes).
+  function actionsForCode(code, options = {}) {
+    const mode = options.allModes ? null : currentFlightMode();
+    const found = [];
+    idsForCode(code).forEach(id => {
+      const idMode = modeOf(id);
+      if (idMode && mode && idMode !== mode) return;
+      const action = baseOf(id);
+      if (!found.includes(action)) found.push(action);
+    });
+    return found;
+  }
+
+  // Acciones del mando para una entrada, en todos los modos (se usa para colorear el esquema).
   function actionsForPadInput(input) {
-    return gamepadActionNames.filter(action => gamepadBindings[action] === input && input !== 'none');
+    const found = [];
+    gamepadActionNames.forEach(id => {
+      if (gamepadBindings[id] !== input || input === 'none') return;
+      const action = baseOf(id);
+      if (!found.includes(action)) found.push(action);
+    });
+    return found;
+  }
+
+  function kbValue(action, mode) {
+    return bindings[bindingId(action, mode || currentFlightMode() || 'FIGHTER', 'keyboard')] || 'none';
   }
 
   function renderGamepadDiagram() {
@@ -353,21 +499,22 @@
   function renderHelp() {
     const help = document.getElementById('controlsHelp');
     if (!help) return;
-    const k = action => keyLabel(bindings[action]);
-    help.innerHTML = `<b>BATTROID / GERWALK:</b> ${k('moveForward')}/${k('moveBack')} AVANCE | ${k('moveLeft')}/${k('moveRight')} LATERAL<br>` +
-      `<b>FLECHAS:</b> ${k('turnLeft')}/${k('turnRight')} GIRAR | ${k('verticalUp')}/${k('verticalDown')} SUBIR/BAJAR<br>` +
-      `<b>FIGHTER:</b> ${k('moveForward')}/${k('moveBack')} THROTTLE | ${k('moveLeft')}/${k('moveRight')} YAW | FLECHAS ROLL/PITCH<br>` +
+    const k = (action, mode) => keyLabel(kbValue(action, mode));
+    const flightLine = (mode, title, moveNames) => `<b>${title}:</b> ${k('moveForward', mode)}/${k('moveBack', mode)} ${moveNames[0]} | ${k('moveLeft', mode)}/${k('moveRight', mode)} ${moveNames[1]} | ${k('turnLeft', mode)}/${k('turnRight', mode)} ${moveNames[2]} | ${k('verticalUp', mode)}/${k('verticalDown', mode)} ${moveNames[3]}<br>`;
+    help.innerHTML = flightLine('FIGHTER', 'FIGHTER', ['THROTTLE', 'YAW', 'ROLL', 'PITCH']) +
+      flightLine('GERWALK', 'GERWALK', ['AVANCE', 'LATERAL', 'GIRAR', 'SUBIR/BAJAR']) +
+      flightLine('BATTROID', 'BATTROID', ['AVANCE', 'LATERAL', 'GIRAR', 'ELEVAR/DESCENDER']) +
       `<b>MODOS:</b> ${k('fighter')} FIGHTER | ${k('gerwalk')} GERWALK | ${k('battroid')} BATTROID<br>` +
-      `<b>SISTEMAS:</b> ${k('turbo')} TURBO | ${k('reverse')} REVERSA | ${k('brake')} STOP | ${k('pause')} PAUSA | ${k('music')} MÚSICA | ${k('advanceTime')} +2 H<br>` +
+      `<b>SISTEMAS:</b> ${k('turbo')} TURBO | ${k('reverse', 'GERWALK')} REVERSA | ${k('brake')} STOP | ${k('pause')} PAUSA | ${k('music')} MÚSICA | ${k('advanceTime')} +2 H<br>` +
       `<b>COMBATE:</b> ${k('gunpod')} GUNPOD | ${k('missiles')} MISILES | ${k('missileType')} TIPO MSL | ${k('tracking')} RASTREO (B) | ${k('melee')} GOLPE<br>` +
       `<b>MENÚ:</b> ${k('startMission')} INICIAR | ${k('returnMenu')} SALIR | ${k('restartAfterDefeat')}/${k('menuAfterDefeat')} TRAS DERROTA`;
-    document.querySelectorAll('[data-binding-label]').forEach(el => { el.textContent = keyLabel(bindings[el.dataset.bindingLabel]); });
+    document.querySelectorAll('[data-binding-label]').forEach(el => { el.textContent = keyLabel(kbValue(el.dataset.bindingLabel, el.dataset.mode)); });
   }
 
   function renderKeyboard() {
     document.querySelectorAll('.keyboard-key[data-key-code]').forEach(button => {
       const code = button.dataset.keyCode;
-      const usedActions = actionsForCode(code);
+      const usedActions = idsForCode(code).map(baseOf);
       button.classList.remove('is-bound', 'is-listening', 'category-flight', 'category-transform', 'category-attack', 'category-systems', 'category-menu');
       if (usedActions.length) {
         button.classList.add('is-bound');
@@ -378,21 +525,27 @@
   }
 
   function renderBindings() {
-    document.querySelectorAll('.binding-row[data-action]').forEach(row => {
-      const action = row.dataset.action;
-      row.dataset.category = categories[action];
-      updateScopeLabel(row, action, false);
-      row.querySelector('.binding-value').textContent = keyLabel(bindings[action]);
-      row.classList.toggle('is-listening', action === listeningAction);
-      row.querySelector('.rebind-button').textContent = action === listeningAction ? 'PULSA TECLA' : 'CAMBIAR';
+    document.querySelectorAll('.binding-row[data-binding-id]').forEach(row => {
+      const id = row.dataset.bindingId;
+      row.dataset.category = categories[baseOf(id)];
+      updateScopeLabel(row, baseOf(id), false);
+      const kbUnassigned = !bindings[id] || bindings[id] === 'none';
+      row.querySelector('.binding-value').textContent = keyLabel(bindings[id] || 'none');
+      row.classList.toggle('is-unassigned', kbUnassigned);
+      row.querySelector('.binding-value').classList.toggle('is-unassigned', kbUnassigned);
+      row.classList.toggle('is-listening', id === listeningAction);
+      row.querySelector('.rebind-button').textContent = id === listeningAction ? 'PULSA TECLA' : 'CAMBIAR';
     });
-    document.querySelectorAll('.gamepad-binding-row[data-pad-action]').forEach(row => {
-      const action = row.dataset.padAction;
-      row.dataset.category = categories[action];
-      updateScopeLabel(row, action, true);
-      row.querySelector('.pad-binding-value').textContent = padLabel(gamepadBindings[action]);
-      row.classList.toggle('is-listening', action === listeningPadAction);
-      row.querySelector('.pad-rebind-button').textContent = action === listeningPadAction ? 'PRESIONA' : 'CAMBIAR';
+    document.querySelectorAll('.gamepad-binding-row[data-binding-id]').forEach(row => {
+      const id = row.dataset.bindingId;
+      row.dataset.category = categories[baseOf(id)];
+      updateScopeLabel(row, baseOf(id), true);
+      const padUnassigned = !gamepadBindings[id] || gamepadBindings[id] === 'none';
+      row.querySelector('.pad-binding-value').textContent = padLabel(gamepadBindings[id]);
+      row.classList.toggle('is-unassigned', padUnassigned);
+      row.querySelector('.pad-binding-value').classList.toggle('is-unassigned', padUnassigned);
+      row.classList.toggle('is-listening', id === listeningPadAction);
+      row.querySelector('.pad-rebind-button').textContent = id === listeningPadAction ? 'PRESIONA' : 'CAMBIAR';
     });
     renderKeyboard();
     renderGamepadDiagram();
@@ -401,6 +554,7 @@
   }
 
   function updateScopeLabel(row, action, isGamepad) {
+    if (row.dataset.mode) return; // las filas por modo ya tienen su etiqueta propia
     const name = row.querySelector(':scope > span');
     const label = isGamepad ? (gamepadScopeLabels[action] || actionScopeLabels[action]) : actionScopeLabels[action];
     if (!name || !label) return;
@@ -430,34 +584,134 @@
     }
   }
 
-  function beginKeyboardListening(action) {
+
+  // ---------- Ventanita de asignación: ASIGNAR / LIMPIAR / CANCELAR ----------
+  let rebindTarget = null;
+  let captureArmed = false;
+  let rebindModal = null;
+  function rowName(id, device) {
+    const selector = device === 'gamepad'
+      ? '.gamepad-binding-row[data-binding-id="' + id + '"]'
+      : '.binding-row[data-binding-id="' + id + '"]';
+    const span = document.querySelector(selector + ' > span');
+    if (!span) return baseOf(id);
+    let text = '';
+    span.childNodes.forEach(node => { if (node.nodeType === Node.TEXT_NODE) text += node.textContent; });
+    const mode = modeOf(id);
+    return (text.trim() || baseOf(id)) + (mode ? ' (' + mode + ')' : '');
+  }
+  function ensureRebindModal() {
+    if (rebindModal) return rebindModal;
+    rebindModal = document.createElement('div');
+    rebindModal.id = 'rebindModal';
+    rebindModal.className = 'rebind-modal';
+    rebindModal.hidden = true;
+    rebindModal.setAttribute('role', 'alertdialog');
+    rebindModal.setAttribute('aria-live', 'polite');
+    rebindModal.innerHTML =
+      '<div class="rebind-modal-backdrop"></div>' +
+      '<section class="rebind-modal-card">' +
+      '<p class="rebind-modal-title"></p>' +
+      '<div class="rebind-modal-values"><span>ACTUAL <kbd data-rm="current"></kbd></span><span>NUEVA <kbd data-rm="new">—</kbd></span></div>' +
+      '<p class="rebind-modal-hint"></p>' +
+      '<div class="rebind-modal-actions">' +
+      '<button type="button" data-rm-action="assign" class="options-save">ASIGNAR</button>' +
+      '<button type="button" data-rm-action="clear" class="options-secondary">LIMPIAR</button>' +
+      '<button type="button" data-rm-action="cancel" class="options-secondary">CANCELAR</button>' +
+      '</div></section>';
+    optionsScreen.appendChild(rebindModal);
+    rebindModal.querySelector('[data-rm-action="assign"]').addEventListener('click', startCapture);
+    rebindModal.querySelector('[data-rm-action="clear"]').addEventListener('click', clearListening);
+    rebindModal.querySelector('[data-rm-action="cancel"]').addEventListener('click', cancelListening);
+    return rebindModal;
+  }
+  function openRebindModal(device, action) {
+    const modal = ensureRebindModal();
+    rebindTarget = { device, action };
+    captureArmed = false;
+    listeningAction = null;
     listeningPadAction = null;
-    listeningAction = action;
-    const row = document.querySelector(`[data-action="${action}"]`);
-    setStatus(`Pulsa una tecla para «${row.firstElementChild.textContent}». ESC cancela.`, false);
+    const current = device === 'gamepad' ? padLabel(gamepadBindings[action]) : keyLabel(bindings[action]);
+    modal.querySelector('.rebind-modal-title').textContent = rowName(action, device);
+    modal.querySelector('[data-rm="current"]').textContent = current;
+    modal.querySelector('[data-rm="new"]').textContent = '—';
+    modal.querySelector('.rebind-modal-hint').textContent =
+      'Elige ASIGNAR para capturar una entrada, LIMPIAR para dejarla libre o CANCELAR para conservarla.';
+    modal.querySelector('.rebind-modal-hint').classList.remove('is-warning');
+    const assignButton = modal.querySelector('[data-rm-action="assign"]');
+    assignButton.disabled = false;
+    assignButton.textContent = device === 'gamepad' ? 'ASIGNAR BOTÓN' : 'ASIGNAR TECLA';
+    modal.hidden = false;
+    if (device === 'gamepad') {
+      window.dispatchEvent(new CustomEvent('macross:focus-element', { detail: { element: assignButton } }));
+    } else {
+      assignButton.focus({ preventScroll: true });
+    }
+  }
+  function closeRebindModal() {
+    rebindTarget = null;
+    captureArmed = false;
+    listeningAction = null;
+    listeningPadAction = null;
+    if (rebindModal) rebindModal.hidden = true;
+  }
+  function startCapture() {
+    if (!rebindTarget || captureArmed) return;
+    captureArmed = true;
+    listeningAction = rebindTarget.device === 'keyboard' ? rebindTarget.action : null;
+    listeningPadAction = rebindTarget.device === 'gamepad' ? rebindTarget.action : null;
+    const hint = rebindModal.querySelector('.rebind-modal-hint');
+    const assignButton = rebindModal.querySelector('[data-rm-action="assign"]');
+    rebindModal.querySelector('[data-rm="new"]').textContent = '—';
+    assignButton.textContent = 'ESPERANDO…';
+    assignButton.disabled = true;
+    hint.textContent = rebindTarget.device === 'gamepad'
+      ? 'Presiona el botón o mueve el stick que quieras asignar. B cancela.'
+      : 'Presiona la tecla que quieras asignar. ESC cancela.';
+    hint.classList.remove('is-warning');
+    if (rebindTarget.device === 'gamepad') {
+      previousPadSnapshot = snapshotPad(getConnectedGamepad());
+      const status = document.getElementById('gamepadStatus');
+      if (status && !getConnectedGamepad()) status.textContent = 'No se detecta el mando. Conéctalo y presiona un botón para asignarlo.';
+    }
     renderBindings();
   }
-
+  function setPending(device, action, value) {
+    if (!captureArmed || !rebindTarget || rebindTarget.device !== device || rebindTarget.action !== action) return;
+    closeRebindModal();
+    if (device === 'gamepad') assignGamepad(action, value);
+    else assignKeyboard(action, value);
+  }
+  function clearListening() {
+    if (!rebindTarget) return;
+    const { device, action } = rebindTarget;
+    closeRebindModal();
+    if (device === 'gamepad') assignGamepad(action, 'none');
+    else assignKeyboard(action, 'none');
+    if (!hasAnyConflict()) setStatus('Función dejada sin asignar. Puedes salir; no se usará hasta que le asignes un botón.');
+  }
+  function cancelListeningSilently() { closeRebindModal(); }
+  function cancelListening() {
+    const wasRebinding = Boolean(rebindTarget);
+    closeRebindModal();
+    if (wasRebinding) { setStatus('Cambio cancelado.'); renderBindings(); }
+  }
+  function beginKeyboardListening(action) {
+    openRebindModal('keyboard', action);
+    renderBindings();
+  }
+  function beginGamepadListening(action) {
+    openRebindModal('gamepad', action);
+    renderBindings();
+  }
   function assignKeyboard(action, code) {
     if (!validCode(code)) return false;
     bindings[action] = code;
     listeningAction = null;
     renderBindings();
     if (allConflicts().keyboard.size) return false;
-    setStatus(`${keyLabel(code)} asignada. Guarda los cambios para conservarlos.`, false);
+    if (code !== 'none') setStatus(`${keyLabel(code)} asignada. Guarda los cambios para conservarlos.`, false);
     return true;
-  }
-
-  function beginGamepadListening(action) {
-    listeningAction = null;
-    listeningPadAction = action;
-    const pad = getConnectedGamepad();
-    previousPadSnapshot = snapshotPad(pad);
-    const status = document.getElementById('gamepadStatus');
-    if (!pad) status.textContent = 'No se detecta el mando. Conéctalo y luego presiona un botón para asignarlo.';
-    else status.textContent = 'Presiona un botón o mueve un stick para asignarlo. ESC cancela.';
-    setStatus(`Esperando una entrada para «${document.querySelector(`[data-pad-action="${action}"]`).firstElementChild.textContent}».`, false);
-    renderBindings();
   }
 
   function assignGamepad(action, input) {
@@ -465,7 +719,7 @@
     listeningPadAction = null;
     renderBindings();
     if (allConflicts().gamepad.size) return false;
-    setStatus(`${padLabel(input)} asignado. Guarda los cambios para conservarlos.`, false);
+    if (input !== 'none') setStatus(`${padLabel(input)} asignado. Guarda los cambios para conservarlos.`, false);
     return true;
   }
 
@@ -480,8 +734,7 @@
       pane.classList.toggle('active', active);
       pane.hidden = !active;
     });
-    listeningAction = null;
-    listeningPadAction = null;
+    cancelListeningSilently();
     renderBindings();
   }
 
@@ -536,8 +789,7 @@
       panel.classList.toggle('active', active);
       panel.hidden = !active;
     });
-    listeningAction = null;
-    listeningPadAction = null;
+    cancelListeningSilently();
     if (tab.dataset.optionsCategory !== 'audioOptions') {
       const tester = document.getElementById('soundTester');
       if (tester) tester.pause();
@@ -549,8 +801,7 @@
     optionsTrigger = trigger || null;
     pauseOptionsOpen = fromPause;
     optionsOpen = true;
-    listeningAction = null;
-    listeningPadAction = null;
+    cancelListeningSilently();
     optionsScreen.classList.remove('hidden');
     setStatus(fromPause
       ? 'Partida en pausa · los cambios se aplican al instante.'
@@ -586,8 +837,7 @@
     const wasPauseMenu = pauseOptionsOpen;
     optionsOpen = false;
     pauseOptionsOpen = false;
-    listeningAction = null;
-    listeningPadAction = null;
+    cancelListeningSilently();
     optionsScreen.classList.add('hidden');
     const tester = document.getElementById('soundTester');
     if (tester) tester.pause();
@@ -616,38 +866,52 @@
   });
   document.getElementById('btnSaveControls').addEventListener('click', persistAll);
   document.getElementById('btnResetControls').addEventListener('click', () => {
-    bindings = { ...defaults };
-    gamepadBindings = { ...gamepadDefaults };
-    listeningAction = null;
-    listeningPadAction = null;
+    bindings = { ...kbDefaults };
+    gamepadBindings = { ...padDefaults };
+    cancelListeningSilently();
     renderBindings();
     if (persistAll()) setStatus('Controles predeterminados restaurados y guardados.');
   });
 
-  document.querySelectorAll('.rebind-button').forEach(button => button.addEventListener('click', () => beginKeyboardListening(button.closest('.binding-row').dataset.action)));
-  document.querySelectorAll('.pad-rebind-button').forEach(button => button.addEventListener('click', () => beginGamepadListening(button.closest('.gamepad-binding-row').dataset.padAction)));
+  document.querySelectorAll('.rebind-button').forEach(button => button.addEventListener('click', () => beginKeyboardListening(button.closest('.binding-row').dataset.bindingId)));
+  document.querySelectorAll('.pad-rebind-button').forEach(button => button.addEventListener('click', () => beginGamepadListening(button.closest('.gamepad-binding-row').dataset.bindingId)));
   document.querySelectorAll('.keyboard-key[data-key-code]').forEach(button => button.addEventListener('click', () => {
-    if (listeningAction) assignKeyboard(listeningAction, button.dataset.keyCode);
+    if (listeningAction) setPending('keyboard', listeningAction, button.dataset.keyCode);
   }));
 
   window.addEventListener('keydown', event => {
     if (!optionsOpen) return;
+    if (captureArmed && listeningAction) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.code === 'Escape') cancelListening();
+      else if (validCode(event.code)) setPending('keyboard', listeningAction, event.code);
+      return;
+    }
+    if (captureArmed && listeningPadAction && event.code === 'Escape') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      cancelListening();
+      return;
+    }
+    if (rebindTarget && !captureArmed && event.code === 'Escape') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      cancelListening();
+      return;
+    }
+    if (rebindModal && !rebindModal.hidden && (event.code === 'Enter' || event.code === 'Space')) {
+      const button = document.activeElement?.closest('button');
+      if (button && rebindModal.contains(button) && !button.disabled) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        button.click();
+        return;
+      }
+    }
+    if (event.code === 'Tab') return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (listeningAction) {
-      if (event.code === 'Escape') {
-        listeningAction = null;
-        setStatus('Cambio de tecla cancelado.');
-        renderBindings();
-      } else assignKeyboard(listeningAction, event.code);
-      return;
-    }
-    if (listeningPadAction && event.code === 'Escape') {
-      listeningPadAction = null;
-      setStatus('Cambio de mando cancelado.');
-      renderBindings();
-      return;
-    }
     if (event.code === 'Escape') closeOptions();
   }, true);
 
@@ -750,16 +1014,19 @@
       const nextStatus = pad ? `Mando conectado · ${pad.id.replace(/\s+/g, ' ').slice(0, 48)}` : 'Mando desconectado · conecta el control para probarlo.';
       if (!listeningPadAction) status.textContent = nextStatus;
     }
-    if (optionsOpen && listeningPadAction) {
+    if (optionsOpen && captureArmed && listeningPadAction) {
       const input = detectNewPadInput(pad);
-      if (input) assignGamepad(listeningPadAction, input);
+      if (input) setPending('gamepad', listeningPadAction, input);
     }
 
     const pressedActions = new Set();
     if (pad && !optionsOpen) {
-      gamepadActionNames.forEach(action => {
-        const input = gamepadBindings[action];
-        if (input && input !== 'none' && inputIsDown(pad, input)) pressedActions.add(action);
+      const flightMode = currentFlightMode();
+      gamepadActionNames.forEach(id => {
+        const idMode = modeOf(id);
+        if (idMode && flightMode && idMode !== flightMode) return;
+        const input = gamepadBindings[id];
+        if (input && input !== 'none' && inputIsDown(pad, input)) pressedActions.add(baseOf(id));
       });
     }
     window.dispatchEvent(new CustomEvent('macross:gamepad-frame', { detail: { pressedActions: [...pressedActions] } }));
@@ -768,16 +1035,18 @@
   }
 
   window.gameControls = {
-    getBinding: action => bindings[action],
+    getBinding: (action, mode) => kbValue(action, mode),
     getActionsForCode: actionsForCode,
+    getActionsForCodeAllModes: code => actionsForCode(code, { allModes: true }),
     getStateKey: action => stateKeys[action],
     getActionsForGamepadInput: actionsForPadInput,
-    getGamepadBinding: action => gamepadBindings[action],
+    getGamepadBinding: (action, mode) => gamepadBindings[bindingId(action, mode || currentFlightMode() || 'FIGHTER', 'gamepad')],
     getGamepadDiagramType: () => lastDetectedGamepadDiagram,
     keyLabel,
     gamepadLabel: padLabel,
+    hasConflicts: hasAnyConflict,
     isOptionsOpen: () => optionsOpen,
-    isListening: () => Boolean(listeningAction || listeningPadAction),
+    isListening: () => captureArmed,
     openPauseOptions,
     closeOptions
   };
