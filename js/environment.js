@@ -351,10 +351,57 @@ function updateDayNightCycle(scene, ambientLight, hemiLight, dirLight, manualHou
   if (towerCabMat) {
     towerCabMat.emissiveIntensity = 0.25 + nightFactor * 1.25;
   }
-  for (let i = 0; i < streetPointLights.length; i++) {
-    streetPointLights[i].intensity = nightFactor * 2.6;
+      const lightsActive = (nightFactor > 0.01);
+
+    if (glbFarolaPoolInst && glbFarolaPoolMat) {
+    glbFarolaPoolInst.visible = lightsActive;
+    if (lightsActive) glbFarolaPoolMat.opacity = nightFactor * 0.45;
   }
+
+  if (streetPointLights.length > 0) {
+    if (!lightsActive || glbFarolaBulbPositions.length === 0) {
+      for (let i = 0; i < streetPointLights.length; i++) {
+        streetPointLights[i].visible = false;
+        streetPointLights[i].intensity = 0;
+      }
+    } else if (typeof playerContainer !== 'undefined' && playerContainer) {
+      const px = playerContainer.position.x;
+      const py = playerContainer.position.y;
+      const pz = playerContainer.position.z;
+
+      let bestIdx1 = -1, bestDist1 = Infinity;
+      let bestIdx2 = -1, bestDist2 = Infinity;
+
+      for (let i = 0; i < glbFarolaBulbPositions.length; i++) {
+        const b = glbFarolaBulbPositions[i];
+        const dx = b.x - px, dy = b.y - py, dz = b.z - pz;
+        const dSq = dx * dx + dy * dy + dz * dz;
+        if (dSq < bestDist1) {
+          bestDist2 = bestDist1; bestIdx2 = bestIdx1;
+          bestDist1 = dSq; bestIdx1 = i;
+        } else if (dSq < bestDist2) {
+          bestDist2 = dSq; bestIdx2 = i;
+        }
+      }
+
+      const chosen = [bestIdx1, bestIdx2];
+      for (let k = 0; k < streetPointLights.length; k++) {
+        const idx = chosen[k];
+        const lt = streetPointLights[k];
+        if (idx >= 0) {
+          const b = glbFarolaBulbPositions[idx];
+          lt.position.set(b.x, b.y, b.z);
+          lt.visible = true;
+          lt.intensity = nightFactor * 2.6;
+        } else {
+          lt.visible = false;
+          lt.intensity = 0;
+        }
+      }
+    }
+  }  
 }
+
 function createWaterNormalTexture() {
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -455,8 +502,6 @@ function updateEnvironment(delta) {
   if (waterNormalTex1 && waterNormalTex2) {
     waterNormalTex1.offset.x += 0.032 * delta;
     waterNormalTex1.offset.y += 0.020 * delta;
-    waterNormalTex2.offset.x -= 0.022 * delta;
-    waterNormalTex2.offset.y += 0.028 * delta;
   }
 
   if (towerRadarMesh) {
@@ -941,11 +986,18 @@ function loadSDF1Model() {
     cellMinY.fill(9999);
 
     const vTmp = new THREE.Vector3();
-    model.traverse((child) => {
+        model.traverse((child) => {
       if (child.isMesh) {
+        child.frustumCulled = true;
         if (child.material) {
           const mats = Array.isArray(child.material) ? child.material : new Array(child.material);
-          mats.forEach((m) => { m.side = THREE.DoubleSide; });
+          mats.forEach((m) => {
+            m.side = m.transparent ? THREE.DoubleSide : THREE.FrontSide;
+            if (m.map) {
+              m.map.anisotropy = 1;
+              m.map.needsUpdate = true;
+            }
+          });
         }
         const posAttr = child.geometry && child.geometry.attributes && child.geometry.attributes.position;
         if (posAttr) {
@@ -1517,17 +1569,85 @@ function loadSouthAtariaModel(targetGroup, toonGradient) {
 }
 
 
+let glbFarolaBulbPositions = [];
+let glbFarolaPoolInst = null;
+let glbFarolaPoolMat = null;
+
 function buildGlbFarolas(targetGroup, points) {
   streetPointLights.length = 0;
+  glbFarolaBulbPositions = [];
+  glbFarolaPoolInst = null;
+  glbFarolaPoolMat = null;
   if (!points || points.length === 0) return;
+
+    const poolCanvas = document.createElement('canvas');
+  poolCanvas.width = 128;
+  poolCanvas.height = 128;
+  const pCtx = poolCanvas.getContext('2d');
+  pCtx.clearRect(0, 0, 128, 128);
+  // Anillos concéntricos con tramado estilo cel-shading que pasan alphaTest sin transparencia
+  pCtx.fillStyle = 'rgba(253, 224, 71, 1.0)';
+  pCtx.beginPath();
+  pCtx.arc(64, 64, 24, 0, Math.PI * 2);
+  pCtx.fill();
+
+  pCtx.strokeStyle = 'rgba(245, 158, 11, 1.0)';
+  pCtx.lineWidth = 4;
+  pCtx.beginPath();
+  pCtx.arc(64, 64, 38, 0, Math.PI * 2);
+  pCtx.stroke();
+
+  pCtx.lineWidth = 2;
+  pCtx.beginPath();
+  pCtx.arc(64, 64, 52, 0, Math.PI * 2);
+  pCtx.stroke();
+
+  const poolTex = new THREE.CanvasTexture(poolCanvas);
+  glbFarolaPoolMat = new THREE.MeshBasicMaterial({
+    map: poolTex,
+    transparent: false,
+    alphaTest: 0.5,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -3,
+    polygonOffsetUnits: -3
+  });
+
+  const poolGeo = new THREE.PlaneGeometry(1, 1);
+  glbFarolaPoolInst = new THREE.InstancedMesh(poolGeo, glbFarolaPoolMat, points.length);
+  glbFarolaPoolInst.visible = false;
+
+
+  const dummy = new THREE.Object3D();
   for (let i = 0; i < points.length; i++) {
     const p = points[i];
-    const pLight = new THREE.PointLight(0xfde047, 0.0, 55);
-    pLight.position.set(p.x, p.y + 5.8, p.z);
-    targetGroup.add(pLight);
-    streetPointLights.push(pLight);
+    const gy = (typeof getTerrainHeight === 'function') ? getTerrainHeight(p.x, p.z) : p.y;
+    glbFarolaBulbPositions.push({ x: p.x, y: gy + 4.35, z: p.z });
+
+    dummy.position.set(p.x, gy + 0.06, p.z);
+    dummy.rotation.set(-Math.PI / 2, 0, 0);
+    dummy.scale.set(16, 16, 1);
+    dummy.updateMatrix();
+    glbFarolaPoolInst.setMatrixAt(i, dummy.matrix);
+  }
+
+  glbFarolaPoolInst.instanceMatrix.needsUpdate = true;
+  targetGroup.add(glbFarolaPoolInst);
+
+  const lightCount = Math.min(2, glbFarolaBulbPositions.length);
+  for (let k = 0; k < lightCount; k++) {
+    const ptLight = new THREE.PointLight(0xfde047, 0.0, 28, 1.5);
+    ptLight.visible = false;
+    ptLight.position.set(
+      glbFarolaBulbPositions[k].x,
+      glbFarolaBulbPositions[k].y,
+      glbFarolaBulbPositions[k].z
+    );
+    targetGroup.add(ptLight);
+    streetPointLights.push(ptLight);
   }
 }
+
 
 function buildSouthAtariaEnvironment(scene) {
   const dynamicSky = initDynamicSkyTexture();
@@ -1536,22 +1656,31 @@ function buildSouthAtariaEnvironment(scene) {
   const toonGradient = createAnimeToonGradient();
   nightEmissiveMaterials.length = 0;
 
-  waterNormalTex1 = createWaterNormalTexture();
-  waterNormalTex2 = waterNormalTex1.clone();
-  waterNormalTex2.needsUpdate = true;
-  waterNormalTex2.repeat.set(48, 48);
+    waterNormalTex1 = createWaterNormalTexture();
+  waterNormalTex2 = null;
 
+  const isHighTier = (typeof hwProfile !== 'undefined' && hwProfile.tier === 'HIGH');
   const oceanGeo = new THREE.PlaneGeometry(5200, 5200);
   oceanGeo.rotateX(-Math.PI / 2);
-  oceanMeshMat = new THREE.MeshStandardMaterial({
-    color: 0x0b3556,
-    roughness: 0.22,
-    metalness: 0.72,
-    normalMap: waterNormalTex1,
-    normalScale: new THREE.Vector2(0.45, 0.45),
-    envMap: dynamicSky,
-    envMapIntensity: 0.90
-  });
+
+  oceanMeshMat = isHighTier
+    ? new THREE.MeshStandardMaterial({
+        color: 0x0b3556,
+        roughness: 0.22,
+        metalness: 0.72,
+        normalMap: waterNormalTex1,
+        normalScale: new THREE.Vector2(0.45, 0.45),
+        envMap: dynamicSky,
+        envMapIntensity: 0.90
+      })
+    : new THREE.MeshPhongMaterial({
+        color: 0x0b3556,
+        specular: 0x38bdf8,
+        shininess: 48,
+        normalMap: waterNormalTex1,
+        normalScale: new THREE.Vector2(0.42, 0.42)
+      });
+
   
   const ocean = new THREE.Mesh(oceanGeo, oceanMeshMat);
   ocean.position.y = 1.0;
@@ -1652,5 +1781,4 @@ function switchEnvironmentMap(scene, mapId) {
   if (typeof onEnvironmentMapChanged === 'function') {
     onEnvironmentMapChanged(activeMapId);
   }
-}
-
+ }

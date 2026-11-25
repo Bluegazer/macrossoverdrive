@@ -1,11 +1,33 @@
 const hudCanvas = document.getElementById('hudCanvas');
 const hudCtx = hudCanvas.getContext('2d');
+if (typeof hwProfile === 'undefined' || hwProfile.tier !== 'HIGH') {
+  Object.defineProperty(hudCtx, 'shadowBlur', { get: () => 0, set: () => {} });
+}
+
 
 function resizeHudCanvas() {
   hudCanvas.width = window.innerWidth;
   hudCanvas.height = window.innerHeight;
 }
 resizeHudCanvas();
+
+const _hudProjVec = new THREE.Vector3();
+const _hudForwardVec = new THREE.Vector3();
+const _hudTempPos = new THREE.Vector3();
+const _hudEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+const _hudOffscreenTargets = [];
+const _hudLockCandidates = [];
+let _hudFrameSkip = 0;
+
+function setHudGlow(color, blur) {
+  if (typeof hwProfile !== 'undefined' && hwProfile.tier === 'HIGH') {
+    hudCtx.shadowColor = color;
+    hudCtx.shadowBlur = blur;
+  } else {
+    hudCtx.shadowBlur = 0;
+  }
+}
+
 
 function drawDYRLEnemyHexagon(sx, sy, radius, distNum, subNum) {
   hudCtx.save();
