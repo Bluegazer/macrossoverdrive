@@ -1351,11 +1351,15 @@ function loadSouthAtariaModel(targetGroup, toonGradient) {
     const farolaPoints = [];
     const routePts = { A: [], B: [], C: [] };
     const groundMeshes = [];
-    const buildingMeshes = [];
+    const colBoxNodes = [];
     let sdf1AnchorPos = null;
+
     model.traverse((child) => {
       const n = child.name || '';
-      if (n.indexOf('Anchor_SDF1') !== -1 && sdf1AnchorGroup) {
+      if (n.indexOf('Col_Box') === 0) {
+        colBoxNodes.push(child);
+        return;
+      } else if (n.indexOf('Anchor_SDF1') !== -1 && sdf1AnchorGroup) {
         const wPos = new THREE.Vector3();
         const wQuat = new THREE.Quaternion();
         child.getWorldPosition(wPos);
@@ -1378,7 +1382,6 @@ function loadSouthAtariaModel(targetGroup, toonGradient) {
         }
       }
 
-
       if (!child.isMesh) return;
       const mats = Array.isArray(child.material) ? child.material : [child.material];
       let isBuilding = (n.indexOf('MacrossCity') !== -1 || n.indexOf('Building') !== -1 || n.indexOf('Edificio') !== -1);
@@ -1387,7 +1390,6 @@ function loadSouthAtariaModel(targetGroup, toonGradient) {
       }
       if (isBuilding) {
         applyCubicWorldUVs(child, 22.0);
-        buildingMeshes.push(child);
       } else {
         groundMeshes.push(child);
       }
@@ -1445,13 +1447,13 @@ function loadSouthAtariaModel(targetGroup, toonGradient) {
         va.fromBufferAttribute(pos, i0).applyMatrix4(gm.matrixWorld);
         vb.fromBufferAttribute(pos, i1).applyMatrix4(gm.matrixWorld);
         vc.fromBufferAttribute(pos, i2).applyMatrix4(gm.matrixWorld);
-     const spanX = Math.max(va.x, vb.x, vc.x) - Math.min(va.x, vb.x, vc.x);
-     const spanZ = Math.max(va.z, vb.z, vc.z) - Math.min(va.z, vb.z, vc.z);
-     const triY = (spanX > cellW * 2 || spanZ > cellD * 2) ? ((va.y + vb.y + vc.y) / 3) : Math.max(va.y, vb.y, vc.y);
-     const cMin = Math.max(0, Math.floor((Math.min(va.x, vb.x, vc.x) - g.minX) / cellW));
-     const cMax = Math.min(g.cols - 1, Math.ceil((Math.max(va.x, vb.x, vc.x) - g.minX) / cellW));
-     const rMin = Math.max(0, Math.floor((Math.min(va.z, vb.z, vc.z) - g.minZ) / cellD));
-     const rMax = Math.min(g.rows - 1, Math.ceil((Math.max(va.z, vb.z, vc.z) - g.minZ) / cellD));
+        const spanX = Math.max(va.x, vb.x, vc.x) - Math.min(va.x, vb.x, vc.x);
+        const spanZ = Math.max(va.z, vb.z, vc.z) - Math.min(va.z, vb.z, vc.z);
+        const triY = (spanX > cellW * 2 || spanZ > cellD * 2) ? ((va.y + vb.y + vc.y) / 3) : Math.max(va.y, vb.y, vc.y);
+        const cMin = Math.max(0, Math.floor((Math.min(va.x, vb.x, vc.x) - g.minX) / cellW));
+        const cMax = Math.min(g.cols - 1, Math.ceil((Math.max(va.x, vb.x, vc.x) - g.minX) / cellW));
+        const rMin = Math.max(0, Math.floor((Math.min(va.z, vb.z, vc.z) - g.minZ) / cellD));
+        const rMax = Math.min(g.rows - 1, Math.ceil((Math.max(va.z, vb.z, vc.z) - g.minZ) / cellD));
 
         for (let r = rMin; r <= rMax; r++) {
           for (let c = cMin; c <= cMax; c++) {
@@ -1460,7 +1462,7 @@ function loadSouthAtariaModel(targetGroup, toonGradient) {
         }
       }
     }
-        g.ready = true;
+    g.ready = true;
     const cityH = sampleSouthAtariaGrid(0, 0);
     const baseLandY = (cityH !== null && cityH > 2.0) ? cityH : 14.0;
     if (window.southAtariaOcean) {
@@ -1470,42 +1472,35 @@ function loadSouthAtariaModel(targetGroup, toonGradient) {
       const dH = sampleSouthAtariaGrid(sdf1AnchorPos.x, sdf1AnchorPos.z);
       sdf1AnchorGroup.position.y = (dH !== null && dH > 0) ? dH : baseLandY;
       sdf1AnchorGroup.updateMatrixWorld(true);
-	  rebuildSDF1Colliders();
+      rebuildSDF1Colliders();
     }
-    const bldgTopGrid = new Float32Array(g.cols * g.rows);
-    bldgTopGrid.fill(-999);
-    for (let m = 0; m < buildingMeshes.length; m++) {
-      const bm = buildingMeshes[m];
-      const pos = bm.geometry && bm.geometry.attributes && bm.geometry.attributes.position;
-      if (!pos) continue;
-      for (let i = 0; i < pos.count; i++) {
-        va.fromBufferAttribute(pos, i).applyMatrix4(bm.matrixWorld);
-        const c = Math.round((va.x - g.minX) / cellW);
-        const r = Math.round((va.z - g.minZ) / cellD);
-        if (c >= 0 && c < g.cols && r >= 0 && r < g.rows) {
-          const idx = r * g.cols + c;
-          if (va.y > bldgTopGrid[idx]) bldgTopGrid[idx] = va.y;
-        }
-      }
-    }
+
+    // Registrar los 122 Col_Box rotados desde Blender
     const newBldgCols = [];
-    for (let r = 0; r < g.rows; r++) {
-      for (let c = 0; c < g.cols; c++) {
-        const idx = r * g.cols + c;
-        const topY = bldgTopGrid[idx];
-        const floorY = Math.max(baseLandY, g.data[idx]);
-        if (topY > floorY + 3.2) {
-          const h = topY - floorY;
-          registerBoxCollider(g.minX + c * cellW, floorY + h * 0.5, g.minZ + r * cellD, cellW * 0.66, h, cellD * 0.66, 0);
-          newBldgCols.push(structureColliders[structureColliders.length - 1]);
-        }
-      }
+    const boxPos = new THREE.Vector3();
+    const boxQuat = new THREE.Quaternion();
+    const boxScale = new THREE.Vector3();
+    const boxEuler = new THREE.Euler();
+
+    for (let i = 0; i < colBoxNodes.length; i++) {
+      const cb = colBoxNodes[i];
+      cb.updateMatrixWorld(true);
+      cb.matrixWorld.decompose(boxPos, boxQuat, boxScale);
+      boxEuler.setFromQuaternion(boxQuat, 'YXZ');
+
+      // En Blender un Empty Cube de Size 1.0 mide 2.0 unidades de lado (-1 a +1)
+      const w = Math.abs(boxScale.x) * 2.0;
+      const h = Math.abs(boxScale.y) * 2.0;
+      const d = Math.abs(boxScale.z) * 2.0;
+
+      registerBoxCollider(boxPos.x, boxPos.y, boxPos.z, w, h, d, boxEuler.y);
+      newBldgCols.push(structureColliders[structureColliders.length - 1]);
     }
+
     if (mapCache.MAPA_1 && mapCache.MAPA_1.colliders) {
       for (let k = 0; k < newBldgCols.length; k++) mapCache.MAPA_1.colliders.push(newBldgCols[k]);
     }
 
-	
     ['A', 'B', 'C'].forEach((k) => {
       routePts[k].sort((a, b) => a.idx - b.idx);
       window.southAtariaRegultRoutes[k] = routePts[k];

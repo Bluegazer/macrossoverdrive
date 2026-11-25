@@ -313,18 +313,22 @@ function getGlbRegultRoutePoint(enemy, advanceNext) {
   const routes = window.southAtariaRegultRoutes;
   if (!routes) return null;
   const keys = ['A', 'B', 'C'];
-  const key = enemy.routeKey || keys[(parseInt((enemy.id || '1').slice(-1), 10) - 1) % 3] || 'A';
+  const idNum = parseInt((enemy.id || '1').replace(/\D/g, ''), 10) || 1;
+  const key = enemy.routeKey || keys[(idNum - 1) % 3] || 'A';
   const list = routes[key];
   if (!list || list.length === 0) return null;
 
   enemy.routeKey = key;
-  if (typeof enemy.routeIdx !== 'number') enemy.routeIdx = 0;
+  if (typeof enemy.routeIdx !== 'number' || enemy.routeIdx < 0 || enemy.routeIdx >= list.length) {
+    enemy.routeIdx = 0;
+  }
   if (advanceNext) enemy.routeIdx = (enemy.routeIdx + 1) % list.length;
 
   const pt = list[enemy.routeIdx];
   const wy = (typeof getTerrainHeight === 'function') ? getTerrainHeight(pt.x, pt.z) : pt.y;
   return { wx: pt.x, wy: wy, wz: pt.z };
 }
+
 
 
 function getValidCityStreetPoint() {
@@ -940,10 +944,9 @@ function updateEnemies(delta, playerContainer) {
 
   for (let i = 0; i < enemies.length; i++) {
     const e = enemies.at(i);
-	if (!e._prevPos) e._prevPos = new THREE.Vector3();
+    if (!e._prevPos) e._prevPos = new THREE.Vector3();
     e._prevPos.copy(e.mesh.position);
     e._lastDelta = delta;
-
 
     if (e.respawnTimer > 0) {
       e.respawnTimer -= delta;
@@ -957,14 +960,19 @@ function updateEnemies(delta, playerContainer) {
             e.walkState = 'WALK';
             e.stateTimer = 3.5;
             chooseNextInteriorWaypoint(e);
-          } else {
-            const pt = getValidCityStreetPoint();
-            e.cityLx = pt.lx;
-            e.cityLz = pt.lz;
-            e.mesh.position.set(pt.wx, pt.wy, pt.wz);
+                    } else {
+            e.routeIdx = 0;
+            e.stuckTimer = 0;
+            const glbStart = getGlbRegultRoutePoint(e, false);
+            if (glbStart) {
+              e.glbRouteSynced = true;
+              e.mesh.position.set(glbStart.wx, glbStart.wy, glbStart.wz);
+              // Fijar el siguiente punto (índice 1) como destino hacia donde caminar
+              const nextPt = getGlbRegultRoutePoint(e, true);
+              if (nextPt) e.mesh.lookAt(nextPt.wx, glbStart.wy, nextPt.wz);
+            }
             e.walkState = 'WALK';
             e.stateTimer = 3.5;
-            chooseNextCityWaypoint(e);
           }
         }
       }
@@ -988,9 +996,21 @@ function updateEnemies(delta, playerContainer) {
         goalZ = Math.max(-425, Math.min(425, goalZ));
       }
 
+      const prevX = e.mesh.position.x, prevY = e.mesh.position.y, prevZ = e.mesh.position.z;
       e.mesh.position.x += (goalX - e.mesh.position.x) * Math.min(1, 0.85 * delta);
       e.mesh.position.y += (goalY - e.mesh.position.y) * Math.min(1, 1.1 * delta);
       e.mesh.position.z += (goalZ - e.mesh.position.z) * Math.min(1, 0.85 * delta);
+
+      // Respetar Col_Box de edificios y SDF-1 en vuelo rasante
+      if (!isSpaceBattle && typeof resolveStructureCollisions === 'function') {
+        const airVel = new THREE.Vector3(
+          e.mesh.position.x - prevX,
+          e.mesh.position.y - prevY,
+          e.mesh.position.z - prevZ
+        );
+        resolveStructureCollisions(e.mesh.position, airVel);
+      }
+
       e.mesh.lookAt(playerContainer.position);
 
       if (!isPlayerDying && !isGameOver) {
@@ -1008,15 +1028,14 @@ function updateEnemies(delta, playerContainer) {
     } else {
       e.stateTimer -= delta;
 
-   if (e.walkState === 'WALK') {
-     const walkAnimSpeed = 28.0;
-     if (e.animFrame < 24 || e.animFrame > 56) e.animFrame = 24;
-     e.animFrame += walkAnimSpeed * delta;
-     if (e.animFrame >= 56) {
-       e.animFrame = 24 + (e.animFrame - 56);
-     }
-     setRegultFrame(e, e.animFrame);
-
+      if (e.walkState === 'WALK') {
+        const walkAnimSpeed = 28.0;
+        if (e.animFrame < 24 || e.animFrame > 56) e.animFrame = 24;
+        e.animFrame += walkAnimSpeed * delta;
+        if (e.animFrame >= 56) {
+          e.animFrame = 24 + (e.animFrame - 56);
+        }
+        setRegultFrame(e, e.animFrame);
 
         if (isInteriorBattle) {
           if (typeof e.targetWorldX !== 'number') chooseNextInteriorWaypoint(e);
@@ -1033,12 +1052,12 @@ function updateEnemies(delta, playerContainer) {
             e.mesh.position.y = 0.0;
             e.mesh.lookAt(e.targetWorldX, 0.0, e.targetWorldZ);
           }
-        
-		    } else {
+        } else {
           const glbTarget = getGlbRegultRoutePoint(e, false);
           if (glbTarget) {
             if (!e.glbRouteSynced) {
               e.glbRouteSynced = true;
+              e.stuckTimer = 0;
               e.mesh.position.set(glbTarget.wx, glbTarget.wy, glbTarget.wz);
               getGlbRegultRoutePoint(e, true);
             } else {
@@ -1046,23 +1065,44 @@ function updateEnemies(delta, playerContainer) {
               const dz = glbTarget.wz - e.mesh.position.z;
               const distWp = Math.hypot(dx, dz);
               if (distWp < 2.5) {
+                e.stuckTimer = 0;
                 getGlbRegultRoutePoint(e, true);
               } else {
                 const walkSpeed = 6.2;
+                const beforeX = e.mesh.position.x;
+                const beforeZ = e.mesh.position.z;
+
                 e.mesh.position.x += (dx / distWp) * walkSpeed * delta;
                 e.mesh.position.z += (dz / distWp) * walkSpeed * delta;
                 const groundY = (typeof getTerrainHeight === 'function') ? getTerrainHeight(e.mesh.position.x, e.mesh.position.z) : glbTarget.wy;
                 e.mesh.position.y = groundY;
+
+                // Evaluar colisión contra los 122 Col_Box a la altura del cuerpo (+1.2)
                 if (typeof resolveStructureCollisions === 'function') {
+                  const testPos = e.mesh.position.clone();
+                  testPos.y = groundY + 1.2;
                   const tmpVel = new THREE.Vector3(dx, 0, dz);
-                  resolveStructureCollisions(e.mesh.position, tmpVel);
+                  const hitBox = resolveStructureCollisions(testPos, tmpVel);
+                  e.mesh.position.x = testPos.x;
+                  e.mesh.position.z = testPos.z;
                   e.mesh.position.y = groundY;
+
+                  // Si choca y no logra avanzar hacia el waypoint, salta al siguiente punto tras 1.2s
+                  const movedDist = Math.hypot(e.mesh.position.x - beforeX, e.mesh.position.z - beforeZ);
+                  if (hitBox && movedDist < walkSpeed * delta * 0.35) {
+                    e.stuckTimer = (e.stuckTimer || 0) + delta;
+                    if (e.stuckTimer > 1.2) {
+                      e.stuckTimer = 0;
+                      getGlbRegultRoutePoint(e, true);
+                    }
+                  } else {
+                    e.stuckTimer = 0;
+                  }
                 }
                 e.mesh.lookAt(glbTarget.wx, groundY, glbTarget.wz);
               }
             }
           } else {
-
             const dx = e.targetLx - e.cityLx;
             const dz = e.targetLz - e.cityLz;
             const distWp = Math.hypot(dx, dz);
@@ -1077,7 +1117,6 @@ function updateEnemies(delta, playerContainer) {
             }
           }
         }
-
 
         if (e.stateTimer <= 0) {
           e.walkState = 'IDLE';
@@ -1094,7 +1133,7 @@ function updateEnemies(delta, playerContainer) {
           e.stateTimer = 3.2 + Math.random() * 4.0;
           e.animFrame = 24;
           e.animDir = 1;
-          chooseNextCityWaypoint(e);
+          if (isInteriorBattle) chooseNextInteriorWaypoint(e);
         }
       }
 
@@ -1113,6 +1152,7 @@ function updateEnemies(delta, playerContainer) {
     }
   }
 }
+
 function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
   if (gunCooldown > 0) gunCooldown -= delta;
   if (missileCooldown > 0) missileCooldown -= delta;
