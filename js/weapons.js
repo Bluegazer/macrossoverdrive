@@ -362,11 +362,15 @@ function getValidCityStreetPoint() {
 function setRegultFrame(enemyObj, frame) {
   if (!enemyObj.mixer || !enemyObj.action || !enemyObj.clipDuration) return;
   const clamped = Math.max(0, Math.min(REGULT_TOTAL_FRAMES, frame));
+  if (typeof enemyObj._lastSetFrame === 'number' && Math.abs(enemyObj._lastSetFrame - clamped) < 0.01) return;
+  enemyObj._lastSetFrame = clamped;
   enemyObj.action.paused = false;
   enemyObj.action.time = (clamped / REGULT_TOTAL_FRAMES) * enemyObj.clipDuration;
   enemyObj.mixer.update(0);
   enemyObj.action.paused = true;
 }
+
+
 function setupRegultInstance(enemyObj, baseScene, animations) {
   const model = cloneSkinnedScene(baseScene);
   const flamerList = new Array();
