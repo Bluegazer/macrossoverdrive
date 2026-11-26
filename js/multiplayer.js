@@ -480,7 +480,7 @@ function spawnRivalValkyrie() {
 function spawnRivalGunBolt(pkt) {
   if (typeof scene === 'undefined' || typeof enemyBullets === 'undefined') return;
   const boltGroup = new THREE.Group();
-  const p1 = new THREE.Mesh(enemyLaserGeo, enemyBeamMat);
+  const p1 = new THREE.Mesh(beamPlaneGeo, beamMat);
   const p2 = p1.clone();
   p2.rotateZ(Math.PI / 2);
   boltGroup.add(p1, p2);

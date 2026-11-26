@@ -154,11 +154,11 @@ function createVioletLaserTexture() {
   ctx.clearRect(0, 0, 64, 256);
 
   const outerGrad = ctx.createLinearGradient(0, 8, 0, 248);
-  outerGrad.addColorStop(0.0, 'rgba(139, 92, 246, 0.0)');
-  outerGrad.addColorStop(0.15, 'rgba(99, 102, 241, 0.95)');
-  outerGrad.addColorStop(0.55, 'rgba(168, 85, 247, 0.85)');
-  outerGrad.addColorStop(0.88, 'rgba(79, 70, 229, 0.35)');
-  outerGrad.addColorStop(1.0, 'rgba(67, 56, 202, 0.0)');
+  outerGrad.addColorStop(0.0, 'rgba(6, 182, 212, 0.0)');
+  outerGrad.addColorStop(0.15, 'rgba(34, 211, 238, 0.95)');
+  outerGrad.addColorStop(0.55, 'rgba(14, 165, 233, 0.85)');
+  outerGrad.addColorStop(0.88, 'rgba(2, 132, 199, 0.35)');
+  outerGrad.addColorStop(1.0, 'rgba(3, 105, 161, 0.0)');
 
   ctx.save();
   ctx.filter = 'blur(4px)';
@@ -174,9 +174,9 @@ function createVioletLaserTexture() {
 
   const coreGrad = ctx.createLinearGradient(0, 16, 0, 225);
   coreGrad.addColorStop(0.0, 'rgba(255, 255, 255, 0.0)');
-  coreGrad.addColorStop(0.18, 'rgba(245, 243, 255, 1.0)');
-  coreGrad.addColorStop(0.65, 'rgba(196, 181, 253, 0.9)');
-  coreGrad.addColorStop(1.0, 'rgba(139, 92, 246, 0.0)');
+  coreGrad.addColorStop(0.18, 'rgba(240, 249, 255, 1.0)');
+  coreGrad.addColorStop(0.65, 'rgba(165, 243, 252, 0.9)');
+  coreGrad.addColorStop(1.0, 'rgba(34, 211, 238, 0.0)');
 
   ctx.fillStyle = coreGrad;
   ctx.beginPath();
@@ -236,7 +236,7 @@ const beamMat = new THREE.MeshBasicMaterial({
 
 const enemyBeamMat = new THREE.MeshBasicMaterial({
   map: violetLaserTex,
-  color: 0x9d7bff,
+  color: 0x22d3ee,
   transparent: true,
   blending: THREE.NormalBlending,
   depthWrite: false,

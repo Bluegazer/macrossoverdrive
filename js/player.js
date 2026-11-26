@@ -91,19 +91,33 @@ function transformTo(newMode) {
   updateButtonsUI();
 }
 
+let modeBeforeReverse = null;
+
 function startReverseGerwalk() {
   if (!mixer || isReverseGerwalk) return;
-  if (isAccelerating) isAccelerating = false;
+  if (isAccelerating) stopAcceleration();
   isAttacking = false;
   isReverseGerwalk = true;
-  if (currentMode !== 'GERWALK') transformTo('GERWALK');
+  modeBeforeReverse = currentMode;
+
+  if (currentMode !== 'GERWALK') {
+    transformTo('GERWALK');
+  }
+  // Cortar el 70% de la inercia frontal del Fighter al desplegar las piernas como aerofreno
+  velocity.multiplyScalar(0.3);
 }
 
 function stopReverseGerwalk() {
   if (!isReverseGerwalk) return;
   isReverseGerwalk = false;
-  if (currentMode !== 'FIGHTER') transformTo('FIGHTER');
+  const returnMode = modeBeforeReverse || 'FIGHTER';
+  modeBeforeReverse = null;
+  if (currentMode !== returnMode) {
+    transformTo(returnMode);
+  }
 }
+
+
 function startAcceleration() {
   const isArcade = (typeof hudStyleMode !== 'undefined' && hudStyleMode === 'ARCADE');
   if (!mixer || isAccelerating || isOverheated) return;
