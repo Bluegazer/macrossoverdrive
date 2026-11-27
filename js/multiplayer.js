@@ -1,6 +1,21 @@
 const MP_NAME_KEY = 'macrossvoxp-pilot-name-v1';
+const IS_DISCORD_ACTIVITY = window.location.hostname.endsWith('discordsays.com');
+
+function createConfiguredPeer(customId) {
+  if (!IS_DISCORD_ACTIVITY) {
+    return customId ? new Peer(customId) : new Peer();
+  }
+  const opts = {
+    host: window.location.hostname,
+    port: 443,
+    path: '/peerjs',
+    secure: true
+  };
+  return customId ? new Peer(customId, opts) : new Peer(opts);
+}
 
 const mpState = {
+
   active: false,
   isHost: false,
   maxPlayers: 2,
@@ -242,16 +257,21 @@ function initMultiplayerUI() {
   mpState.country = detectLocalCountryCode();
   if (countryBadge) countryBadge.textContent = 'REGIÓN: ' + mpState.country;
 
-  fetch('https://ipwho.is')
-    .then((r) => r.json())
-    .then((d) => {
-      if (d && d.success && d.country_code) {
-        mpState.country = String(d.country_code).toUpperCase();
-        if (countryBadge) countryBadge.textContent = 'REGIÓN: ' + mpState.country;
-      }
-      mpState.countryReady = true;
-    })
-    .catch(() => { mpState.countryReady = true; });
+  if (IS_DISCORD_ACTIVITY) {
+    mpState.countryReady = true;
+  } else {
+    fetch('https://ipwho.is')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d && d.success && d.country_code) {
+          mpState.country = String(d.country_code).toUpperCase();
+          if (countryBadge) countryBadge.textContent = 'REGIÓN: ' + mpState.country;
+        }
+        mpState.countryReady = true;
+      })
+      .catch(() => { mpState.countryReady = true; });
+  }
+
 
   try {
     const savedName = localStorage.getItem(MP_NAME_KEY);
@@ -453,7 +473,7 @@ function createMultiplayerRoom(nameInput, codeOut) {
   if (codeOut) codeOut.value = roomCode;
   setMpStatus(mpMsg('openingRoom', roomCode));
 
-  const peer = new Peer('macross-od-' + roomCode.toLowerCase());
+  const peer = createConfiguredPeer('macross-od-' + roomCode.toLowerCase());
   mpState.peer = peer;
   mpState.isHost = true;
   mpState.myId = 'host';
@@ -490,7 +510,7 @@ function joinMultiplayerRoom(nameInput, codeIn) {
   readPilotName(nameInput);
   setMpStatus(mpMsg('connecting', code));
 
-  const peer = new Peer();
+  const peer = createConfiguredPeer();
   mpState.peer = peer;
   mpState.isHost = false;
 
