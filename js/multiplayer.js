@@ -725,11 +725,13 @@ function launchMultiplayerMatch(mapId, matchGameMode, roster) {
   mpState.winningTeam = null;
   mpState.rivalArmor = 140;
 
-  const targetMode = (matchGameMode === 'ARCADE') ? 'ARCADE' : 'SIM';
+    const targetMode = (matchGameMode === 'ARCADE') ? 'ARCADE' : 'SIM';
+  mpState.hostGameMode = targetMode;
   if (typeof hudStyleMode !== 'undefined') {
     if (mpState.savedLocalHudMode === null) mpState.savedLocalHudMode = hudStyleMode;
     hudStyleMode = targetMode;
   }
+
   const hudSel = document.getElementById('hudStyleModeSelect');
   if (hudSel) { hudSel.value = targetMode; hudSel.disabled = true; }
 
