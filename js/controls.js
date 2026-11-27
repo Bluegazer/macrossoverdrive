@@ -52,17 +52,58 @@
   };
   const kbScoped = new Set(Object.values(kbModeActions).flat());
   const padScoped = new Set(Object.values(padModeActions).flat());
-  const kbModeLabels = {
-    FIGHTER: { moveForward: 'Acelerar / empuje', moveBack: 'Desacelerar / reducir empuje', moveLeft: 'Guiñada izquierda', moveRight: 'Guiñada derecha', turnLeft: 'Alabeo izquierda', turnRight: 'Alabeo derecha', verticalUp: 'Cabeceo: nariz arriba', verticalDown: 'Cabeceo: nariz abajo', turbo: 'Booster / postquemador (mantener)', brake: 'Frenado total' },
-    GERWALK: { moveForward: 'Avanzar', moveBack: 'Retroceder', moveLeft: 'Desplazamiento lateral izq.', moveRight: 'Desplazamiento lateral der.', turnLeft: 'Girar eje vertical izq.', turnRight: 'Girar eje vertical der.', verticalUp: 'Subir altitud', verticalDown: 'Bajar altitud', turbo: 'Propulsión continua (mantener)', reverse: 'Reversa', brake: 'Frenado total' },
-    BATTROID: { moveForward: 'Avanzar / caminar', moveBack: 'Retroceder', moveLeft: 'Desplazamiento lateral izq.', moveRight: 'Desplazamiento lateral der.', turnLeft: 'Girar eje vertical izq.', turnRight: 'Girar eje vertical der.', verticalUp: 'Elevar / salto vertical', verticalDown: 'Descender', turbo: 'Impulso / booster direccional', brake: 'Frenar impulso' }
+    const kbModeLabelsI18N = {
+    es: {
+      FIGHTER: { moveForward: 'Acelerar / empuje', moveBack: 'Desacelerar / reducir empuje', moveLeft: 'Guiñada izquierda', moveRight: 'Guiñada derecha', turnLeft: 'Alabeo izquierda', turnRight: 'Alabeo derecha', verticalUp: 'Cabeceo: nariz arriba', verticalDown: 'Cabeceo: nariz abajo', turbo: 'Booster / postquemador (mantener)', reverse: 'Freno / reversa Gerwalk', brake: 'Frenado total' },
+      GERWALK: { moveForward: 'Avanzar', moveBack: 'Retroceder', moveLeft: 'Desplazamiento lateral izq.', moveRight: 'Desplazamiento lateral der.', turnLeft: 'Girar eje vertical izq.', turnRight: 'Girar eje vertical der.', verticalUp: 'Subir altitud', verticalDown: 'Bajar altitud', turbo: 'Propulsión continua (mantener)', reverse: 'Reversa', brake: 'Frenado total' },
+      BATTROID: { moveForward: 'Avanzar / caminar', moveBack: 'Retroceder', moveLeft: 'Desplazamiento lateral izq.', moveRight: 'Desplazamiento lateral der.', turnLeft: 'Girar eje vertical izq.', turnRight: 'Girar eje vertical der.', verticalUp: 'Elevar / salto vertical', verticalDown: 'Descender', turbo: 'Impulso / booster direccional', reverse: 'Freno / reversa Gerwalk', brake: 'Frenar impulso' }
+    },
+    en: {
+      FIGHTER: { moveForward: 'Accelerate / Throttle Up', moveBack: 'Decelerate / Throttle Down', moveLeft: 'Yaw Left', moveRight: 'Yaw Right', turnLeft: 'Roll Left', turnRight: 'Roll Right', verticalUp: 'Pitch: Nose Up', verticalDown: 'Pitch: Nose Down', turbo: 'Afterburner / Boost (Hold)', reverse: 'Gerwalk Brake / Reverse', brake: 'Full Stop' },
+      GERWALK: { moveForward: 'Move Forward', moveBack: 'Move Backward', moveLeft: 'Strafe Left', moveRight: 'Strafe Right', turnLeft: 'Turn Left', turnRight: 'Turn Right', verticalUp: 'Ascend Altitude', verticalDown: 'Descend Altitude', turbo: 'Continuous Thrust (Hold)', reverse: 'Reverse', brake: 'Full Stop' },
+      BATTROID: { moveForward: 'Walk / Advance', moveBack: 'Move Backward', moveLeft: 'Strafe Left', moveRight: 'Strafe Right', turnLeft: 'Turn Left', turnRight: 'Turn Right', verticalUp: 'Ascend / Vertical Jump', verticalDown: 'Descend', turbo: 'Directional Dash / Boost', reverse: 'Gerwalk Brake / Reverse', brake: 'Stop Dash' }
+    },
+    zh: {
+      FIGHTER: { moveForward: '加速 / 增加推力', moveBack: '减速 / 降低推力', moveLeft: '左偏航', moveRight: '右偏航', turnLeft: '左翻滚', turnRight: '右翻滚', verticalUp: '俯仰：机头上仰', verticalDown: '俯仰：机头下俯', turbo: '加力燃烧室 (按住)', reverse: 'Gerwalk 制动 / 倒飞', brake: '完全急停' },
+      GERWALK: { moveForward: '前进', moveBack: '后退', moveLeft: '向左平移', moveRight: '向右平移', turnLeft: '向左转向', turnRight: '向右转向', verticalUp: '爬升高度', verticalDown: '降低高度', turbo: '持续推进 (按住)', reverse: '倒飞', brake: '完全急停' },
+      BATTROID: { moveForward: '行走 / 前进', moveBack: '后退', moveLeft: '向左平移', moveRight: '向右平移', turnLeft: '向左转向', turnRight: '向右转向', verticalUp: '上升 / 垂直推进', verticalDown: '下降', turbo: '方向推进冲刺', reverse: 'Gerwalk 制动 / 倒飞', brake: '停止冲刺' }
+    },
+    ja: {
+      FIGHTER: { moveForward: '加速 / スロットル上昇', moveBack: '減速 / スロットル低下', moveLeft: '左ヨー旋回', moveRight: '右ヨー旋回', turnLeft: '左ロール', turnRight: '右ロール', verticalUp: 'ピッチ：機首上げ', verticalDown: 'ピッチ：機首下げ', turbo: 'アフターバーナー (長押し)', reverse: 'ガウォーク制動 / 後退', brake: 'フルストップ' },
+      GERWALK: { moveForward: '前進', moveBack: '後退', moveLeft: '左ストライフ', moveRight: '右ストライフ', turnLeft: '左旋回', turnRight: '右旋回', verticalUp: '高度上昇', verticalDown: '高度下降', turbo: '連続推進 (長押し)', reverse: '後退', brake: 'フルストップ' },
+      BATTROID: { moveForward: '歩行 / 前進', moveBack: '後退', moveLeft: '左ストライフ', moveRight: '右ストライフ', turnLeft: '左旋回', turnRight: '右旋回', verticalUp: '上昇 / バーニアジャンプ', verticalDown: '下降', turbo: '方向ダッシュ / ブースト', reverse: 'ガウォーク制動 / 後退', brake: 'ダッシュ停止' }
+    }
   };
-  const padModeLabels = {
-    FIGHTER: { moveForward: 'Empuje (acelerar)', moveBack: 'Reducir empuje', turnLeft: 'Alabeo izquierda', turnRight: 'Alabeo derecha', verticalUp: 'Cabeceo: subir nariz', verticalDown: 'Cabeceo: bajar nariz', strafeLeft: 'Guiñada izquierda', strafeRight: 'Guiñada derecha', turbo: 'Booster (mantener)', slowdown: 'Desacelerar adicional', brake: 'Frenado total' },
-    GERWALK: { moveForward: 'Avanzar', moveBack: 'Retroceder', moveLeft: 'Girar izquierda', moveRight: 'Girar derecha', strafeLeft: 'Desplazamiento lateral izq.', strafeRight: 'Desplazamiento lateral der.', gerwalkUp: 'Subir altitud', gerwalkDown: 'Bajar altitud', verticalUp: 'Eje vertical: subir', verticalDown: 'Eje vertical: bajar', turbo: 'Propulsión (mantener)', reverse: 'Reversa (mantener)', slowdown: 'Desacelerar adicional', descend: 'Descenso adicional', brake: 'Frenado total' },
-    BATTROID: { moveForward: 'Avanzar / caminar', moveBack: 'Retroceder', turnLeft: 'Girar izquierda', turnRight: 'Girar derecha', strafeLeft: 'Desplazamiento lateral izq.', strafeRight: 'Desplazamiento lateral der.', verticalUp: 'Elevar (eje vertical)', verticalDown: 'Descender (eje vertical)', descend: 'Descenso adicional', turbo: 'Impulso / booster', brake: 'Frenar impulso' }
+  const padModeLabelsI18N = {
+    es: {
+      FIGHTER: { moveForward: 'Empuje (acelerar)', moveBack: 'Reducir empuje', turnLeft: 'Alabeo izquierda', turnRight: 'Alabeo derecha', verticalUp: 'Cabeceo: subir nariz', verticalDown: 'Cabeceo: bajar nariz', strafeLeft: 'Guiñada izquierda', strafeRight: 'Guiñada derecha', turbo: 'Booster (mantener)', reverse: 'Freno / reversa Gerwalk', slowdown: 'Desacelerar adicional', brake: 'Frenado total' },
+      GERWALK: { moveForward: 'Avanzar', moveBack: 'Retroceder', moveLeft: 'Girar izquierda', moveRight: 'Girar derecha', strafeLeft: 'Desplazamiento lateral izq.', strafeRight: 'Desplazamiento lateral der.', gerwalkUp: 'Subir altitud', gerwalkDown: 'Bajar altitud', verticalUp: 'Eje vertical: subir', verticalDown: 'Eje vertical: bajar', turbo: 'Propulsión (mantener)', reverse: 'Reversa (mantener)', slowdown: 'Desacelerar adicional', descend: 'Descenso adicional', brake: 'Frenado total' },
+      BATTROID: { moveForward: 'Avanzar / caminar', moveBack: 'Retroceder', turnLeft: 'Girar izquierda', turnRight: 'Girar derecha', strafeLeft: 'Desplazamiento lateral izq.', strafeRight: 'Desplazamiento lateral der.', verticalUp: 'Elevar (eje vertical)', verticalDown: 'Descender (eje vertical)', descend: 'Descenso adicional', turbo: 'Impulso / booster', reverse: 'Freno / reversa Gerwalk', brake: 'Frenar impulso' }
+    },
+    en: {
+      FIGHTER: { moveForward: 'Thrust (Accelerate)', moveBack: 'Reduce Thrust', turnLeft: 'Roll Left', turnRight: 'Roll Right', verticalUp: 'Pitch: Nose Up', verticalDown: 'Pitch: Nose Down', strafeLeft: 'Yaw Left', strafeRight: 'Yaw Right', turbo: 'Boost (Hold)', reverse: 'Gerwalk Brake / Reverse', slowdown: 'Extra Deceleration', brake: 'Full Stop' },
+      GERWALK: { moveForward: 'Move Forward', moveBack: 'Move Backward', moveLeft: 'Turn Left', moveRight: 'Turn Right', strafeLeft: 'Strafe Left', strafeRight: 'Strafe Right', gerwalkUp: 'Ascend Altitude', gerwalkDown: 'Descend Altitude', verticalUp: 'Vertical Axis: Up', verticalDown: 'Vertical Axis: Down', turbo: 'Thrust (Hold)', reverse: 'Reverse (Hold)', slowdown: 'Extra Deceleration', descend: 'Extra Descend', brake: 'Full Stop' },
+      BATTROID: { moveForward: 'Walk / Advance', moveBack: 'Move Backward', turnLeft: 'Turn Left', turnRight: 'Turn Right', strafeLeft: 'Strafe Left', strafeRight: 'Strafe Right', verticalUp: 'Ascend (Vertical Axis)', verticalDown: 'Descend (Vertical Axis)', descend: 'Extra Descend', turbo: 'Boost / Dash', reverse: 'Gerwalk Brake / Reverse', brake: 'Stop Dash' }
+    },
+    zh: {
+      FIGHTER: { moveForward: '推力 (加速)', moveBack: '降低推力', turnLeft: '左翻滚', turnRight: '右翻滚', verticalUp: '俯仰：机头上仰', verticalDown: '俯仰：机头下俯', strafeLeft: '左偏航', strafeRight: '右偏航', turbo: '涡轮加速 (按住)', reverse: 'Gerwalk 制动 / 倒飞', slowdown: '额外减速', brake: '完全急停' },
+      GERWALK: { moveForward: '前进', moveBack: '后退', moveLeft: '向左转向', moveRight: '向右转向', strafeLeft: '向左平移', strafeRight: '向右平移', gerwalkUp: '爬升高度', gerwalkDown: '降低高度', verticalUp: '垂直轴：上升', verticalDown: '垂直轴：下降', turbo: '推进 (按住)', reverse: '倒飞 (按住)', slowdown: '额外减速', descend: '额外下降', brake: '完全急停' },
+      BATTROID: { moveForward: '行走 / 前进', moveBack: '后退', turnLeft: '向左转向', turnRight: '向右转向', strafeLeft: '向左平移', strafeRight: '向右平移', verticalUp: '上升 (垂直轴)', verticalDown: '下降 (垂直轴)', descend: '额外下降', turbo: '冲刺 / 推进', reverse: 'Gerwalk 制动 / 倒飞', brake: '停止冲刺' }
+    },
+    ja: {
+      FIGHTER: { moveForward: '推力 (加速)', moveBack: '推力低下', turnLeft: '左ロール', turnRight: '右ロール', verticalUp: 'ピッチ：機首上げ', verticalDown: 'ピッチ：機首下げ', strafeLeft: '左ヨー旋回', strafeRight: '右ヨー旋回', turbo: 'ブースト (長押し)', reverse: 'ガウォーク制動 / 後退', slowdown: '追加減速', brake: 'フルストップ' },
+      GERWALK: { moveForward: '前進', moveBack: '後退', moveLeft: '左旋回', moveRight: '右旋回', strafeLeft: '左ストライフ', strafeRight: '右ストライフ', gerwalkUp: '高度上昇', gerwalkDown: '高度下降', verticalUp: '垂直軸：上昇', verticalDown: '垂直軸：下降', turbo: '推進 (長押し)', reverse: '後退 (長押し)', slowdown: '追加減速', descend: '追加下降', brake: 'フルストップ' },
+      BATTROID: { moveForward: '歩行 / 前進', moveBack: '後退', moveLeft: '左ストライフ', moveRight: '右ストライフ', turnLeft: '左旋回', turnRight: '右旋回', verticalUp: '上昇 (垂直軸)', verticalDown: '下降 (垂直軸)', descend: '追加下降', turbo: 'ブースト / ダッシュ', reverse: 'ガウォーク制動 / 後退', brake: 'ダッシュ停止' }
+    }
   };
-
+  const kbModeLabels = kbModeLabelsI18N.es;
+  const padModeLabels = padModeLabelsI18N.es;
+  window.getModeActionLabel = (action, mode, isPad, lang) => {
+    const l = (lang && kbModeLabelsI18N[lang]) ? lang : 'es';
+    const src = isPad ? padModeLabelsI18N[l] : kbModeLabelsI18N[l];
+    return (mode && src[mode] && src[mode][action]) ? src[mode][action] : null;
+  };
+  
   function baseOf(id) { return id.split('@')[0]; }
   function modeOf(id) { return id.includes('@') ? id.split('@')[1] : null; }
   function bindingId(action, mode, device) {
@@ -302,21 +343,24 @@
   }
 
   function keyLabel(code) {
+    if (!code || code === 'none') return (typeof t === 'function') ? t('unassigned') : 'SIN ASIGNAR';
     if (labelMap[code]) return labelMap[code];
     if (code.startsWith('Numpad')) return `NUM ${code.slice(6).toUpperCase()}`;
     return code.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '').toUpperCase();
   }
 
   function padLabel(input) {
-    if (!input || input === 'none') return 'SIN ASIGNAR';
+    if (!input || input === 'none') return (typeof t === 'function') ? t('unassigned') : 'SIN ASIGNAR';
     if (input.startsWith('button')) return padButtonNames[input.slice(6)] || `BOTÓN ${Number(input.slice(6)) + 1}`;
     const match = input.match(/^axis([0-3])([+-])$/);
     if (!match) return input.toUpperCase();
+    const axisIdx = Number(match.at(1));
+    const dirIdx = match.at(2) === '-' ? 0 : 1;
     const labels = [
       ['STICK IZQ. ←', 'STICK IZQ. →'], ['STICK IZQ. ↑', 'STICK IZQ. ↓'],
       ['STICK DER. ←', 'STICK DER. →'], ['STICK DER. ↑', 'STICK DER. ↓']
     ];
-    return labels[Number(match[1])][match[2] === '-' ? 0 : 1];
+    return labels.at(axisIdx).at(dirIdx);
   }
 
   function contextsFor(id, device) {
@@ -534,7 +578,9 @@
       row.classList.toggle('is-unassigned', kbUnassigned);
       row.querySelector('.binding-value').classList.toggle('is-unassigned', kbUnassigned);
       row.classList.toggle('is-listening', id === listeningAction);
-      row.querySelector('.rebind-button').textContent = id === listeningAction ? 'PULSA TECLA' : 'CAMBIAR';
+      row.querySelector('.rebind-button').textContent = id === listeningAction
+        ? ((typeof t === 'function') ? t('listeningKey') : 'PULSA TECLA')
+        : ((typeof t === 'function') ? t('rebindBtn') : 'CAMBIAR');
     });
     document.querySelectorAll('.gamepad-binding-row[data-binding-id]').forEach(row => {
       const id = row.dataset.bindingId;
@@ -545,7 +591,9 @@
       row.classList.toggle('is-unassigned', padUnassigned);
       row.querySelector('.pad-binding-value').classList.toggle('is-unassigned', padUnassigned);
       row.classList.toggle('is-listening', id === listeningPadAction);
-      row.querySelector('.pad-rebind-button').textContent = id === listeningPadAction ? 'PRESIONA' : 'CAMBIAR';
+      row.querySelector('.pad-rebind-button').textContent = id === listeningPadAction
+        ? ((typeof t === 'function') ? t('listeningPad') : 'PRESIONA')
+        : ((typeof t === 'function') ? t('rebindBtn') : 'CAMBIAR');
     });
     renderKeyboard();
     renderGamepadDiagram();
@@ -632,15 +680,19 @@
     listeningAction = null;
     listeningPadAction = null;
     const current = device === 'gamepad' ? padLabel(gamepadBindings[action]) : keyLabel(bindings[action]);
+    const tr = (k, fb) => (typeof t === 'function') ? t(k) : fb;
     modal.querySelector('.rebind-modal-title').textContent = rowName(action, device);
-    modal.querySelector('[data-rm="current"]').textContent = current;
-    modal.querySelector('[data-rm="new"]').textContent = '—';
-    modal.querySelector('.rebind-modal-hint').textContent =
-      'Elige ASIGNAR para capturar una entrada, LIMPIAR para dejarla libre o CANCELAR para conservarla.';
+    modal.querySelector('.rebind-modal-values').innerHTML =
+      '<span>' + tr('rmCurrent', 'ACTUAL') + ' <kbd data-rm="current">' + current + '</kbd></span>' +
+      '<span>' + tr('rmNew', 'NUEVA') + ' <kbd data-rm="new">—</kbd></span>';
+    modal.querySelector('.rebind-modal-hint').textContent = tr('rmHintInit', 'Elige ASIGNAR para capturar una entrada, LIMPIAR para dejarla libre o CANCELAR para conservarla.');
     modal.querySelector('.rebind-modal-hint').classList.remove('is-warning');
     const assignButton = modal.querySelector('[data-rm-action="assign"]');
     assignButton.disabled = false;
-    assignButton.textContent = device === 'gamepad' ? 'ASIGNAR BOTÓN' : 'ASIGNAR TECLA';
+    assignButton.textContent = device === 'gamepad' ? tr('rmAssignBtn', 'ASIGNAR BOTÓN') : tr('rmAssignKey', 'ASIGNAR TECLA');
+    modal.querySelector('[data-rm-action="clear"]').textContent = tr('rmClear', 'LIMPIAR');
+    modal.querySelector('[data-rm-action="cancel"]').textContent = tr('rmCancel', 'CANCELAR');
+
     modal.hidden = false;
     if (device === 'gamepad') {
       window.dispatchEvent(new CustomEvent('macross:focus-element', { detail: { element: assignButton } }));
@@ -1048,7 +1100,8 @@
     isOptionsOpen: () => optionsOpen,
     isListening: () => captureArmed,
     openPauseOptions,
-    closeOptions
+    closeOptions,
+    refreshTranslations: renderBindings
   };
 
   renderBindings();

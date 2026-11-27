@@ -38,6 +38,13 @@ const I18N_DICT = {
     grpFlight: 'VUELO', grpTransform: 'TRANSFORMACIÓN', grpAttack: 'ATAQUE', grpSystems: 'SISTEMAS', grpCamera: 'CÁMARA', grpMenu: 'MENÚ Y MISIÓN',
     optTag: 'U.N. SPACY // SISTEMA DE VUELO', mpTag: 'U.N. SPACY // ENLACE P2P WEBRTC',
     legFlight: 'Vuelo', legTransform: 'Transformación', legAttack: 'Ataque', legSystems: 'Sistemas', legMenu: 'Menú', legListen: 'En edición',
+	rmCurrent: 'ACTUAL', rmNew: 'NUEVA', rmAssign: 'ASIGNAR', rmAssignKey: 'ASIGNAR TECLA', rmAssignBtn: 'ASIGNAR BOTÓN',
+    rmClear: 'LIMPIAR', rmCancel: 'CANCELAR', rmWaiting: 'ESPERANDO…',
+    rmHintInit: 'Elige ASIGNAR para capturar una entrada, LIMPIAR para dejarla libre o CANCELAR para conservarla.',
+    rmHintKey: 'Presiona la tecla que quieras asignar. ESC cancela.',
+    rmHintPad: 'Presiona el botón o mueve el stick que quieras asignar. B cancela.',
+    unassigned: 'SIN ASIGNAR', listeningKey: 'PULSA TECLA', listeningPad: 'PRESIONA',
+
     audioStatusInit: 'Reproductor de prueba · inicia la reproducción cuando quieras.'
   },
   en: {
@@ -77,6 +84,13 @@ const I18N_DICT = {
     grpFlight: 'FLIGHT', grpTransform: 'TRANSFORMATION', grpAttack: 'ATTACK', grpSystems: 'SYSTEMS', grpCamera: 'CAMERA', grpMenu: 'MENU & MISSION',
     optTag: 'U.N. SPACY // FLIGHT SYSTEM', mpTag: 'U.N. SPACY // WEBRTC P2P LINK',
     legFlight: 'Flight', legTransform: 'Transformation', legAttack: 'Attack', legSystems: 'Systems', legMenu: 'Menu', legListen: 'Listening',
+	rmCurrent: 'CURRENT', rmNew: 'NEW', rmAssign: 'ASSIGN', rmAssignKey: 'ASSIGN KEY', rmAssignBtn: 'ASSIGN BUTTON',
+    rmClear: 'CLEAR', rmCancel: 'CANCEL', rmWaiting: 'WAITING…',
+    rmHintInit: 'Choose ASSIGN to capture an input, CLEAR to leave unassigned, or CANCEL to keep it.',
+    rmHintKey: 'Press the key you want to assign. ESC cancels.',
+    rmHintPad: 'Press the button or move the stick you want to assign. B cancels.',
+    unassigned: 'UNASSIGNED', listeningKey: 'PRESS KEY', listeningPad: 'PRESS INPUT',
+
     audioStatusInit: 'Sound tester · start playback whenever you want.'
   },
   zh: {
@@ -116,6 +130,13 @@ const I18N_DICT = {
     grpFlight: '飞行控制', grpTransform: '形态变形', grpAttack: '武器攻击', grpSystems: '系统功能', grpCamera: '视角镜头', grpMenu: '菜单与任务',
     optTag: 'U.N. SPACY // 飞行系统', mpTag: 'U.N. SPACY // WEBRTC 直连',
     legFlight: '飞行', legTransform: '变形', legAttack: '攻击', legSystems: '系统', legMenu: '菜单', legListen: '编辑中',
+	rmCurrent: '当前', rmNew: '新按键', rmAssign: '分配', rmAssignKey: '分配按键', rmAssignBtn: '分配手柄键',
+    rmClear: '清除', rmCancel: '取消', rmWaiting: '等待输入…',
+    rmHintInit: '选择“分配”录入新按键，“清除”设为未分配，或“取消”保留原设置。',
+    rmHintKey: '请按下要分配的键盘按键。按 ESC 取消。',
+    rmHintPad: '请按下手柄按钮或推动摇杆。按 B 取消。',
+    unassigned: '未分配', listeningKey: '请按键', listeningPad: '请按手柄',
+
     audioStatusInit: '试听播放器 · 随时点击播放测试音效。'
   },
 
@@ -156,6 +177,13 @@ const I18N_DICT = {
     grpFlight: 'フライト操作', grpTransform: '三段変形', grpAttack: '攻撃・武装', grpSystems: 'システム', grpCamera: 'カメラ視点', grpMenu: 'メニュー・任務',
     optTag: 'U.N. SPACY // フライトシステム', mpTag: 'U.N. SPACY // WEBRTC P2P通信',
     legFlight: 'フライト', legTransform: '変形', legAttack: '攻撃', legSystems: 'システム', legMenu: 'メニュー', legListen: '入力待機',
+	rmCurrent: '現在', rmNew: '新規', rmAssign: '割り当て', rmAssignKey: 'キー割り当て', rmAssignBtn: 'ボタン割り当て',
+    rmClear: 'クリア', rmCancel: 'キャンセル', rmWaiting: '入力待機中…',
+    rmHintInit: '「割り当て」で入力登録、「クリア」で未割り当て、「キャンセル」で維持します。',
+    rmHintKey: '割り当てたいキーを押してください。ESCでキャンセル。',
+    rmHintPad: '割り当てたいボタンまたはスティックを入力してください。Bでキャンセル。',
+    unassigned: '未割り当て', listeningKey: 'キー入力', listeningPad: 'ボタン入力',
+
     audioStatusInit: 'サウンドテスト · いつでも再生テストが可能です。'
   }
 };
@@ -371,16 +399,24 @@ function applyTranslations(langCode) {
   document.querySelectorAll('.group-systems').forEach(el => { el.textContent = t('grpSystems'); });
   document.querySelectorAll('.group-menu').forEach(el => { el.textContent = t('grpMenu'); });
   document.querySelectorAll('.rebind-button, .pad-rebind-button').forEach(el => { el.textContent = t('rebindBtn'); });
-  document.querySelectorAll('[data-action], [data-pad-action]').forEach(row => {
-    const act = row.dataset.action || row.dataset.padAction;
+  document.querySelectorAll('[data-binding-id], [data-action], [data-pad-action]').forEach(row => {
+    const rawId = row.dataset.bindingId || row.dataset.action || row.dataset.padAction || '';
+    const act = rawId.split('@')[0];
+    const mode = rawId.includes('@') ? rawId.split('@')[1] : (row.dataset.mode || '');
+    const isPad = row.classList.contains('gamepad-binding-row');
     const span = row.querySelector(':scope > span');
-    if (span && I18N_ACTIONS[act] && I18N_ACTIONS[act][activeLang]) {
+    if (!span) return;
+    const customLabel = (typeof window.getModeActionLabel === 'function') ? window.getModeActionLabel(act, mode, isPad, activeLang) : null;
+    const translated = customLabel || (I18N_ACTIONS[act] && I18N_ACTIONS[act][activeLang]);
+    if (translated) {
       const small = span.querySelector('.binding-scope');
       if (small) small.style.display = activeLang === 'es' ? '' : 'none';
-      span.textContent = I18N_ACTIONS[act][activeLang];
+      span.textContent = translated;
       if (small) span.appendChild(small);
     }
   });
+  if (window.gameControls?.refreshTranslations) window.gameControls.refreshTranslations();
+
 }
 
 window.addEventListener('DOMContentLoaded', () => {
