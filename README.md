@@ -1,4 +1,4 @@
-# VF-1 Valkyrie Arcade - Sim // Macross Overdrive - Web Demo
+# Macross Overdrive - Web Demo // VF-1 Valkyrie Arcade - Sim
 
 Prototipo web de combate aéreo y mecha en 3D inspirado en *Macross: Do You Remember Love?* y *Macross VOXP*, desarrollado con **Three.js**, **HTML5 Canvas 2D**, **Web Audio API** y **WebRTC (PeerJS)**. 
 
