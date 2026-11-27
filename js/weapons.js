@@ -101,7 +101,7 @@ function deployChaff(scene, playerContainer) {
 
 let muzzleGroup = null;
 let smokeInstMesh = null;
-const MAX_SMOKE = 480;
+const MAX_SMOKE = 1000;
 const smokePool = new Array(MAX_SMOKE);
 const dummyObj = new THREE.Object3D();
 let smokeCursor = 0;
@@ -696,11 +696,20 @@ function planNextZigTarget(missileObj) {
   missileObj.zigSign *= -1;
   missileObj.zigTimer = 0.36 + Math.random() * 0.18;
 }
+
 function fireMicroMissiles(scene, playerContainer) {
   const profile = missileProfiles.at(missileProfileIndex);
   const activeTargets = lockedEnemies.filter((e) => e && e.respawnTimer <= 0);
-  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh && (mpState.lockProgress || 0) >= 1.0) {
-    activeTargets.push({ mesh: mpState.rivalMesh, respawnTimer: 0, isRival: true });
+  if (typeof mpState !== 'undefined' && mpState.active) {
+    if (mpState.maxPlayers === 2 && mpState.rivalMesh && (mpState.lockProgress || 0) >= 1.0) {
+      activeTargets.push({ mesh: mpState.rivalMesh, respawnTimer: 0, isRival: true });
+    } else if (mpState.maxPlayers === 6 && mpState.players) {
+      mpState.players.forEach((rp) => {
+        if (rp.alive && rp.mesh && rp.team !== mpState.myTeam && (rp.lockProgress || 0) >= 1.0) {
+          activeTargets.push({ mesh: rp.mesh, respawnTimer: 0, isRival: true, mpPlayer: rp });
+        }
+      });
+    }
   }
   if (typeof notifyMpMissileSalvo === 'function') notifyMpMissileSalvo(playerContainer.position, profile.id);
   const offsets = new Array(
@@ -1269,17 +1278,18 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
     }
   }
 
-
-  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
     const eb = enemyBullets.at(i);
     eb.mesh.position.addScaledVector(eb.vel, delta);
     eb.life -= delta;
 
+    const isFriendlyBolt = (typeof mpState !== 'undefined' && mpState.active && mpState.maxPlayers === 6 && eb.team && eb.team === mpState.myTeam);
     let hitPlayer = false;
-    if (!isPlayerDying && !isGameOver && eb.mesh.position.distanceTo(playerContainer.position) < 1.15) {
+    if (!isFriendlyBolt && !isPlayerDying && !isGameOver && eb.mesh.position.distanceTo(playerContainer.position) < 1.15) {
       damagePlayerArmor(scene, camera, playerContainer, 9);
       hitPlayer = true;
     }
+
 
     if (hitPlayer || eb.life <= 0) {
       scene.remove(eb.mesh);
@@ -1393,17 +1403,31 @@ function updateWeapons(delta, scene, camera, playerContainer, velocity, keys) {
       }
     }
 
-    if (!hit && typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
-      if (m.mesh.position.distanceTo(mpState.rivalMesh.position) < 2.2) {
-        const mslDmg = (m.damage || 3) * 8;
-        spawnExplosion(scene, camera, m.mesh.position, 0.75);
-        spawnImpactSparks(scene, camera, m.mesh.position);
-        mpState.rivalArmor = Math.max(0, mpState.rivalArmor - mslDmg);
-        if (mpState.conn && mpState.conn.open) mpState.conn.send({ type: 'RIVAL_HIT', dmg: mslDmg });
-        hit = true;
+        if (!hit && typeof mpState !== 'undefined' && mpState.active) {
+      if (mpState.maxPlayers === 2 && mpState.rivalMesh) {
+        if (m.mesh.position.distanceTo(mpState.rivalMesh.position) < 2.2) {
+          const mslDmg = (m.damage || 3) * 8;
+          spawnExplosion(scene, camera, m.mesh.position, 0.75);
+          spawnImpactSparks(scene, camera, m.mesh.position);
+          mpState.rivalArmor = Math.max(0, mpState.rivalArmor - mslDmg);
+          if (mpState.conn && mpState.conn.open) mpState.conn.send({ type: 'RIVAL_HIT', dmg: mslDmg });
+          hit = true;
+        }
+      } else if (mpState.maxPlayers === 6 && mpState.players) {
+        mpState.players.forEach((rp) => {
+          if (hit || !rp.alive || !rp.mesh || rp.team === mpState.myTeam) return;
+          if (m.mesh.position.distanceTo(rp.mesh.position) < 2.2) {
+            const mslDmg = (m.damage || 3) * 8;
+            spawnExplosion(scene, camera, m.mesh.position, 0.75);
+            spawnImpactSparks(scene, camera, m.mesh.position);
+            rp.hp = Math.max(0, rp.hp - mslDmg);
+            const shotId = mpState.myId + '-msl-' + Math.round(performance.now()) + '-' + i;
+            if (typeof sendMpPacket === 'function') sendMpPacket({ type: 'RIVAL_HIT', targetId: rp.id, dmg: mslDmg, shotId: shotId });
+            hit = true;
+          }
+        });
       }
     }
-
 
     m.life -= delta;
     if (hit || m.life <= 0) {

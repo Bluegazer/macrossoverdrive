@@ -33,11 +33,20 @@ function cycleBattroidTracking() {
 function getClosestBattroidTarget(playerPos, trackMode = battroidTrackMode) {
   let closest = null;
   let minDist = 99999;
-  if (trackMode === 'ENEMY' && typeof enemies !== 'undefined') {
-  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
-  const dRival = playerPos.distanceTo(mpState.rivalMesh.position);
-  if (dRival < minDist) { minDist = dRival; closest = { mesh: mpState.rivalMesh }; }
-}  
+    if (trackMode === 'ENEMY' && typeof enemies !== 'undefined') {
+    if (typeof mpState !== 'undefined' && mpState.active) {
+      if (mpState.maxPlayers === 2 && mpState.rivalMesh) {
+        const dRival = playerPos.distanceTo(mpState.rivalMesh.position);
+        if (dRival < minDist) { minDist = dRival; closest = { mesh: mpState.rivalMesh }; }
+      } else if (mpState.maxPlayers === 6 && mpState.players) {
+        mpState.players.forEach((rp) => {
+          if (!rp.alive || !rp.mesh || rp.team === mpState.myTeam) return;
+          const dRival = playerPos.distanceTo(rp.mesh.position);
+          if (dRival < minDist) { minDist = dRival; closest = { mesh: rp.mesh }; }
+        });
+      }
+    }
+
     for (let i = 0; i < enemies.length; i++) {
       if (enemies.at(i).respawnTimer > 0) continue;
       const d = playerPos.distanceTo(enemies.at(i).mesh.position);
@@ -450,6 +459,36 @@ function handlePlayerDeathSequence(delta, playerContainer, visualTiltGroup, came
     visualTiltGroup.rotation.x = THREE.MathUtils.lerp(visualTiltGroup.rotation.x, 0.12, 4.0 * delta);
     visualTiltGroup.rotation.z = THREE.MathUtils.lerp(visualTiltGroup.rotation.z, 0.45, 4.0 * delta);
   }
+  
+   if (isGameOver && typeof mpState !== 'undefined' && mpState.active && mpState.maxPlayers === 6 && !mpState.matchEnded && mpState.players) {
+    const aliveList = [];
+    mpState.players.forEach((rp) => { if (rp.alive && rp.mesh && rp.team === mpState.myTeam) aliveList.push(rp); });
+    if (aliveList.length === 0) {
+      mpState.players.forEach((rp) => { if (rp.alive && rp.mesh) aliveList.push(rp); });
+    }
+    if (aliveList.length > 0) {
+      if (typeof window._mpSpecIdx !== 'number') window._mpSpecIdx = 0;
+      const switchPrev = Boolean(keys.ArrowLeft || keys.KeyA);
+      const switchNext = Boolean(keys.ArrowRight || keys.KeyD);
+      if ((switchPrev || switchNext) && !window._mpSpecKeyHeld) {
+        window._mpSpecIdx = (window._mpSpecIdx + (switchNext ? 1 : -1) + aliveList.length) % aliveList.length;
+      }
+      window._mpSpecKeyHeld = (switchPrev || switchNext);
+      const targetPilot = aliveList[window._mpSpecIdx % aliveList.length];
+      const specOffset = new THREE.Vector3(0, 0.55, 2.1).applyQuaternion(targetPilot.mesh.quaternion);
+      camera.position.lerp(targetPilot.mesh.position.clone().add(specOffset), 12.0 * delta);
+      const specUp = new THREE.Vector3(0, 1, 0).applyQuaternion(targetPilot.mesh.quaternion);
+      camera.up.lerp(specUp, 8.0 * delta);
+      const specFwd = new THREE.Vector3(0, 0, -1).applyQuaternion(targetPilot.mesh.quaternion);
+      camera.lookAt(targetPilot.mesh.position.clone().addScaledVector(specFwd, 4));
+      if (hudEl) {
+        const uiBox = document.getElementById('ui');
+        if (uiBox) uiBox.classList.remove('hidden');
+        hudEl.innerHTML = 'MODO: <b>DOWN (ESPECTADOR)</b> | SIGUIENDO A: <b>' + targetPilot.name + '</b><br>CONTROLES: <b>[← / →] CAMBIAR PILOTO</b>';
+      }
+      return;
+  }
+}
   const camOffset = new THREE.Vector3(0, 0.65, 2.4).applyQuaternion(playerContainer.quaternion);
   camera.position.lerp(playerContainer.position.clone().add(camOffset), 10.0 * delta);
   camera.up.lerp(new THREE.Vector3(0, 1, 0), 8.0 * delta);

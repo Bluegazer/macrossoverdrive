@@ -209,11 +209,18 @@ const hudStyleSelect = document.getElementById('hudStyleModeSelect');
 if (hudStyleSelect) {
   hudStyleSelect.value = hudStyleMode;
   hudStyleSelect.addEventListener('change', () => {
+    if (typeof mpState !== 'undefined' && mpState.active) {
+      hudStyleSelect.value = mpState.hostGameMode || 'SIM';
+      hudStyleMode = hudStyleSelect.value;
+      if (uiPanelEl && isGameStarted) uiPanelEl.classList.toggle('hidden', hudStyleMode === 'ARCADE');
+      return;
+    }
     hudStyleMode = (hudStyleSelect.value === 'ARCADE') ? 'ARCADE' : 'SIM';
     try { localStorage.setItem(hudStyleStorageKey, hudStyleMode); } catch (_) {}
     if (uiPanelEl && isGameStarted) uiPanelEl.classList.toggle('hidden', hudStyleMode === 'ARCADE');
   });
 }
+
 
 let selectedMapId = 'MAPA_1';
 const MAP_TITLES = {
@@ -422,9 +429,11 @@ function initCustomOptionSelects() {
 
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (select.disabled || (select.id === 'hudStyleModeSelect' && typeof mpState !== 'undefined' && mpState.active)) return;
       if (menu.hidden) openMenu();
       else closeMenu(true);
     });
+
 
     select.addEventListener('change', syncLabels);
     const observer = new MutationObserver(syncLabels);
@@ -590,7 +599,17 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (typeof isGameOver !== 'undefined' && isGameOver) {
+    if (typeof isGameOver !== 'undefined' && isGameOver) {
+    if (typeof mpState !== 'undefined' && mpState.active) {
+      if (actions.includes('returnMenu')) {
+        returnToStartScreen();
+        return;
+      }
+      if (code === 'ArrowLeft' || code === 'KeyA' || code === 'ArrowRight' || code === 'KeyD') {
+        keys[code] = true;
+      }
+      return;
+    }
     if (actions.includes('restartAfterDefeat')) {
       window.location.reload();
     } else if (actions.includes('menuAfterDefeat') || actions.includes('returnMenu')) {
@@ -598,6 +617,7 @@ window.addEventListener('keydown', (e) => {
     }
     return;
   }
+
 
   if (actions.includes('returnMenu')) {
     returnToStartScreen();
@@ -654,6 +674,7 @@ window.addEventListener('click', (e) => {
 window.addEventListener('keyup', (e) => {
   const code = e.code || '';
   const actions = window.gameControls.getActionsForCode(code);
+  if (code === 'ArrowLeft' || code === 'KeyA' || code === 'ArrowRight' || code === 'KeyD') keys[code] = false;
   for (const action of continuousControlActions) {
     if (actions.includes(action)) {
       keyboardHeldActions.delete(action);

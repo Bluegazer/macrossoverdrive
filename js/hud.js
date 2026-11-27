@@ -553,8 +553,16 @@ function drawTacticalRadarBox(w, h, playerContainer, enemies) {
     }
   };
 
-  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
-    plotDot(mpState.rivalMesh.position, '#facc15', 3.4, true);
+    if (typeof mpState !== 'undefined' && mpState.active) {
+    if (mpState.maxPlayers === 2 && mpState.rivalMesh) {
+      plotDot(mpState.rivalMesh.position, '#facc15', 3.4, true);
+    } else if (mpState.maxPlayers === 6 && mpState.players) {
+      mpState.players.forEach((rp) => {
+        if (!rp.alive || !rp.mesh) return;
+        const isAlly = (rp.team === mpState.myTeam);
+        plotDot(rp.mesh.position, isAlly ? '#38bdf8' : '#ef4444', isAlly ? 2.8 : 3.4, !isAlly);
+      });
+    }
   } else if (enemies) {
     for (let i = 0; i < enemies.length; i++) {
       if (enemies.at(i).respawnTimer <= 0) plotDot(enemies.at(i).mesh.position, '#ef4444', 2.8, false);
@@ -617,9 +625,18 @@ function drawTopCompassTape(w, playerContainer, enemies) {
     }
   }
 
-  let targetPos = null;
-  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
-    targetPos = mpState.rivalMesh.position;
+    let targetPos = null;
+  if (typeof mpState !== 'undefined' && mpState.active) {
+    if (mpState.maxPlayers === 2 && mpState.rivalMesh) {
+      targetPos = mpState.rivalMesh.position;
+    } else if (mpState.maxPlayers === 6 && mpState.players) {
+      let minD = Infinity;
+      mpState.players.forEach((rp) => {
+        if (!rp.alive || !rp.mesh || rp.team === mpState.myTeam) return;
+        const d = rp.mesh.position.distanceTo(playerContainer.position);
+        if (d < minD) { minD = d; targetPos = rp.mesh.position; }
+      });
+    }
   } else if (enemies) {
     let minD = Infinity;
     for (let i = 0; i < enemies.length; i++) {
@@ -659,8 +676,16 @@ function drawTopCompassTape(w, playerContainer, enemies) {
 function drawOffScreenTargetArrow(w, h, camera, playerContainer, enemies) {
   const targets = new Array();
 
-  if (typeof mpState !== 'undefined' && mpState.active && mpState.rivalMesh) {
-    targets.push({ pos: mpState.rivalMesh.position, tag: mpState.rivalName || 'RIVAL', isRival: true });
+  if (typeof mpState !== 'undefined' && mpState.active) {
+    if (mpState.maxPlayers === 2 && mpState.rivalMesh) {
+      targets.push({ pos: mpState.rivalMesh.position, tag: mpState.rivalName || 'RIVAL', isRival: true });
+    } else if (mpState.maxPlayers === 6 && mpState.players) {
+      mpState.players.forEach((rp) => {
+        if (rp.alive && rp.mesh && rp.team !== mpState.myTeam) {
+          targets.push({ pos: rp.mesh.position, tag: rp.name || 'ENEMY', isRival: true });
+        }
+      });
+    }
   } else if (enemies) {
     for (let i = 0; i < enemies.length; i++) {
       if (enemies.at(i).respawnTimer > 0) continue;
@@ -922,70 +947,90 @@ function drawSaturnSunLensFlare(w, h, camera, playerContainer) {
 }
 
 function drawMultiplayerRivalHUD(w, h, camera, playerContainer, delta) {
-  if (typeof mpState === 'undefined' || !mpState.active || !mpState.rivalMesh) return;
+  if (typeof mpState === 'undefined' || !mpState.active) return;
 
-  const proj = mpState.rivalMesh.position.clone().project(camera);
-  if (proj.z <= 1) {
-    const sx = (proj.x * 0.5 + 0.5) * w;
-    const sy = (-(proj.y * 0.5) + 0.5) * h;
-    const distM = Math.round(mpState.rivalMesh.position.distanceTo(playerContainer.position) * 10);
-    drawDYRLEnemyHexagon(sx, sy, 20, distM, Math.max(0, Math.round(mpState.rivalMesh.position.y * 2.4)));
+  if (mpState.maxPlayers === 2 && mpState.rivalMesh) {
+    const proj = mpState.rivalMesh.position.clone().project(camera);
+    if (proj.z <= 1) {
+      const sx = (proj.x * 0.5 + 0.5) * w, sy = (-(proj.y * 0.5) + 0.5) * h;
+      const distM = Math.round(mpState.rivalMesh.position.distanceTo(playerContainer.position) * 10);
+      drawDYRLEnemyHexagon(sx, sy, 20, distM, Math.max(0, Math.round(mpState.rivalMesh.position.y * 2.4)));
+      const isChargingMpLock = Boolean(window.isChargingMissileLock);
+      const prevMpProg = mpState.lockProgress || 0;
+      mpState.lockProgress = (isChargingMpLock && Math.hypot(sx - w * 0.5, sy - h * 0.5) < 215) ? Math.min(1.0, prevMpProg + delta * 2.8) : 0;
+      const isLocked = mpState.lockProgress >= 1.0;
+      if (isLocked && prevMpProg < 1.0 && typeof playSFX === 'function') playSFX('lockOn', 0.65, 0);
+      if (isChargingMpLock) drawSeekerBrackets(sx, sy, (1.0 - mpState.lockProgress) * 18, isLocked, mpState.rivalName, 1);
 
+      const hpRatio = Math.max(0, Math.min(1, mpState.rivalArmor / (mpState.rivalMaxArmor || 140)));
+      const hpColor = hpRatio > 0.5 ? '#22c55e' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
+      hudCtx.save();
+      hudCtx.font = 'bold 10px Conthrax, sans-serif'; hudCtx.textAlign = 'center'; hudCtx.fillStyle = '#facc15';
+      hudCtx.fillText('[' + mpState.rivalCountry + '] ' + mpState.rivalName + ' (' + Math.max(0, Math.round(mpState.rivalArmor)) + ')', sx, sy - 42);
+      hudCtx.fillStyle = 'rgba(15, 23, 42, 0.85)'; hudCtx.fillRect(sx - 43, sy - 36, 86, 6);
+      hudCtx.fillStyle = hpColor; hudCtx.fillRect(sx - 42, sy - 35, 84 * hpRatio, 4);
+      hudCtx.restore();
+    }
+  } else if (mpState.maxPlayers === 6 && mpState.players) {
     const isChargingMpLock = Boolean(window.isChargingMissileLock);
-    const prevMpProg = mpState.lockProgress || 0;
-    if (isChargingMpLock && Math.hypot(sx - w * 0.5, sy - h * 0.5) < 215) {
-      mpState.lockProgress = Math.min(1.0, prevMpProg + delta * 2.8);
-    } else {
-      mpState.lockProgress = 0;
-    }
-    const isLocked = mpState.lockProgress >= 1.0;
-    if (isLocked && prevMpProg < 1.0 && typeof playSFX === 'function') playSFX('lockOn', 0.65, 0);
-    if (isChargingMpLock) {
-      drawSeekerBrackets(sx, sy, (1.0 - mpState.lockProgress) * 18, isLocked, mpState.rivalName, 1);
-    }
+    let enemyLockIdx = 1;
+    mpState.players.forEach((rp) => {
+      if (!rp.alive || !rp.mesh) { rp.lockProgress = 0; return; }
+      const proj = rp.mesh.position.clone().project(camera);
+      if (proj.z > 1) { rp.lockProgress = 0; return; }
+      const sx = (proj.x * 0.5 + 0.5) * w, sy = (-(proj.y * 0.5) + 0.5) * h;
+      const isAlly = (rp.team === mpState.myTeam);
 
-    const hpRatio = Math.max(0, Math.min(1, mpState.rivalArmor / (mpState.rivalMaxArmor || 140)));
-    const hpColor = hpRatio > 0.5 ? '#22c55e' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444');
-    const barW = 86, barH = 6;
+      if (!isAlly) {
+        const distM = Math.round(rp.mesh.position.distanceTo(playerContainer.position) * 10);
+        drawDYRLEnemyHexagon(sx, sy, 18, distM, Math.max(0, Math.round(rp.mesh.position.y * 2.4)));
+        const prevProg = rp.lockProgress || 0;
+        rp.lockProgress = (isChargingMpLock && Math.hypot(sx - w * 0.5, sy - h * 0.5) < 215) ? Math.min(1.0, prevProg + delta * 2.8) : 0;
+        const isLocked = rp.lockProgress >= 1.0;
+        if (isLocked && prevProg < 1.0 && typeof playSFX === 'function') playSFX('lockOn', 0.65, 0);
+        if (isChargingMpLock) drawSeekerBrackets(sx, sy, (1.0 - rp.lockProgress) * 18, isLocked, rp.name, enemyLockIdx++);
+      }
 
-    hudCtx.save();
-    hudCtx.font = 'bold 10px Conthrax, sans-serif';
-    hudCtx.textAlign = 'center';
-    hudCtx.fillStyle = '#facc15';
-    hudCtx.fillText('[' + mpState.rivalCountry + '] ' + mpState.rivalName + ' (' + Math.max(0, Math.round(mpState.rivalArmor)) + ')', sx, sy - 42);
-    hudCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    hudCtx.fillRect(sx - barW * 0.5, sy - 36, barW, barH);
-    hudCtx.fillStyle = hpColor;
-    hudCtx.fillRect(sx - barW * 0.5 + 1, sy - 35, (barW - 2) * hpRatio, barH - 2);
-    hudCtx.restore();
+      const hpRatio = Math.max(0, Math.min(1, rp.hp / (rp.maxHp || 140)));
+      const hpColor = isAlly ? '#38bdf8' : (hpRatio > 0.5 ? '#22c55e' : (hpRatio > 0.25 ? '#f59e0b' : '#ef4444'));
+      hudCtx.save();
+      hudCtx.font = 'bold 9.5px Conthrax, sans-serif'; hudCtx.textAlign = 'center';
+      hudCtx.fillStyle = isAlly ? '#38bdf8' : '#f87171';
+      hudCtx.fillText((isAlly ? '[ALLY] ' : '') + rp.name + ' (' + Math.max(0, Math.round(rp.hp)) + ')', sx, sy - 38);
+      hudCtx.fillStyle = 'rgba(15, 23, 42, 0.85)'; hudCtx.fillRect(sx - 38, sy - 32, 76, 5);
+      hudCtx.fillStyle = hpColor; hudCtx.fillRect(sx - 37, sy - 31, 74 * hpRatio, 3);
+      hudCtx.restore();
+    });
   }
 
-    if (mpState.matchEnded) {
+  if (mpState.matchEnded) {
     const lang = (typeof activeLang !== 'undefined') ? activeLang : 'es';
     const myName = mpState.pilotName || 'PILOT';
     const enemyName = mpState.rivalName || 'RIVAL';
+    const winTeamLabel = mpState.winningTeam === 'RED'
+      ? (lang === 'en' ? 'RED SQUADRON' : (lang === 'zh' ? '红队中队' : (lang === 'ja' ? 'レッド小隊' : 'ESCUADRÓN ROJO')))
+      : (lang === 'en' ? 'BLUE SQUADRON' : (lang === 'zh' ? '蓝队中队' : (lang === 'ja' ? 'ブルー小隊' : 'ESCUADRÓN AZUL')));
 
     let resultText = '';
     let exitHint = 'PRESIONA [ESC] PARA VOLVER AL MENÚ PRINCIPAL';
 
-    if (lang === 'en') {
-      resultText = mpState.victory ? (myName + ' WINS // ' + enemyName + ' SHOT DOWN') : (myName + ' LOST // SHOT DOWN BY ' + enemyName);
-      exitHint = 'PRESS [ESC] TO RETURN TO MAIN MENU';
-    } else if (lang === 'zh') {
-      resultText = mpState.victory ? (myName + ' 获胜 // 击落 ' + enemyName) : (myName + ' 战败 // 被 ' + enemyName + ' 击落');
-      exitHint = '按 [ESC] 键返回主菜单';
-    } else if (lang === 'ja') {
-      resultText = mpState.victory ? (myName + ' の勝利 // ' + enemyName + ' を撃墜') : (myName + ' の敗北 // ' + enemyName + ' に撃墜された');
-      exitHint = '[ESC] キーでメインメニューに戻る';
+    if (mpState.maxPlayers === 6) {
+      if (lang === 'en') { resultText = winTeamLabel + ' WINS // SQUADRON ELIMINATED'; exitHint = 'PRESS [ESC] TO RETURN TO MAIN MENU'; }
+      else if (lang === 'zh') { resultText = winTeamLabel + ' 获胜 // 敌方中队全灭'; exitHint = '按 [ESC] 键返回主菜单'; }
+      else if (lang === 'ja') { resultText = winTeamLabel + ' の勝利 // 敵中隊撃滅'; exitHint = '[ESC] キーでメインメニューに戻る'; }
+      else { resultText = 'VICTORIA: ' + winTeamLabel + ' // ESCUADRÓN RIVAL ELIMINADO'; }
     } else {
-      resultText = mpState.victory ? ('GANÓ ' + myName + ' // ' + enemyName + ' DERRIBADO') : ('PERDIÓ ' + myName + ' // DERRIBADO POR ' + enemyName);
+      if (lang === 'en') { resultText = mpState.victory ? (myName + ' WINS // ' + enemyName + ' SHOT DOWN') : (myName + ' LOST // SHOT DOWN BY ' + enemyName); exitHint = 'PRESS [ESC] TO RETURN TO MAIN MENU'; }
+      else if (lang === 'zh') { resultText = mpState.victory ? (myName + ' 获胜 // 击落 ' + enemyName) : (myName + ' 战败 // 被 ' + enemyName + ' 击落'); exitHint = '按 [ESC] 键返回主菜单'; }
+      else if (lang === 'ja') { resultText = mpState.victory ? (myName + ' の勝利 // ' + enemyName + ' を撃墜') : (myName + ' の敗北 // ' + enemyName + ' に撃墜された'); exitHint = '[ESC] キーでメインメニューに戻る'; }
+      else { resultText = mpState.victory ? ('GANÓ ' + myName + ' // ' + enemyName + ' DERRIBADO') : ('PERDIÓ ' + myName + ' // DERRIBADO POR ' + enemyName); }
     }
 
     hudCtx.save();
     hudCtx.fillStyle = 'rgba(2, 6, 23, 0.72)';
     hudCtx.fillRect(0, h * 0.5 - 55, w, 110);
     hudCtx.textAlign = 'center';
-    hudCtx.font = 'bold 24px Conthrax, sans-serif';
+    hudCtx.font = 'bold 22px Conthrax, sans-serif';
     hudCtx.fillStyle = mpState.victory ? '#22c55e' : '#ef4444';
     hudCtx.fillText(resultText, w * 0.5, h * 0.5 - 6);
     hudCtx.font = 'bold 11px Conthrax, sans-serif';
@@ -993,9 +1038,8 @@ function drawMultiplayerRivalHUD(w, h, camera, playerContainer, delta) {
     hudCtx.fillText(exitHint, w * 0.5, h * 0.5 + 26);
     hudCtx.restore();
   }
-
-
 }
+
 
 function drawArcadeGunLockReticle(w, h, camera, playerContainer) {
   if (typeof getArcadeGunLockTarget !== 'function') return;

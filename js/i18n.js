@@ -2,7 +2,10 @@ const I18N_STORAGE_KEY = 'macrossvoxp-lang-v1';
 
 const I18N_DICT = {
   es: {
-    startBtn: 'INICIAR MISIÓN', loadingBtn: 'CARGANDO SISTEMAS...', optionsBtn: 'OPCIONES', mpBtn: 'COMBATE 1 VS 1',
+    startBtn: 'INICIAR MISIÓN', loadingBtn: 'CARGANDO SISTEMAS...', optionsBtn: 'OPCIONES', mpBtn: 'COMBATE 1 VS 1', mpBtn3v3: 'COMBATE 3 VS 3',
+	mpTitle3v3: 'COMBATE 3 VS 3', mpSub3v3: 'ESCUADRONES 3 VS 3 · ELIMINACIÓN DIRECTA (6/6)',
+    mpSquadHeader: 'ESCUADRONES 3 VS 3 · ELIMINACIÓN DIRECTA', mpBlueTeam: 'ESCUADRÓN AZUL', mpRedTeam: 'ESCUADRÓN ROJO',
+    mpSwitchTeam: 'CAMBIAR DE ESCUADRÓN', mpWaitPilots: 'ESPERANDO PILOTOS', mpWaitSlot: 'ESPERANDO PILOTO...', mpPilotsUnit: 'PILOTOS', mpStart3v3Btn: 'INICIAR BATALLA 3 VS 3 (6/6)', mpWaitHostBtn: 'ESPERANDO QUE EL HOST INICIE...',
     mapLabel: 'TEATRO DE OPERACIONES', mapBtn1: 'MAPA 1', mapBtn2: 'MAPA 2', mapBtn3: 'MAPA 3',
     map1: '01 // ISLA SOUTH ATARIA', map2: '02 // ÓRBITA DE SATURNO', map3: '03 // MACROSS CITY INTERIOR (DYRL)',
     startHint: 'ENTER / A: ACEPTAR · CRUCETA O STICK: MOVER · B: VOLVER', backBlog: 'Regresar a la Bitácora',
@@ -38,7 +41,10 @@ const I18N_DICT = {
     audioStatusInit: 'Reproductor de prueba · inicia la reproducción cuando quieras.'
   },
   en: {
-    startBtn: 'START MISSION', loadingBtn: 'LOADING SYSTEMS...', optionsBtn: 'OPTIONS', mpBtn: '1 VS 1 COMBAT',
+    startBtn: 'START MISSION', loadingBtn: 'LOADING SYSTEMS...', optionsBtn: 'OPTIONS', mpBtn: '1 VS 1 COMBAT', mpBtn3v3: 'COMBAT 3 VS 3',
+	mpTitle3v3: '3 VS 3 COMBAT', mpSub3v3: '3 VS 3 SQUADRONS · DIRECT ELIMINATION (6/6)',
+    mpSquadHeader: '3 VS 3 SQUADRONS · DIRECT ELIMINATION', mpBlueTeam: 'BLUE SQUADRON', mpRedTeam: 'RED SQUADRON',
+    mpSwitchTeam: 'SWITCH SQUADRON', mpWaitPilots: 'WAITING FOR PILOTS', mpWaitSlot: 'WAITING FOR PILOT...', mpPilotsUnit: 'PILOTS', mpStart3v3Btn: 'LAUNCH 3 VS 3 BATTLE (6/6)', mpWaitHostBtn: 'WAITING FOR HOST TO START...',
     mapLabel: 'THEATER OF OPERATIONS', mapBtn1: 'MAP 1', mapBtn2: 'MAP 2', mapBtn3: 'MAP 3',
     map1: '01 // SOUTH ATARIA ISLAND', map2: '02 // SATURN ORBIT', map3: '03 // MACROSS CITY INTERIOR (DYRL)',
     startHint: 'ENTER / A: ACCEPT · D-PAD OR STICK: MOVE · B: BACK', backBlog: 'Back to Logbook',
@@ -74,7 +80,10 @@ const I18N_DICT = {
     audioStatusInit: 'Sound tester · start playback whenever you want.'
   },
   zh: {
-    startBtn: '开始任务', loadingBtn: '系统加载中...', optionsBtn: '选项设置', mpBtn: '1 VS 1 对战',
+    startBtn: '开始任务', loadingBtn: '系统加载中...', optionsBtn: '选项设置', mpBtn: '1 VS 1 对战', mpBtn3v3: '3 VS 3 团队战',
+	mpTitle3v3: '3 VS 3 团队战', mpSub3v3: '3 VS 3 中队对抗 · 直接淘汰制 (6/6)',
+    mpSquadHeader: '3 VS 3 中队对抗 · 直接淘汰制', mpBlueTeam: '蓝队中队', mpRedTeam: '红队中队',
+    mpSwitchTeam: '切换中队', mpWaitPilots: '等待飞行员加入', mpWaitSlot: '等待飞行员...', mpPilotsUnit: '名飞行员', mpStart3v3Btn: '开始 3 VS 3 战斗 (6/6)', mpWaitHostBtn: '等待房主开始战斗...',
     mapLabel: '作战区域', mapBtn1: '地图 1', mapBtn2: '地图 2', mapBtn3: '地图 3',
     map1: '01 // 南阿塔利亚岛', map2: '02 // 土星轨道', map3: '03 // 麦克罗斯市内部 (DYRL)',
     startHint: 'ENTER / A: 确认 · 十字键/摇杆: 移动 · B: 返回', backBlog: '返回日志主页',
@@ -111,7 +120,10 @@ const I18N_DICT = {
   },
 
   ja: {
-    startBtn: 'ミッション開始', loadingBtn: 'システム読込中...', optionsBtn: 'オプション', mpBtn: '1 VS 1 対戦',
+    startBtn: 'ミッション開始', loadingBtn: 'システム読込中...', optionsBtn: 'オプション', mpBtn: '1 VS 1 対戦', mpBtn3v3: '3 VS 3 編隊戦',
+	mpTitle3v3: '3 VS 3 編隊戦', mpSub3v3: '3 VS 3 中隊戦 · 撃墜サバイバル (6/6)',
+    mpSquadHeader: '3 VS 3 中隊戦 · 撃墜サバイバル', mpBlueTeam: 'ブルー小隊', mpRedTeam: 'レッド小隊',
+    mpSwitchTeam: '小隊を変更', mpWaitPilots: 'パイロット待機中', mpWaitSlot: 'パイロット待機中...', mpPilotsUnit: '名', mpStart3v3Btn: '3 VS 3 出撃開始 (6/6)', mpWaitHostBtn: 'ホストの開始を待機中...',
     mapLabel: '作戦エリア', mapBtn1: 'マップ 1', mapBtn2: 'マップ 2', mapBtn3: 'マップ 3',
     map1: '01 // 南アタリア島', map2: '02 // 土星軌道', map3: '03 // マクロス・シティ内部 (DYRL)',
     startHint: 'ENTER / A: 決定 · 十字キー/スティック: 移動 · B: 戻る', backBlog: 'ログブックへ戻る',
@@ -224,6 +236,7 @@ function applyTranslations(langCode) {
   if (startBtn) startBtn.textContent = startBtn.disabled ? t('loadingBtn') : t('startBtn');
   setTxt('btnOptions', 'optionsBtn');
   setTxt('btnMultiplayer', 'mpBtn');
+  setTxt('btnMultiplayer3v3', 'mpBtn3v3');
   setSel('.map-selector-label', 'mapLabel');
   setSel('[data-map="MAPA_1"]', 'mapBtn1');
   setSel('[data-map="MAPA_2"]', 'mapBtn2');
@@ -246,6 +259,12 @@ function applyTranslations(langCode) {
   setTxt('mpGameModeLabel', 'mpGameModeLbl');
   setSel('#mpGameModeGroup [data-mp-mode="SIM"]', 'mpModeSim');
   setSel('#mpGameModeGroup [data-mp-mode="ARCADE"]', 'mpModeArc');
+  setTxt('mpSquadHeader', 'mpSquadHeader');
+  setTxt('mpBlueTeamTitle', 'mpBlueTeam');
+  setTxt('mpRedTeamTitle', 'mpRedTeam');
+  setTxt('btnSwitchTeam', 'mpSwitchTeam');
+  if (typeof renderSquadLobbyUI === 'function') renderSquadLobbyUI();
+
 
 
   const mpBoxes = document.querySelectorAll('#multiplayerScreen > section > div:nth-of-type(2) > div > div:first-child');
