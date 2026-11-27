@@ -26,6 +26,7 @@
       <button id="btnStartGame" class="start-btn" disabled>CARGANDO SISTEMAS...</button>
       <button id="btnOptions" class="start-options-btn" type="button">OPCIONES</button>
 	  <button id="btnMultiplayer" class="start-options-btn" type="button">COMBATE 1 VS 1</button>
+	  <button id="btnMultiplayer3v3" class="start-options-btn" type="button">COMBATE 3 VS 3</button>
       <div class="map-selector-box">
         <div class="map-selector-label">TEATRO DE OPERACIONES</div>
         <div class="map-btn-group">
@@ -338,6 +339,26 @@
         </div>
 	  </div>
 
+        <div id="mpSquadLobby" class="hidden" style="background: rgba(15,23,42,0.82); border: 1px solid rgba(56,189,248,0.45); padding: 12px; margin: 10px 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span id="mpSquadHeader" style="font-size: 11px; color: #38bdf8; letter-spacing: 1px;">ESCUADRONES 3 VS 3 · ELIMINACIÓN DIRECTA</span>
+          <span id="mpPlayerCountBadge" style="font-size: 11px; color: #facc15; border: 1px solid rgba(250,204,21,0.5); padding: 3px 8px;">0 / 6 PILOTOS</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: rgba(8, 24, 48, 0.85); border: 1px solid #38bdf8; padding: 8px;">
+            <div id="mpBlueTeamTitle" style="font-size: 10px; color: #38bdf8; margin-bottom: 6px; letter-spacing: 1px;">ESCUADRÓN AZUL</div>
+            <div id="mpBlueSlots" style="display: flex; flex-direction: column; gap: 5px; font-size: 10px;"></div>
+          </div>
+          <div style="background: rgba(48, 12, 18, 0.85); border: 1px solid #ef4444; padding: 8px;">
+            <div id="mpRedTeamTitle" style="font-size: 10px; color: #f87171; margin-bottom: 6px; letter-spacing: 1px;">ESCUADRÓN ROJO</div>
+            <div id="mpRedSlots" style="display: flex; flex-direction: column; gap: 5px; font-size: 10px;"></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <button id="btnSwitchTeam" class="options-secondary" type="button" style="flex: 1;">CAMBIAR DE ESCUADRÓN</button>
+          <button id="btnStart3v3Match" class="options-save" type="button" style="flex: 2; opacity: 0.45;" disabled>ESPERANDO PILOTOS (0/6)</button>
+        </div>
+      </div>
 
       <p id="mpStatusText" class="binding-status" role="status" aria-live="polite">Ingresa tu nombre y crea una sala o pega el código de tu rival.</p>
       <footer class="options-footer options-global-footer">
@@ -362,7 +383,7 @@
   <script src="./js/env_macross_interior.js"></script>
   <script src="./js/controls.js"></script>
   <script src="./js/multiplayer.js"></script>
-  <script src="./js/i18n.js?v=mode-headings-20261125"></script>
+  <script src="./js/i18n.js"></script>
   <script src="./js/main.js"></script>
 </body>
 </html>
